@@ -99,9 +99,9 @@ Chuyển đổi giao diện LeeAttend từ mô hình định tuyến trang đơn
 ### Task 7: Full Test Suite & Verification (Gate)
 - **Mục tiêu:** Chạy toàn bộ test suite từ backend đến frontend đảm bảo không có bất kỳ regression nào.
 - **Commands:**
-  - Backend: `./leedevkit test apiserver`
+  - Backend: `leedevkit test apiserver`
   - Frontend: `cd webdashboard && bun run test && bun run type-check`
-  - E2E / Integration: `./leedevkit test`
+  - E2E / Integration: `leedevkit test`
 - **Verification:** 100% tests pass, bundle budget không vượt ngưỡng cảnh báo.
 
 ---

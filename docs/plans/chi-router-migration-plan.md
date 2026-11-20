@@ -26,7 +26,7 @@ Status: Approved (2026-11-12)
 ## Tasks
 
 - [x] **1. Chụp baseline và route inventory** — lập danh sách toàn bộ route từ `apiserver/main.go`, phân loại public/authenticated/system/WebSocket, middleware order và handler contract; ghi test impact matrix cho success, 404/405, malformed path ID, 401/403, CORS, body limit, rate limit, request ID, streaming/WebSocket.
-  **Verify:** inventory khớp số route hiện tại; baseline `./leedevkit test api` được chạy và log phase đầy đủ.
+  **Verify:** inventory khớp số route hiện tại; baseline `leedevkit test api` được chạy và log phase đầy đủ.
 
 - [x] **2. Audit và ghi ADR quyết định router** — so sánh giữ `ServeMux` + module hóa với `chi`, ghi lý do chọn `chi` hoặc dừng migration; gồm security boundary, operability, performance, dependency/license/CVE, migration, rollback, owner và removal criteria.
   **Verify:** ADR nằm trong `docs/decisions/`, có trạng thái và acceptance criteria; không code trước khi quyết định được approve.
@@ -42,12 +42,12 @@ Status: Approved (2026-11-12)
 
 - [x] **6. Migrate theo nhóm route độc lập** — chuyển public/auth, employee/attendance, leave/overtime, system/monitor và remaining routes vào domain modules; dùng protected router cho policy auth, không dùng global auth bypass prefix; không trộn business logic.
   **Progress:** all current registrations moved from `apiserver/routes.go` into domain modules; dependency construction remains centralized.
-  **Verify:** full `./leedevkit test api` passes; no direct route registrations remain in `routes.go`; WebSocket and path parameter behavior remain covered.
+  **Verify:** full `leedevkit test api` passes; no direct route registrations remain in `routes.go`; WebSocket and path parameter behavior remain covered.
 
 - [x] **7. Xóa compatibility code và cập nhật docs** — xóa registration cũ khỏi `routes.go`; giữ `registerRoute` adapter vì existing handlers use `Request.PathValue`; cập nhật `apiserver/README.md`, ADR và route ownership notes.
   **Verify:** `routes.go` có zero direct route registrations; adapter tests and full API suite pass.
 
-- [x] **8. Verification cuối** — chạy focused checks và full `./leedevkit test api`; đọc phase logs và review route diff.
+- [x] **8. Verification cuối** — chạy focused checks và full `leedevkit test api`; đọc phase logs và review route diff.
   **Verify:** unit, integration, format và vet phases đều PASS; route modules have no direct dependency construction.
 
 ## Done When
@@ -60,7 +60,7 @@ Status: Approved (2026-11-12)
 - [ ] Public HTTP/API contract không đổi.
 - [ ] Auth, RBAC, tenant isolation, CORS, body limits, rate limit, request ID và WebSocket tests pass.
 - [ ] Không còn `ServeMux` registration cũ hoặc dead compatibility code.
-- [ ] `./leedevkit test api` full pass; dependency/security checks có evidence.
+- [ ] `leedevkit test api` full pass; dependency/security checks có evidence.
 - [ ] Rollback về commit trước migration vẫn xác định được và không cần data migration.
 
 ## Review Focus

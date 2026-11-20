@@ -63,7 +63,7 @@ Test impact matrix: thay đổi contract bỏ scope/ID; giữ nguyên nghiệp v
 
 ### Verification, rollback và giới hạn
 
-- Lệnh chuẩn sau triển khai: `./leedevkit test api`, `./leedevkit test web`, **`./leedevkit test all`**, `./scripts/_compose-validate.sh`; không dùng unit-only làm tiêu chí hoàn thành. Build frontend qua wrapper/container: package script `build` có Vite + budget check; `gen-api` nhận `openapi.json`, không tự lấy schema backend (`webdashboard/package.json:8,26`). Xác minh pipeline xuất OpenAPI trước khi regenerate, không dựa vào comment `sync:api` như bằng chứng command chạy được.
+- Lệnh chuẩn sau triển khai: `leedevkit test api`, `leedevkit test web`, **`leedevkit test all`**, `./scripts/_compose-validate.sh`; không dùng unit-only làm tiêu chí hoàn thành. Build frontend qua wrapper/container: package script `build` có Vite + budget check; `gen-api` nhận `openapi.json`, không tự lấy schema backend (`webdashboard/package.json:8,26`). Xác minh pipeline xuất OpenAPI trước khi regenerate, không dựa vào comment `sync:api` như bằng chứng command chạy được.
 - Route tree hoạt động là `src/route-tree.gen.ts` do Vite plugin sinh, không phải artifact cũ `src/routeTree.gen.ts`; không sửa tay generated types/tree. Browser smoke dùng account ít quyền nhất theo `docs/dev-accounts.md`, không ghi token/PII vào evidence.
 - Smoke thực: login/refresh/logout; settings name/timezone/branding; member/role/expiry; employee/department/ESS access; attendance write/read/import; leave/OT approval; payroll/report export/stream; tải file cũ và mới. Negative cases: không auth, thiếu quyền, input sai, legacy URL và quyền hết hạn.
 - Database proof: clean apply toàn migration chain, upgrade từ snapshot hiện có, backfill chạy lại, kiểm tra constraints/partitions/business totals, restore và re-apply trên disposable DB. Không dùng baseline `down.sql` trên live DB.
@@ -119,51 +119,51 @@ Các trạng thái, số đếm, đường dẫn, lệnh và đề xuất bên d
 - Schema/public-contract blockers: baseline `up.sql` contains `workspaces`, `workspace_*` tables, and approximately 99 `workspace_id` columns; handlers and response DTOs expose `/workspaces/{ws_id}`, `X-Workspace-Id`, and `workspace_id`.
 Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` exists; it contains one unified baseline with workspace-compatible schema. The architecture record reports 99 `workspace_id` columns. Auth data is split between `system_roles` and workspace role/member/extra-permission tables; direct replacement must preserve global/scoped role behavior, department restrictions, expiry semantics, and last-platform-admin protection. No live database row counts or production status are assumed; before any destructive migration, capture backup, table/column counts, FK/index/partition inventory, per-workspace cardinality, orphan rows, duplicate role/permission conflicts, and representative business totals.
 - Completed first reversible slice: removed unused `apiserver/internal/tenant/` `WorkspaceScope`/`Predicate` abstraction and its tests; no production callers existed, so current auth/API behavior is unchanged.
-- Verification: `./leedevkit test api` passed (unit, integration, format, vet, generated diff, module verification, govulncheck, staticcheck); `git diff --check` passed.
+- Verification: `leedevkit test api` passed (unit, integration, format, vet, generated diff, module verification, govulncheck, staticcheck); `git diff --check` passed.
 - Completed second reversible backend slice: `ConditionTypeRepository.db` no longer accepts an unused workspace argument and now reports generic database configuration failure; all public method signatures, workspace predicates, and response fields remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed third reversible backend slice: `ApprovalWorkflowRepository.db` no longer accepts an unused workspace argument and its configuration errors no longer claim a tenant database; transaction callbacks, workspace arguments, and all SQL workspace predicates remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed fourth reversible backend slice: `AssignmentHistoryRepository.db` no longer accepts an unused workspace argument and now reports generic database configuration failure; history SQL and the public workspace-scoped method remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed fifth reversible backend slice: `EmployeeAssignmentRepository` and `AssignmentRuleRepository` database helpers no longer accept unused workspace arguments and now report generic database configuration failures; all public methods, workspace arguments, and SQL predicates remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed sixth reversible backend slice: `AttendanceRepository` and `AttendancePolicyRepository` database helpers no longer accept unused workspace arguments; `attendance_logs.go` forwarding now uses the shared helper. Existing workspace predicates, membership validation, transactions, and public methods remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed seventh reversible backend slice: compensation, custom-field, dashboard-analytics, and dashboard-preferences repositories now return their direct DB fields from helper methods; dashboard-preferences recursion was removed. Workspace filters, response fields, and public method signatures remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed eighth reversible backend slice: department, document, and employee-condition repositories now return direct DB fields from helper methods; workspace-scoped SQL, membership checks, and public methods remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed ninth reversible backend slice: contract, employment, employee-department, and employee-import repositories now use direct DB helper access; transaction callbacks still retain workspace IDs, and workspace SQL predicates/public methods remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed tenth reversible backend slice: employee, employer, employment-phase, and ESS repositories now use direct DB helper access; transaction callbacks, workspace SQL predicates, and public methods remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed eleventh reversible backend slice: file, holiday, location, roster, and schedule repositories now use direct DB helper access; workspace filters, invalidation keys, transactions, and public methods remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed twelfth reversible backend slice: shift, shift-swap, work-segment, and working-pattern repositories plus shared pattern-compliance callers now use direct DB helper access; workspace validation SQL, transactions, and public methods remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed thirteenth reversible backend slice: overtime, recruitment-source, and report repositories now use direct DB helper access; authorization inputs, workspace filters, transactions, and public methods remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed fourteenth reversible backend slice: lifecycle repository database helper now uses the direct DB field; checklist transactions, workspace predicates, and public methods remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed fifteenth reversible backend slice: leave and payroll repositories now use direct DB helper access; leave imports, payroll rule tiers/assignments, transactions, workspace filters, and public methods remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed sixteenth reversible backend slice: repository transaction errors now use neutral database wording; tenant-scoped SQL predicates, transaction callbacks, and public method contracts remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed seventeenth reversible backend slice: workspace repository database selection no longer accepts a workspace selector; DB fallback, workspace SQL predicates, authorization inputs, and public methods remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed eighteenth reversible backend slice: attendance import/log database wrapper no longer accepts a workspace selector; import/log SQL predicates, public repository methods, and transaction behavior remain unchanged.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed nineteenth reversible backend slice: flat API wrappers now attach resolved organization context, context-dependent flat routes use that wrapper, and authentication no longer reads or advertises `X-Workspace-Id`; legacy workspace path injection remains temporarily for existing handlers.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed twentieth reversible backend slice: removed remaining runtime/test `X-Workspace-Id` references and changed workspace-context error text to organization-context wording; error keys and handler contracts remain stable.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed; no `X-Workspace-Id` references remain under `apiserver/`.
+- Verification: `leedevkit test api` passed; `git diff --check` passed; no `X-Workspace-Id` references remain under `apiserver/`.
 - Completed twenty-first reversible backend slice: `pathUUID` now prefers resolved organization context for `ws_id` and retains path parsing fallback; flat and legacy route handlers can migrate incrementally without changing public method contracts.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 - Completed twenty-second reversible backend slice: monitor workspace handlers now use context-aware `pathUUID`; direct `PathValue("ws_id")` parsing is gone while legacy route fallback remains supported.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed; no raw workspace path parsing remains under `apiserver/internal/api/`.
+- Verification: `leedevkit test api` passed; `git diff --check` passed; no raw workspace path parsing remains under `apiserver/internal/api/`.
 - Completed twenty-third reversible backend slice: flat route wrapper no longer synthesizes `ws_id` path values; it supplies organization context only, while legacy workspace routes continue through path fallback.
-- Verification: `./leedevkit test api` passed; `git diff --check` passed.
+- Verification: `leedevkit test api` passed; `git diff --check` passed.
 
 ## Ordered work
 
@@ -189,7 +189,7 @@ Baseline safety constraints: only `apiserver/migrations/20261103000000_init/` ex
 - Static zero-reference scans for forbidden symbols, paths, headers, columns, tables, and config keys.
 - API schema diff plus success, malformed-input, forbidden, pagination, retry, and mixed-version contract tests.
 - Disposable forward migration, idempotent backfill, reconciliation, rollback/restore, and re-apply tests.
-- `./leedevkit test api` and `./leedevkit test web`.
+- `leedevkit test api` and `leedevkit test web`.
 - Fresh production build, deployment smoke test, browser E2E, and representative attendance/payroll/report exports.
 
 ## Done when
@@ -266,7 +266,7 @@ Loại bỏ hoàn toàn kiến trúc multi-tenant/workspace trong toàn bộ h�
   - Disposable PostgreSQL clean apply passed: 140 public tables, partitioned parents/children, functions, triggers, indexes, and FKs created.
   - Disposable rollback passed: `down.sql` removed application objects.
   - Disposable re-apply passed; `fn_set_updated_at=1`, `workspace_id_columns=99` (expected temporary compatibility state).
-  - `./leedevkit test api` passed: Go unit, integration, format, vet, generated-diff, mod-verify, govulncheck, and staticcheck.
+  - `leedevkit test api` passed: Go unit, integration, format, vet, generated-diff, mod-verify, govulncheck, and staticcheck.
 
 ---
 
@@ -332,7 +332,7 @@ Loại bỏ hoàn toàn kiến trúc multi-tenant/workspace trong toàn bộ h�
   - Cập nhật `.agent/rules/database-rules.md`: chuyển quy tắc Multi-Tenancy sang Single-Tenant Data Integrity.
   - Cập nhật `AGENTS.md` (đồng bộ context).
 - [ ] **Task 7.3:** Chạy E2E & Smoke test toàn hệ thống:
-  - `./leedevkit test api`
+  - `leedevkit test api`
   - Build frontend React production bundle.
 
 ---

@@ -19,7 +19,7 @@ Giữ text search cho các bảng/danh sách nhiều bản ghi; dùng `EmployeeS
 - [x] **3. Chuyển exact selector trong shift swaps.** Đánh giá `webdashboard/src/pages/shift-swaps/create-form.tsx`; dùng selector server-backed cho requester và target, giữ target != requester và submit IDs. **Verify:** chọn hai người, loại requester khỏi target, clear, empty/error, submit payload đúng.
 - [x] **4. Chuẩn hóa selector exact còn lại theo bounded-list rule.** Rà leave-policy assignment và department manager filter; dùng `EmployeeSearch` khi caller không giới hạn danh sách, giữ `Combobox` khi danh sách ứng viên có chủ ý bị giới hạn. **Verify:** test option scope, exact ID, empty/error, permission/department scope; ghi rõ trường hợp giữ custom picker.
 - [x] **5. Bảo vệ broad text search và custom bulk picker.** Rà soát các broad-search routes (`/employees`, `/contracts` list, `/reports`, `/salary-management`, `/payroll`, `/leave-balances`, `/approvals`) và giữ nguyên semantics; không refactor sang `EmployeeSearch`. Giữ department bulk/tri-state picker và no-show không thêm employee search. **Verify:** existing route tests plus full web suite pass; characterization test additions not needed because no broad-search code changed.
-- [x] **6. Verification cuối.** Focused selector tests pass; `./leedevkit test web` rerun passes unit and integration/E2E phases; typecheck passes; lint completes with repository warnings; `git diff --check` passes. Shared `EmployeeSearch` impact is covered by full web target. Browser audit not run because automated full-suite verification covered affected UI contracts and no runtime acceptance request was made.
+- [x] **6. Verification cuối.** Focused selector tests pass; `leedevkit test web` rerun passes unit and integration/E2E phases; typecheck passes; lint completes with repository warnings; `git diff --check` passes. Shared `EmployeeSearch` impact is covered by full web target. Browser audit not run because automated full-suite verification covered affected UI contracts and no runtime acceptance request was made.
 
 ## Test impact matrix
 - **Changed behavior:** exact selectors tìm server-side và load thêm kết quả; broad search giữ nguyên.
@@ -34,7 +34,7 @@ Giữ text search cho các bảng/danh sách nhiều bản ghi; dùng `EmployeeS
 - [ ] `EmployeeSearch` load-more hoạt động, không duplicate/mất selected metadata.
 - [ ] Broad text search và bulk picker không bị đổi semantics.
 - [ ] Tests added/updated cho success, boundary, negative, failure paths.
-- [ ] `./leedevkit test web` PASS; nếu shared change cross-target, `./leedevkit test all` PASS; report phase/log evidence.
+- [ ] `leedevkit test web` PASS; nếu shared change cross-target, `leedevkit test all` PASS; report phase/log evidence.
 - [ ] Không sửa `.leedevkit/`, không commit/push, không đụng thay đổi đang có ngoài phạm vi.
 
 ## Simplest alternative

@@ -35,7 +35,7 @@ Move **Career Phases** and **Attendance Policy Assignments** from employee profi
 
 - [ ] **7. Remove replaced profile tabs after parity checkpoint.** Remove phase and attendance-policy tab IDs/config, drawer renderers/imports, keyboard order entries, obsolete profile hint/link code, and only dead files/tests confirmed unused. Keep reusable modals/hooks/components still used by centralized pages. Update employee page/drawer tests and i18n. Verify: remaining profile tabs render, removed tabs absent, keyboard wrap skips them, profile CRUD remains intact.
 
-- [ ] **8. Verification and role audit.** Run focused tests, then `./leedevkit test web`, `./leedevkit test api`, and `./leedevkit test all`. Read each phase result, including integration/E2E. Build route × role acceptance matrix before browser testing; use documented least-privilege dev accounts and five isolated role sessions. Record route result, expected `403`/redirect versus unexpected `404`/`5xx`/crash, console errors, and network evidence.
+- [ ] **8. Verification and role audit.** Run focused tests, then `leedevkit test web`, `leedevkit test api`, and `leedevkit test all`. Read each phase result, including integration/E2E. Build route × role acceptance matrix before browser testing; use documented least-privilege dev accounts and five isolated role sessions. Record route result, expected `403`/redirect versus unexpected `404`/`5xx`/crash, console errors, and network evidence.
 
 ## Done when
 - [ ] Both pages provide required read/manage behavior without N+1 collection fetching.

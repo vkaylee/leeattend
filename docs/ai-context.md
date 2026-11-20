@@ -20,12 +20,12 @@
 ## Verification
 
 ```bash
-./leedevkit test api
-./leedevkit test web
-./leedevkit test all
+leedevkit test api
+leedevkit test web
+leedevkit test all
 ```
 
-Use `./leedevkit --help` for available commands. Do not invent commands from old documents.
+Use `leedevkit --help` for available commands. Do not invent commands from old documents.
 
 ## Context boundaries
 

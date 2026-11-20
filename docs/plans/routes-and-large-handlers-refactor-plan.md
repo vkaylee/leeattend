@@ -211,7 +211,7 @@ No phase starts until prior phase passes its acceptance criteria. Each phase is 
 
 **Acceptance criteria:** route inventory has one source-backed record per production registration; protected/public/ESS/WS route scopes are explicit; payroll, monitor, leave success/validation/forbidden/dependency-failure/stream-or-file cases have protection; middleware order and health/readiness dependency wiring are characterized where the current constructor permits; compatibility aliases are preserved; no API behavior changes.
 
-**Focused tests:** use repository-supported `./leedevkit test api --unit-only --pattern ...` patterns for route, router, payroll, monitor, and leave tests as applicable. Do not treat focused result as final proof.
+**Focused tests:** use repository-supported `leedevkit test api --unit-only --pattern ...` patterns for route, router, payroll, monitor, and leave tests as applicable. Do not treat focused result as final proof.
 
 **Rollback point:** revert only new test lines; leave current source and user files untouched.
 
@@ -294,7 +294,7 @@ Each extracted module must use explicit existing interfaces or a narrowly scoped
 1. focused tests for each completed phase;
 2. `git diff --check`;
 3. `./scripts/_go-gates.sh --lint-only </dev/null`;
-4. `./leedevkit test api </dev/null`;
+4. `leedevkit test api </dev/null`;
 5. if a gate fails, read relevant `.test_logs/` entries and report each phase as pass/fail; never rely on the trailing summary line;
 6. verify `git status --short` still shows pre-existing user changes untouched and only approved plan/refactor files changed.
 

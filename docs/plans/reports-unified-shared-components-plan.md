@@ -52,7 +52,7 @@ Tái cấu trúc kiến trúc trang `/reports` theo nguyên lý DRY & Single Res
 
 ### Phase 5: Kiểm Thử Tự Động & Xác Minh Trực Quan (Verification)
 - **Kiểm thử tự động:**
-  - Chạy toàn bộ unit test web: `./leedevkit test web --unit-only --pattern "reports|employee-identity|timesheet-matrix"`.
-  - Chạy toàn bộ backend API test: `./leedevkit test api --unit-only`.
+  - Chạy toàn bộ unit test web: `leedevkit test web --unit-only --pattern "reports|employee-identity|timesheet-matrix"`.
+  - Chạy toàn bộ backend API test: `leedevkit test api --unit-only`.
 - **Xác minh trực quan:**
   - Dùng Playwright script kiểm tra giao diện thực tế khi đổi qua lại giữa 2 chế độ xem: kiểm tra đồng bộ bộ lọc phòng ban, tìm kiếm nhân viên và nút xuất file.

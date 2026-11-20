@@ -7,7 +7,7 @@ Status: Approved
 - Added apiserver configuration, HTTPS provider adapter, tenant pull-state/event migration, transactional pull service, bounded scheduler, shadow/write mode, and graceful shutdown wiring.
 - Added ADR-0003 and corrected provider device identity storage to `TEXT`; internal lease state remains UUID-based.
 - Web retirement cleanup completed in current working tree: removed agent connectivity topology/settings route consumers, retained device CRUD at `/devices`, migrated device E2E page object, removed obsolete connectivity E2E fixture/test, and restored shared device API exports.
-- Web verification passed: `./leedevkit test web` — unit tests, Playwright E2E, i18n, TypeScript, and lint; 3035/3035 tests. Performance budget threshold was adjusted for the observed locale gzip output and passed.
+- Web verification passed: `leedevkit test web` — unit tests, Playwright E2E, i18n, TypeScript, and lint; 3035/3035 tests. Performance budget threshold was adjusted for the observed locale gzip output and passed.
 - Full `agent-main` deletion remains blocked by the release gates below; no claim of production cutover or rollback readiness is made.
 
 ## Goal
@@ -72,7 +72,7 @@ Xóa toàn bộ `agent-main`; Go `apiserver` định kỳ pull log chấm công 
   - Delete `agent-main/`, root Cargo workspace/member files and Rust-only CI/test entries that become dead, agent WebSocket routes/config-push/heartbeat endpoints and dashboard UI dedicated to agent connectivity when no other consumer remains.
   - Remove service from `docker-compose.yml`, `.compose/docker-compose.dev.yml`, `.compose/docker-compose.test.yml`, `leedevkit.toml`, `scripts/build-prod.sh`, release/manual-test workflows, docs and changelog references. Update architecture/deployment documentation and add migration ADR/changelog.
   - Do not leave compatibility aliases, dormant containers, or agent-only env keys.
-  - Verify: repository search has no live `agent-main` runtime/build/test references; `./leedevkit test api` passes full integration suite; compose brings up apiserver without agent service; staging scheduled-pull smoke passes.
+  - Verify: repository search has no live `agent-main` runtime/build/test references; `leedevkit test api` passes full integration suite; compose brings up apiserver without agent service; staging scheduled-pull smoke passes.
 
 ## Rollback
 Before agent deletion: set `LOG_PULL_MODE=shadow` or `LOG_PULL_ENABLED=false`, stop scheduler writes, restore `agent-main` service/configuration, then replay provider pages from last committed agent-era watermark. Unique event constraint prevents duplicates. Do not roll back schema; additive pull-state tables remain inert.
@@ -85,7 +85,7 @@ After agent deletion: rollback requires redeploying prior release and retained a
 - [ ] No event loss across page/transaction failure; cursor only moves after durable import.
 - [ ] Shadow reconciliation accepted, cutover observed, rollback tested before deletion.
 - [ ] No runnable `agent-main` source, container, CI, build, test, configuration, API, UI, or documentation remains.
-- [ ] `./leedevkit test api` full suite and staging smoke pass.
+- [ ] `leedevkit test api` full suite and staging smoke pass.
 
 ## Review focus
 - Cursor semantic mismatch or API retention shorter than shadow/backfill window causes silent data loss.

@@ -47,8 +47,8 @@ Run the Go apiserver binary under the selected Windows service manager. Apply th
 ## Verification
 
 ./scripts/_compose-validate.sh
-./leedevkit test api
-./leedevkit test web
+leedevkit test api
+leedevkit test web
 ```
 
 The API target runs Go formatting, vet, static analysis, vulnerability checks, module verification, and race-enabled tests in the pinned container. The web target runs frontend unit, type, lint, i18n, and E2E checks.

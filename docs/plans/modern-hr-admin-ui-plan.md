@@ -125,11 +125,11 @@ Chuyển đổi giao diện `LeeAttend` từ mô hình Desktop ảo hoá (Synolo
 ### Phase 6: Tổng kiểm thử & Nghiệm thu (Testing & Verification Gate)
 - **Mục tiêu:** Đảm bảo toàn bộ hệ thống vượt qua mọi bài test, zero regression.
 - **Commands:**
-  1. Frontend Unit Tests: `./leedevkit test web --unit-only`
+  1. Frontend Unit Tests: `leedevkit test web --unit-only`
   2. Type Check: `cd webdashboard && bun run type-check`
   3. Linter: `cd webdashboard && bun run lint`
-  4. Backend Gate: `./leedevkit test api --unit-only`
-  5. Full Regression Pass: `./leedevkit test web`
+  4. Backend Gate: `leedevkit test api --unit-only`
+  5. Full Regression Pass: `leedevkit test web`
 - **Definition of Done:**
   - [ ] AppShell render Sidebar (collapsible 64px/240px) + Topbar + Outlet.
   - [ ] Tất cả các route trong `_workspace/` truy cập mượt mà qua URL.

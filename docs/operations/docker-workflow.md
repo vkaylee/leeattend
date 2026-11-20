@@ -38,7 +38,7 @@ The development Compose file includes a `playwright-mcp` profile. Its Chromium b
 The repository MCP configuration starts a single Playwright server through `scripts/playwright-mcp-role.sh`:
 
 ```bash
-./leedevkit manage up dev
+leedevkit manage up dev
 ```
 
 The server uses the least-privileged `employee` role by default. To use another role, change the role argument for the single `playwright` entry in `.mcp.json` to `team-lead`, `shift-manager`, `hr-manager`, or `admin`, then reload the MCP client. The wrapper adds role-specific guidance to the MCP `initialize` response and starts a fresh unauthenticated browser context; open the configured endpoint's `/login` first when authentication is needed. MCP instructions guide the model; application authorization remains the enforcement boundary. Never mount persisted role state.
@@ -86,8 +86,8 @@ Development migration gate:
 ## Test gates
 
 ./scripts/_compose-validate.sh
-./leedevkit test api
-./leedevkit test web
+leedevkit test api
+leedevkit test web
 ```
 
 The pinned Go gate image in `.compose/go/Dockerfile` provides `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `sqlc`, and `oapi-codegen`. API tests use the Go module under `apiserver/`; web tests use Bun and Playwright.

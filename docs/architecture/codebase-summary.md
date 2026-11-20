@@ -45,10 +45,10 @@ No separate edge process, ingestion WebSocket protocol, or local attendance data
 
 ## Verification
 
-./leedevkit --help
-./leedevkit test api
-./leedevkit test web
-./leedevkit test all
+leedevkit --help
+leedevkit test api
+leedevkit test web
+leedevkit test all
 ```
 
 The Go target runs formatting, vet, static analysis, vulnerability checks, module verification, and race-enabled tests. The web target runs unit, type, lint, i18n, and E2E checks.

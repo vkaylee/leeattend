@@ -34,10 +34,10 @@ Separate RBAC roles from employee job titles: roles stay under Settings > Access
 - [x] i18n, accessibility, authorization, focused tests, and required LeeDevKit verification pass.
 
 ## Verification Results
-- `./leedevkit test web --unit-only`: 320 test files passed, 2,989 tests passed.
-- `./leedevkit test web`: E2E 43 passed, 9 skipped; i18n, typecheck, and lint passed.
+- `leedevkit test web --unit-only`: 320 test files passed, 2,989 tests passed.
+- `leedevkit test web`: E2E 43 passed, 9 skipped; i18n, typecheck, and lint passed.
 - Existing lint warnings remain in repository baseline: 1,681 warnings, 0 errors.
-- No API/schema changes; `./leedevkit test all` not required for this frontend-only IA change.
+- No API/schema changes; `leedevkit test all` not required for this frontend-only IA change.
 
 ## Review Focus
 - Whether job titles need a real organization-wide catalog or remain employment-level free text.

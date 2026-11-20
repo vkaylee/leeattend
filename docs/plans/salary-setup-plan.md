@@ -58,7 +58,7 @@ Acceptance:
 
 Verification:
 - [ ] API unit + PostgreSQL integration tests cover success, empty, future, stopped, zero, duplicate, invalid date/employment, 401/403/404/409, retry/concurrency, rollback, no-store/audit.
-- [ ] Run `./leedevkit test api`.
+- [ ] Run `leedevkit test api`.
 
 Dependencies: Task 1.
 
@@ -118,7 +118,7 @@ Acceptance:
 
 Verification:
 - [ ] Web tests cover success, validation, API failure, conflict, temporal states, 409, and refresh.
-- [ ] Run `./leedevkit test web --unit-only --pattern 'salary-management|employee-salary-config'`.
+- [ ] Run `leedevkit test web --unit-only --pattern 'salary-management|employee-salary-config'`.
 - [ ] Browser-check add/change/stop, reload, selected employment/history.
 
 Dependencies: Tasks 2–4.
@@ -175,9 +175,9 @@ Dependencies: Tasks 5–7.
 
 ### Checkpoint 4 — Final acceptance
 
-- [ ] `./leedevkit test api`
-- [ ] `./leedevkit test web`
-- [ ] `./leedevkit test all`
+- [ ] `leedevkit test api`
+- [ ] `leedevkit test web`
+- [ ] `leedevkit test all`
 - [ ] `git diff --check`
 - [ ] Route × role browser matrix covers allowed HR/admin and denied employee/team-lead/shift-manager behavior.
 - [ ] No credentials, tokens, raw salary amounts, or raw PII in artifacts/logs.
@@ -214,8 +214,8 @@ Dependencies: Tasks 5–7.
 
 ## Verification commands
 
-- `./leedevkit test web --unit-only --pattern 'salary-management|employee-salary-config'`
-- `./leedevkit test api`
-- `./leedevkit test web`
-- `./leedevkit test all`
+- `leedevkit test web --unit-only --pattern 'salary-management|employee-salary-config'`
+- `leedevkit test api`
+- `leedevkit test web`
+- `leedevkit test all`
 - `git diff --check`

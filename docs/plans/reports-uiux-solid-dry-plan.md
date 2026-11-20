@@ -36,7 +36,7 @@ Tối ưu hóa toàn diện giao diện, trải nghiệm người dùng, khả n
 ## Ràng Buộc & Giao Diện Toàn Cục (Constraints & Interfaces)
 - **Bảo toàn chức năng:** Không làm ảnh hưởng đến logic tính công, xuất file CSV ma trận BOM UTF-8 hay hộp thoại xuất Excel.
 - **Ngôn ngữ:** Mặc định tiếng Việt chuẩn nhân sự (Sentence case); tương thích song ngữ hoàn hảo khi chuyển sang tiếng Anh.
-- **Kiểm thử tự động:** Mọi thay đổi phải vượt qua 100% unit tests (`./leedevkit test web --unit-only`) và xác minh qua ảnh chụp Playwright MCP.
+- **Kiểm thử tự động:** Mọi thay đổi phải vượt qua 100% unit tests (`leedevkit test web --unit-only`) và xác minh qua ảnh chụp Playwright MCP.
 
 ---
 
@@ -73,7 +73,7 @@ Tối ưu hóa toàn diện giao diện, trải nghiệm người dùng, khả n
   - *Xác minh:* Chuyển viewport sang 375x812, nút ký hiệu công mở popover/sheet gọn gàng và đóng mở mượt mà.
 
 - [ ] **Task 6: Kiểm thử tự động hồi quy và kiểm tra trực quan Playwright MCP**
-  - *Nội dung:* Chạy toàn bộ test suites web & api bằng hermetic wrapper: `./leedevkit test web --unit-only` và `./leedevkit test api --unit-only`. Chụp ảnh màn hình Desktop & Mobile để xác nhận các cải tiến trực quan.
+  - *Nội dung:* Chạy toàn bộ test suites web & api bằng hermetic wrapper: `leedevkit test web --unit-only` và `leedevkit test api --unit-only`. Chụp ảnh màn hình Desktop & Mobile để xác nhận các cải tiến trực quan.
   - *Ràng buộc:* 100% test pass; không có console error nào trong runtime.
   - *Giao diện:* Toàn bộ trang `/reports`.
   - *Xác minh:* Log test báo `PASSED`, ảnh chụp giao diện sạch sẽ, chuyên nghiệp, không lỗi layout.

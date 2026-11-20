@@ -92,9 +92,9 @@ Xây nền payroll mở rộng theo mô hình `source metric → payroll input �
 
 ### 9. Final verification — luôn chạy sau cùng
 
-- [x] `./leedevkit test api --unit-only` cho vòng lặp nhanh, sau đó `./leedevkit test api` passed after payroll backend slices.
-- [ ] Focused payroll UI tests passed. Full `./leedevkit test web` ran with 3008 passed and one pre-existing performance-budget failure; rerun required after budget issue is resolved.
-- [ ] `./leedevkit test all` full gate; pending web performance-budget baseline fix and final payroll browser matrix.
+- [x] `leedevkit test api --unit-only` cho vòng lặp nhanh, sau đó `leedevkit test api` passed after payroll backend slices.
+- [ ] Focused payroll UI tests passed. Full `leedevkit test web` ran with 3008 passed and one pre-existing performance-budget failure; rerun required after budget issue is resolved.
+- [ ] `leedevkit test all` full gate; pending web performance-budget baseline fix and final payroll browser matrix.
 - [ ] `git diff --check`; source-level migration up/down structure and API authorization checks passed. Runtime forward/down execution remains pending; security scan passed for backend dependencies.
 - [ ] Browser acceptance matrix pending. Must use masked accounts from `docs/dev-accounts.md`; never write credential/token/raw PII to artifacts.
 

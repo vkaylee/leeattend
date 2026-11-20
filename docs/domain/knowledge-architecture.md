@@ -43,7 +43,7 @@ Attendance source → Go apiserver → raw attendance logs
 
 ```bash
 ./scripts/_compose-validate.sh
-./leedevkit test api
-./leedevkit test web
-./leedevkit test all
+leedevkit test api
+leedevkit test web
+leedevkit test all
 ```

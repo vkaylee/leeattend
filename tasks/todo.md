@@ -71,8 +71,8 @@
 - [ ] **T5.2** Remove obsolete create modal state/imports/member lookup after exhaustive call-site search; retain non-create dialogs.
 - [ ] **T5.3** Update i18n, tests, generated route tree, and generated API types through wrappers.
 - [ ] **T5.4** Run focused web/API tests during iteration.
-- [ ] **T5.5** Run `./leedevkit test web </dev/null`.
-- [ ] **T5.6** Run `./leedevkit test api </dev/null` and `./leedevkit test all </dev/null` when backend/OpenAPI/DB contract changed.
+- [ ] **T5.5** Run `leedevkit test web </dev/null`.
+- [ ] **T5.6** Run `leedevkit test api </dev/null` and `leedevkit test all </dev/null` when backend/OpenAPI/DB contract changed.
 - [ ] **T5.7** Perform route × role browser audit at 1920×1080, then mobile smoke; record direct URL, refresh, validation, success, failure, dirty, auth, console, and network evidence.
 - [ ] **T5.8** Read per-phase `.test_logs/`; report pass/fail/skip/warnings and remaining risks.
 
@@ -188,9 +188,9 @@
 
 ## Phase 4 — Verification
 
-- [ ] **U4.1** Run `./leedevkit test api --unit-only` for focused iteration.
-- [ ] **U4.2** Run `./leedevkit test api` with integration checks.
-- [ ] **U4.3** Run `./leedevkit test all` when shared backend/API behavior is affected.
+- [ ] **U4.1** Run `leedevkit test api --unit-only` for focused iteration.
+- [ ] **U4.2** Run `leedevkit test api` with integration checks.
+- [ ] **U4.3** Run `leedevkit test all` when shared backend/API behavior is affected.
 - [ ] **U4.4** Inspect `.test_logs/` per phase; report pass/fail/skip/warnings and remaining risks.
 - [ ] **U4.5** Confirm unrelated worktree paths remain preserved and unstaged.
 
@@ -207,7 +207,7 @@
 ## Phase 0 — Baseline
 
 - [ ] Capture `git status --short`; preserve unrelated worktree changes.
-- [ ] Run `./leedevkit --help` and `./leedevkit test --help`.
+- [ ] Run `leedevkit --help` and `leedevkit test --help`.
 - [ ] Confirm inline interval payload and frontend-only scope.
 
 ## Phase 1 — Metrics
@@ -305,5 +305,5 @@
 
 - [ ] Run focused API/web tests through wrappers.
 - [ ] Run migration up/down and invariant queries on disposable DB.
-- [ ] Run `./leedevkit test api </dev/null`, `./leedevkit test web </dev/null`, then `./leedevkit test all </dev/null`.
+- [ ] Run `leedevkit test api </dev/null`, `leedevkit test web </dev/null`, then `leedevkit test all </dev/null`.
 - [ ] Inspect `.test_logs/`; preserve unrelated worktree changes and avoid `.leedevkit/`.

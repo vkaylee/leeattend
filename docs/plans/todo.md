@@ -21,5 +21,5 @@
   - Added namespace-aware translation-test coverage and backend catalog parity/metadata tests.
 
 - [x] **6. Full verification**
-  - Regenerated API types, inspected the catalog diff, and ran the complete API, web, and all suites through `./leedevkit`.
+  - Regenerated API types, inspected the catalog diff, and ran the complete API, web, and all suites through `leedevkit`.
   - API: 2954/2954; Web: 5936/5936; All: 5936/5936. Unrelated existing worktree changes were preserved.

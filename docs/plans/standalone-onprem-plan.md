@@ -54,7 +54,7 @@ Ship LeeAttend as one-company, LAN/on-prem appliance: fresh install, no SaaS dep
    **Verify:** restore into a blank appliance recreates a usable instance; agent resumes; representative employee, document, attendance, payroll, and audit data reconcile.
 
 8. **Update contracts, documentation, and tests** — Regenerate OpenAPI/client types, update deployment/system architecture/README/config samples/data inventory/CHANGELOG, delete Rust-era and cloud/SaaS instructions, and add scenario tests for bootstrap, singleton enforcement, license failure modes, zero-egress, backup restore, dashboard onboarding, and LAN agent sync.
-   **Verify:** documentation matches command/config surface; `./leedevkit test --all` passes; clean-host smoke test completes.
+   **Verify:** documentation matches command/config surface; `leedevkit test --all` passes; clean-host smoke test completes.
 
 ## Delivery gates
 - **Gate A — Design approval:** ADR accepts singleton-workspace strategy, supported OS, TLS/certificate ownership, storage encryption, backup RPO/RTO, and license expiry policy.

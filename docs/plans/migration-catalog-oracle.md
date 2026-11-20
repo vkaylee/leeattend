@@ -7,7 +7,7 @@ Status: disposable catalog captured; phased SQL not generated.
 Schema-only export captured from development database through repository wrapper on 2026-11-17. Wrapper diagnostics were separated from SQL output:
 
 ```bash
-./leedevkit dev exec db pg_dump \
+leedevkit dev exec db pg_dump \
   -U admin \
   -d leeattend \
   --schema-only \
@@ -63,4 +63,4 @@ Do not archive current numeric migrations until:
 4. catalog matches this oracle across all dimensions;
 5. schema contract passes with phase markers replacing historical markers;
 6. standalone bootstrap succeeds after schema phases;
-7. `./leedevkit test api` and `./leedevkit test all` complete with logs inspected.
+7. `leedevkit test api` and `leedevkit test all` complete with logs inspected.

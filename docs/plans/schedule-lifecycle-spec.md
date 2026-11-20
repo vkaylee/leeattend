@@ -632,20 +632,20 @@ Abort counts are exact: any FK/check failure = abort; any current-key duplicate 
 | # | Files/symbols | Work | Verification command |
 |---:|---|---|---|
 | 1 | `docs/decisions/` new ADR; `schedule-lifecycle-spec.md` | Record hybrid decision, boundaries, source facts, API/error/permission contract | `git diff --check -- schedule-lifecycle.md schedule-lifecycle-spec.md` |
-| 2 | `apiserver/migrations/<timestamp>_schedule_lifecycle/up.sql`, `down.sql` | Add exact tables/columns/indexes/checks/FKs/triggers; add outbox retry columns; no baseline edit | `./leedevkit test api` migration phase; migration fixture validation via repository wrapper |
-| 3 | `apiserver/internal/auth/permissions.go`, role/permission seed source | Add seven schedule and three closure permissions and role grants | `./leedevkit test api --unit-only` authorization tests, then full target |
-| 4 | `apiserver/internal/repository/schedules.go` (`resolveEffectiveShift`, official queries) | Calendar-date resolver, all intervals, effective shift version, overlays, preview/current reads | resolver unit tests; `./leedevkit test api` |
-| 5 | New `apiserver/internal/repository/schedule_lifecycle.go` and API types | Implement preview/publish/idempotency/amend/history/evidence transaction service | repository transaction tests; API contract tests; `./leedevkit test api` |
-| 6 | `apiserver/internal/api/schedules.go`, `apiserver/routes_scheduling.go` | Add exact handlers/routes, validation, scope checks, errors, compatibility fields | API contract/403/409/idempotency tests; `./leedevkit test api` |
-| 7 | `apiserver/internal/repository/work_segments.go`, `reports.go`, matcher paths | Link official revision, immutable guards, official reports, remove synthetic no-show | repository/report integration tests; `./leedevkit test api` |
-| 8 | `apiserver/internal/repository/attendance.go`, `attendance_logs.go`, `overtime.go`, adjustment/bulk writers | Add closed/locked guards; keep raw ingestion; exact revision in recalculation | negative writer tests and late-punch integration tests; `./leedevkit test api` |
-| 9 | New closure repository/API; `apiserver/routes_attendance.go` | Close/reopen/reclose, exact snapshots, employer transfer validation, evidence | closure transaction/concurrency tests; `./leedevkit test api` |
-| 10 | `apiserver/internal/repository/payroll_periods.go`, `payroll.go`, `routes_payroll.go` | Require closed attendance before payroll lock; block locked amendment/recalc | payroll/closure integration tests; `./leedevkit test api` |
-| 11 | `apiserver/internal/app/app.go`, `repository/outbox.go`, new `repository/schedule_office_jobs.go` and `service/schedule_office_worker.go`; policy/employment mutation wiring | Implement event producer, startup/15-minute horizon scan, dedupe, system previews, leased worker and crash-safe recovery under §12.3 | producer/horizon/retry/dead-letter/crash tests; `./leedevkit test api` |
-| 12 | Existing roster/shift/pattern/assignment writers | Enforce lifecycle guard and old-version block | bypass regression tests; `./leedevkit test api` |
-| 13 | `webdashboard/src/lib/api/*`, schedules/attendance pages/routes | Show provisional/current/superseded/off/missing/closed, diff/reason/history/evidence; i18n/a11y states | `./leedevkit test web` |
-| 14 | Migration test fixtures and DB harness | Up/down/integrity, representative legacy and mixed-version validation | `./leedevkit test api`; migration fixture wrapper; no direct host DB command |
-| 15 | All changed packages | Run complete verification and inspect per-phase logs | `./leedevkit test all --json` |
+| 2 | `apiserver/migrations/<timestamp>_schedule_lifecycle/up.sql`, `down.sql` | Add exact tables/columns/indexes/checks/FKs/triggers; add outbox retry columns; no baseline edit | `leedevkit test api` migration phase; migration fixture validation via repository wrapper |
+| 3 | `apiserver/internal/auth/permissions.go`, role/permission seed source | Add seven schedule and three closure permissions and role grants | `leedevkit test api --unit-only` authorization tests, then full target |
+| 4 | `apiserver/internal/repository/schedules.go` (`resolveEffectiveShift`, official queries) | Calendar-date resolver, all intervals, effective shift version, overlays, preview/current reads | resolver unit tests; `leedevkit test api` |
+| 5 | New `apiserver/internal/repository/schedule_lifecycle.go` and API types | Implement preview/publish/idempotency/amend/history/evidence transaction service | repository transaction tests; API contract tests; `leedevkit test api` |
+| 6 | `apiserver/internal/api/schedules.go`, `apiserver/routes_scheduling.go` | Add exact handlers/routes, validation, scope checks, errors, compatibility fields | API contract/403/409/idempotency tests; `leedevkit test api` |
+| 7 | `apiserver/internal/repository/work_segments.go`, `reports.go`, matcher paths | Link official revision, immutable guards, official reports, remove synthetic no-show | repository/report integration tests; `leedevkit test api` |
+| 8 | `apiserver/internal/repository/attendance.go`, `attendance_logs.go`, `overtime.go`, adjustment/bulk writers | Add closed/locked guards; keep raw ingestion; exact revision in recalculation | negative writer tests and late-punch integration tests; `leedevkit test api` |
+| 9 | New closure repository/API; `apiserver/routes_attendance.go` | Close/reopen/reclose, exact snapshots, employer transfer validation, evidence | closure transaction/concurrency tests; `leedevkit test api` |
+| 10 | `apiserver/internal/repository/payroll_periods.go`, `payroll.go`, `routes_payroll.go` | Require closed attendance before payroll lock; block locked amendment/recalc | payroll/closure integration tests; `leedevkit test api` |
+| 11 | `apiserver/internal/app/app.go`, `repository/outbox.go`, new `repository/schedule_office_jobs.go` and `service/schedule_office_worker.go`; policy/employment mutation wiring | Implement event producer, startup/15-minute horizon scan, dedupe, system previews, leased worker and crash-safe recovery under §12.3 | producer/horizon/retry/dead-letter/crash tests; `leedevkit test api` |
+| 12 | Existing roster/shift/pattern/assignment writers | Enforce lifecycle guard and old-version block | bypass regression tests; `leedevkit test api` |
+| 13 | `webdashboard/src/lib/api/*`, schedules/attendance pages/routes | Show provisional/current/superseded/off/missing/closed, diff/reason/history/evidence; i18n/a11y states | `leedevkit test web` |
+| 14 | Migration test fixtures and DB harness | Up/down/integrity, representative legacy and mixed-version validation | `leedevkit test api`; migration fixture wrapper; no direct host DB command |
+| 15 | All changed packages | Run complete verification and inspect per-phase logs | `leedevkit test all --json` |
 
 Migration fixture validation must use the repository's existing wrapper around `scripts/validate_migration_fixtures.py`; do not add a new script. No runtime command is claimed as run by this document.
 
@@ -708,9 +708,9 @@ Migration fixture validation must use the repository's existing wrapper around `
 Required commands after implementation, in order:
 
 ```bash
-./leedevkit test api
-./leedevkit test web
-./leedevkit test all --json
+leedevkit test api
+leedevkit test web
+leedevkit test all --json
 ```
 
 Migration up/down/integrity and fixture validation run through existing LeeDevKit/repository wrappers. Unit-only output never completes the task. This specification does not claim any of these commands has run.

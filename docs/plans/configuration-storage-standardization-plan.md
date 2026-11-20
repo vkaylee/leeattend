@@ -10,7 +10,7 @@ Chuẩn hóa nơi lưu cấu hình mà không tạo EAV table thứ ba: `organiz
 - **Database:** Dùng migration mới, có `down.sql`; không sửa baseline đã áp dụng. Bảo vệ dữ liệu trước thay đổi constraint/index.
 - **Security:** `system_settings` có thể chứa SMTP/integration secrets; API không trả raw secret; quyền system config tách khỏi business config.
 - **API:** Giữ backward compatibility cho `/api/v1/configs`, organization settings, feature flags, dashboard preferences; key registry chỉ chặn key không hợp lệ sau khi xác nhận consumer hiện tại.
-- **Testing:** Sau focused tests phải chạy `./leedevkit test api` và `./leedevkit test all` nếu thay đổi chạm migration/API dùng chung.
+- **Testing:** Sau focused tests phải chạy `leedevkit test api` và `leedevkit test all` nếu thay đổi chạm migration/API dùng chung.
 - **Rule IDs:** DB-1/4/5 (`database-rules.md`), DEV-2/3/6 (`development-workflow.md`), MIG-1/2/3 (`migration-and-rollback.md`), API-1/2/5 (`api-governance.md`), AC-1/2 (`access-control.md`), ENC-2/4 (`encryption-rules.md`).
 
 ## Tasks
@@ -29,7 +29,7 @@ Chuẩn hóa nơi lưu cấu hình mà không tạo EAV table thứ ba: `organiz
 
 - [ ] **7. Migration rehearsal và rollback evidence** → Chạy migration trên disposable DB với representative rows; kiểm tra row counts, duplicate cleanup, constraints, indexes, permissions và restart; test `down.sql` theo policy, không dùng destructive rollback trên dữ liệu thật. → **Verify:** forward migration, recovery/roll-forward procedure, reconciliation report và migration logs.
 
-- [ ] **8. Verification** → Chạy focused unit tests; sau đó `./leedevkit test api`; cuối cùng `./leedevkit test all` vì thay đổi schema/API dùng chung. Đọc phase logs, không chỉ dựa trailing green summary. → **Verify:** report PASS/FAIL/SKIP từng phase, migration evidence và remaining risks.
+- [ ] **8. Verification** → Chạy focused unit tests; sau đó `leedevkit test api`; cuối cùng `leedevkit test all` vì thay đổi schema/API dùng chung. Đọc phase logs, không chỉ dựa trailing green summary. → **Verify:** report PASS/FAIL/SKIP từng phase, migration evidence và remaining risks.
 
 ## Test Impact Matrix
 

@@ -57,4 +57,4 @@ Quy hoạch tập trung toàn bộ khối quản trị danh tính & truy cập (
   - `use-settings-nav.test.tsx`: Kiểm tra `accessPaths` chứa `/workspace/settings/members`.
 - [ ] **Task 6: Rebuild Vite & Kiểm thử toàn diện**
   - Chạy `vite build:fast` tạo lại `route-tree.gen.ts`.
-  - Chạy `./leedevkit test web --unit-only` xác minh 100% test suites pass.
+  - Chạy `leedevkit test web --unit-only` xác minh 100% test suites pass.

@@ -61,7 +61,7 @@ Khắc phục triệt để các tồn tại UI/UX trên Dashboard máy tính đ
   - *Action:*
     1. Chạy Type Check: `cd webdashboard && bun run type-check`
     2. Chạy Linter: `cd webdashboard && bun run lint`
-    3. Chạy Unit Tests: `./leedevkit test web --unit-only`
+    3. Chạy Unit Tests: `leedevkit test web --unit-only`
     4. Chạy script Playwright chụp ảnh nghiệm thu lại màn hình `admin_dashboard.png`.
   - *Verify:* Toàn bộ bài test vượt qua 100%, ảnh chụp màn hình đạt chuẩn thẩm mỹ cao cấp.
 

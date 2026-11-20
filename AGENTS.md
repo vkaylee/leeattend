@@ -30,7 +30,7 @@ trigger: always_on
 2. **Security & Privacy:** NEVER log PII (emails, passwords, phones) in raw text. Mask them (e.g., `user_***@domain.com`).
 3. **Structured Errors:** Use domain-specific error types (`AppError`). NEVER throw generic `Error` or `unwrap()` blindly.
 4. **Boy Scout Rule:** If you see a typo, bad pattern, or visible bug nearby, FIX IT IMMEDIATELY. Never say "it's out of scope".
-5. **Hermetic Wrappers (CRITICAL):** Do not call host dependency tools directly. Use `./leedevkit test` for tests and the repository wrappers in `scripts/` for Go, Bun, Python, and container operations. See `.agent/rules/execution-wrappers.md`.
+5. **Hermetic Wrappers (CRITICAL):** Do not call host dependency tools directly. Use `leedevkit test` for tests and the repository wrappers in `scripts/` for Go, Bun, Python, and container operations. See `.agent/rules/execution-wrappers.md`.
 6. **AI MUST BE CALM & PATIENT (CRITICAL):** This is a fundamental mindset for all situations. DO NOT RUSH.
     - Read requirements carefully before starting.
     - Cross-check risks before modifying source code.
@@ -43,8 +43,8 @@ trigger: always_on
 8. **TESTING COMPLETENESS (CRITICAL - NO FALSE POSITIVES):**
     - **Unit tests passing does NOT mean the task is complete.** Unit tests only verify isolated logic.
     - **Integration tests are MANDATORY** after unit tests pass. They verify database operations, API contracts, cross-component interactions, and end-to-end workflows.
-    - **Anti-pattern:** Running `./leedevkit test <target> --unit-only` and declaring the task complete. This creates false confidence.
-    - **Mandatory workflow:** After unit tests pass, you MUST run the full test suite: `./leedevkit test <target>` (without `--unit-only`) to ensure integration/E2E tests also pass.
+    - **Anti-pattern:** Running `leedevkit test <target> --unit-only` and declaring the task complete. This creates false confidence.
+    - **Mandatory workflow:** After unit tests pass, you MUST run the full test suite: `leedevkit test <target>` (without `--unit-only`) to ensure integration/E2E tests also pass.
     - **Definition of Done:** A task is INCOMPLETE if integration tests were not executed, even if unit tests passed.
     - **Common failure scenarios:** Database migrations not applied, API schema mismatches, missing environment variables, race conditions in async operations, foreign key violations.
 
@@ -115,5 +115,5 @@ Project policy lives in `.agent/`; devkit sources live at:
 - Built-in agents: `.leedevkit/.agent/agents/*.md`
 - Project agents: `.agent/agents/*.md`
 
-Run `./leedevkit --help` for available project commands.
+Run `leedevkit --help` for available project commands.
 <!-- leedevkit:end -->

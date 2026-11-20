@@ -166,8 +166,8 @@ Seed policy:
 7. Run schema contract tests against B, then:
 
 ```bash
-./leedevkit test api
-./leedevkit test all
+leedevkit test api
+leedevkit test all
 ```
 
 8. Inspect per-phase logs. Do not rely on final green summary alone.

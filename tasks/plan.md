@@ -49,7 +49,7 @@ Redis
 ### T0 — Inventory and baseline
 
 - Capture current git status; preserve existing user changes.
-- Run `./leedevkit --help` and `./leedevkit test --help`.
+- Run `leedevkit --help` and `leedevkit test --help`.
 - Inventory tracked active, historical, generated, and untracked workspace references.
 - Classify each match: remove, rewrite, preserve valid scope, preserve historical, or ignore technical `/workspace` mounts/WebSocket `ws`.
 
@@ -113,8 +113,8 @@ Run focused checks, then full gates:
 - Report/import/Redis transport, auth revocation, login limiter, and rate-limit tests.
 - Monitor tests and security audit.
 - Active-source grep with documented allowlist.
-- `./leedevkit test api`
-- `./leedevkit test all`
+- `leedevkit test api`
+- `leedevkit test all`
 
 Inspect per-phase logs. Do not rely on trailing green summary.
 
@@ -194,7 +194,7 @@ Generated OpenAPI/types + TanStack route tree
 **Verification:**
 - [ ] Inspect current diff and preserve unrelated worktree changes.
 - [ ] Run focused existing web employee/member tests and record result.
-- [ ] Run `./leedevkit --help` and `./leedevkit test --help` if baseline not already recorded.
+- [ ] Run `leedevkit --help` and `leedevkit test --help` if baseline not already recorded.
 
 **Dependencies:** None
 
@@ -251,7 +251,7 @@ Generated OpenAPI/types + TanStack route tree
 **Verification:**
 - [ ] Page tests cover render, validation, submit success, submit failure, pending, cancel, direct route, and dirty Stay/Leave.
 - [ ] Employee list test asserts navigation rather than modal visibility.
-- [ ] Run `./leedevkit test web --unit-only --pattern 'employee|Employees'` during iteration.
+- [ ] Run `leedevkit test web --unit-only --pattern 'employee|Employees'` during iteration.
 
 **Dependencies:** Task 1
 
@@ -312,7 +312,7 @@ Generated OpenAPI/types + TanStack route tree
 **Verification:**
 - [ ] API/repository integration tests cover success, 401/403, 404, 409, rollback, idempotent repeat, concurrent conflict, and cross-scope rejection.
 - [ ] Database constraint/transaction evidence proves one active employee link per user and one user per employee.
-- [ ] Run `./leedevkit test api --unit-only` then `./leedevkit test api`.
+- [ ] Run `leedevkit test api --unit-only` then `leedevkit test api`.
 
 **Dependencies:** Task 1
 
@@ -376,7 +376,7 @@ Generated OpenAPI/types + TanStack route tree
 **Verification:**
 - [ ] Search `EmployeeFormModal`, `isModalOpen`, `setIsModalOpen`, `fetchOrganizationMembers`, and `user_id` call sites; every remaining hit has documented purpose.
 - [ ] Run frontend lint/typecheck and focused tests.
-- [ ] Run `./leedevkit test web </dev/null`.
+- [ ] Run `leedevkit test web </dev/null`.
 
 **Dependencies:** Tasks 2–5
 
@@ -400,10 +400,10 @@ Generated OpenAPI/types + TanStack route tree
 - [ ] No credentials, tokens, raw emails, phone numbers, or screenshots with PII enter logs/artifacts.
 
 **Verification:**
-- [ ] `./leedevkit test web --unit-only` for iteration.
-- [ ] `./leedevkit test web </dev/null`.
-- [ ] `./leedevkit test api </dev/null`.
-- [ ] `./leedevkit test all </dev/null` when API/OpenAPI/DB contract changes.
+- [ ] `leedevkit test web --unit-only` for iteration.
+- [ ] `leedevkit test web </dev/null`.
+- [ ] `leedevkit test api </dev/null`.
+- [ ] `leedevkit test all </dev/null` when API/OpenAPI/DB contract changes.
 - [ ] Read per-phase `.test_logs/` results; do not trust trailing green summary alone.
 
 **Dependencies:** Task 6
@@ -658,7 +658,7 @@ Identity policy + privacy + permission
 
 **Verification:**
 - [ ] Regenerate OpenAPI TypeScript artifacts through repository wrapper; never hand-edit generated output.
-- [ ] Run `./leedevkit test web --unit-only`, then full web/API/all targets as applicable.
+- [ ] Run `leedevkit test web --unit-only`, then full web/API/all targets as applicable.
 - [ ] Read `.test_logs/` per phase.
 - [ ] Browser audit all five roles at `1920x1080`, then mobile smoke; verify direct URL, refresh, match states, 403/409, console/network, and no PII artifacts.
 
@@ -688,10 +688,10 @@ Identity policy + privacy + permission
 ## Verification commands
 
 ```bash
-./leedevkit test web --unit-only
-./leedevkit test web </dev/null
-./leedevkit test api </dev/null
-./leedevkit test all </dev/null
+leedevkit test web --unit-only
+leedevkit test web </dev/null
+leedevkit test api </dev/null
+leedevkit test all </dev/null
 ```
 
 Browser: read `docs/dev-accounts.md`, cover all five roles, set and verify `1920x1080` first, then mobile; never store credentials/tokens/raw PII.
@@ -768,9 +768,9 @@ Migrate only parameters whose semantic meaning is authenticated user/actor. Leav
 Run:
 
 ```bash
-./leedevkit test api --unit-only
-./leedevkit test api
-./leedevkit test all
+leedevkit test api --unit-only
+leedevkit test api
+leedevkit test all
 ```
 
 Inspect per-phase `.test_logs/`; report pass/fail/skip/warnings. Confirm unrelated worktree paths remain unchanged and unstaged.
@@ -826,7 +826,7 @@ Tests: metrics -> hook payload -> components -> preview -> E2E
 - Confirm no backend/API/schema files enter scope.
 
 Acceptance: existing changes preserved; current payload and non-goals documented.
-Verification: `git status --short`; `./leedevkit --help`; `./leedevkit test --help`; inspect existing shift tests.
+Verification: `git status --short`; `leedevkit --help`; `leedevkit test --help`; inspect existing shift tests.
 
 **Checkpoint A:** contract and scope confirmed.
 

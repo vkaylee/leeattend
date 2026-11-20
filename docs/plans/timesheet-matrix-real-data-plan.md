@@ -54,6 +54,6 @@ Thay thế toàn bộ thuật toán sinh mã công giả lập (mock determinist
   - Truyền dữ liệu và trạng thái tải vào `TimesheetMatrixGrid`.
 
 ### Phase 5: Kiểm Thử Tự Động & Hồi Quy (Verification)
-- Chạy unit tests frontend: `./leedevkit test web --unit-only --pattern "reports-page|timesheet-matrix|attendance-code"`.
-- Chạy toàn bộ unit test backend: `./leedevkit test api --unit-only`.
+- Chạy unit tests frontend: `leedevkit test web --unit-only --pattern "reports-page|timesheet-matrix|attendance-code"`.
+- Chạy toàn bộ unit test backend: `leedevkit test api --unit-only`.
 - Xác minh HTTP endpoints và kiểm tra không có lỗi build/types/lint.

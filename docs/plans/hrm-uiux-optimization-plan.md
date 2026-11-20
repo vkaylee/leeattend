@@ -72,7 +72,7 @@ Chuẩn hóa giao diện (UI) và trải nghiệm người dùng (UX) của LeeA
 
 - [ ] **Task 6: Kiểm Thử Tự Động, Hồi Quy & Xác Minh Trực Quan MCP Playwright**
   - *Mô tả:*
-    - Chạy toàn bộ test suites frontend và backend qua hermetic wrappers (`./leedevkit test web --unit-only`, `./leedevkit test api --unit-only`).
+    - Chạy toàn bộ test suites frontend và backend qua hermetic wrappers (`leedevkit test web --unit-only`, `leedevkit test api --unit-only`).
     - Dùng Playwright MCP xác minh trực quan trên 3 vai trò chính: `hr_manager` (xem payroll & timesheet), `team_lead` (xem impact card khi duyệt), `employee` (xem payslip cá nhân).
   - *Ràng buộc:* Tỷ lệ pass 100%, không phát sinh cảnh báo accessibility hoặc lỗi console mới.
 

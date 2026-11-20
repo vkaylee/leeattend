@@ -55,8 +55,8 @@
   - [ ] Verify no sensitive data in URL/storage/logs.
 
 - [ ] Checkpoint 4: Final acceptance
-  - [ ] `./leedevkit test api`
-  - [ ] `./leedevkit test web`
-  - [ ] `./leedevkit test all`
+  - [ ] `leedevkit test api`
+  - [ ] `leedevkit test web`
+  - [ ] `leedevkit test all`
   - [ ] `git diff --check`
   - [ ] Browser route × role matrix complete.

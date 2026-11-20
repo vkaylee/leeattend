@@ -25,7 +25,7 @@ User approved removing the entire salary base-group model, including custom grou
 ## Steps
 - [x] Remove backend group API/repository/seed and add reversible migration tests.
 - [x] Remove dashboard group UI/client/contracts and update regression tests.
-- [ ] Run focused checks, then `./leedevkit test all`; inspect individual phases.
+- [ ] Run focused checks, then `leedevkit test all`; inspect individual phases.
 - [ ] Record exact results and any remaining blockers.
 
 ## Migration operations
@@ -37,9 +37,9 @@ User approved removing the entire salary base-group model, including custom grou
 
 ## Verification evidence
 - First focused frontend run used file names as a name filter and skipped all 2,996 tests; not counted as a pass.
-- Corrected command: `./leedevkit test web --unit-only --pattern 'SalaryComponentManager|PayrollRulesManager|PayrollSettings Page|payroll API' --json --quiet`: 48 passed across 4 files; 2,948 unrelated tests skipped. Log: `.test_logs/leedevkit-test-18bfb50b/Unit_Tests_webdashboard.log`.
+- Corrected command: `leedevkit test web --unit-only --pattern 'SalaryComponentManager|PayrollRulesManager|PayrollSettings Page|payroll API' --json --quiet`: 48 passed across 4 files; 2,948 unrelated tests skipped. Log: `.test_logs/leedevkit-test-18bfb50b/Unit_Tests_webdashboard.log`.
 - PostgreSQL 18 disposable database: baseline plus `apiserver/migrations/testdata/salary_base_retirement.sql` passed with `psql -v ON_ERROR_STOP=1`, through repository Compose wrappers. Covers exact custom/system group snapshots, assigned amount history, retained writes, and up/down/up/down restoration. Disposable database container removed afterward. Container engine emitted a warning about an unrelated existing network JSON file; SQL execution exited 0.
-- Full regression command in progress: `./leedevkit test all --json --quiet`. Backend unit packages passed (`.test_logs/leedevkit-test-3056d21a/Unit_Tests_go-unit.log`). Inspection found configured Go integration runner has no Go integration task; explicit PostgreSQL fixture above supplies migration integration evidence, not full API E2E coverage.
-- Additional `./leedevkit test web --json --quiet` in progress. Unit phase: 2,976 passed, 25 failed across 5 files. Failures involve concurrent salary setup translations/router Link mock and schedule lifecycle/shift tests, not the retired-group regression suites. Log: `.test_logs/leedevkit-test-0092f5db/Unit_Tests_webdashboard.log`. No full regression pass claimed.
-- Standalone `./scripts/_npm.sh run type-check` blocked: wrapper selects `/usr/bin/python3.14` rather than required `.leedevkit/.venv/bin/python3`. `./leedevkit run` is unsupported. Full web target includes typecheck; no wrapper/devkit edits made.
+- Full regression command in progress: `leedevkit test all --json --quiet`. Backend unit packages passed (`.test_logs/leedevkit-test-3056d21a/Unit_Tests_go-unit.log`). Inspection found configured Go integration runner has no Go integration task; explicit PostgreSQL fixture above supplies migration integration evidence, not full API E2E coverage.
+- Additional `leedevkit test web --json --quiet` in progress. Unit phase: 2,976 passed, 25 failed across 5 files. Failures involve concurrent salary setup translations/router Link mock and schedule lifecycle/shift tests, not the retired-group regression suites. Log: `.test_logs/leedevkit-test-0092f5db/Unit_Tests_webdashboard.log`. No full regression pass claimed.
+- Standalone `./scripts/_npm.sh run type-check` blocked: wrapper selects `/usr/bin/python3.14` rather than required `.leedevkit/.venv/bin/python3`. `leedevkit run` is unsupported. Full web target includes typecheck; no wrapper/devkit edits made.
 - Generated TypeScript contract edited narrowly: configured `gen-api` expects missing `webdashboard/openapi.json`; full regeneration unavailable. Types/lint must verify the reduced contract.

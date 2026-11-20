@@ -14,7 +14,7 @@ Project policy lives in `.agent/`; devkit sources live at:
 - Built-in agents: `.leedevkit/.agent/agents/*.md`
 - Project agents: `.agent/agents/*.md`
 
-Run `./leedevkit --help` for available project commands.
+Run `leedevkit --help` for available project commands.
 
 ### Available skills
 

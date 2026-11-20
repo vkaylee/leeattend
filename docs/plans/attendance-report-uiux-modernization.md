@@ -36,7 +36,7 @@ Make `/reports` feel like a modern enterprise attendance workspace: clear hierar
 
 - [ ] 7. Verify visual behavior at `1920x1080`, `1440x900`, `1024x768`, `768x1024`, `390x844`, and `360x800`; check console/network errors, focus order, contrast, reduced motion, and no clipped labels. Use least-privileged documented account for authenticated UI testing and mask all account data in artifacts.
 
-- [ ] 8. Run `./leedevkit test web` without `--unit-only`; inspect per-phase logs, then report pass/fail/skipped checks and remaining risks. Run focused web tests first only for iteration, never as final proof.
+- [ ] 8. Run `leedevkit test web` without `--unit-only`; inspect per-phase logs, then report pass/fail/skipped checks and remaining risks. Run focused web tests first only for iteration, never as final proof.
 
 ## Test impact matrix
 
@@ -55,4 +55,4 @@ Make `/reports` feel like a modern enterprise attendance workspace: clear hierar
 - Mobile filter sheet traps focus and restores focus to trigger.
 - Loading, empty, and error states are visible and actionable.
 - Existing report behavior tests remain green; new UI behavior tests pass.
-- `./leedevkit test web` completes successfully with integration/E2E phase executed.
+- `leedevkit test web` completes successfully with integration/E2E phase executed.

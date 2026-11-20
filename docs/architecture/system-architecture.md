@@ -47,7 +47,7 @@ Compose deploys `apiserver`, `webdashboard`, one PostgreSQL database, Redis, and
 
 ## Verification boundaries
 
-- API: `./leedevkit test api`
-- Web: `./leedevkit test web`
-- CLI discovery: `./leedevkit --help`
+- API: `leedevkit test api`
+- Web: `leedevkit test web`
+- CLI discovery: `leedevkit --help`
 

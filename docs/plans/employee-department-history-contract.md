@@ -29,4 +29,4 @@ Remove stale `employee_department_history` runtime dependencies and use current 
 - No active Go runtime query references `employee_department_history`.
 - Schedule and payroll consumers use deleted-filtered employment segments.
 - Regression tests fail against stale relation usage and pass with canonical queries.
-- `./leedevkit test api` and `./leedevkit test all` pass; `git diff --check` passes.
+- `leedevkit test api` and `leedevkit test all` pass; `git diff --check` passes.

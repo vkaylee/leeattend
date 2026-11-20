@@ -48,7 +48,7 @@
   1. Thay thế markup `<input>` bằng `<SearchInput>`.
   2. Kết nối prop `value`, `onChange`, `onClear`, `placeholder`.
   3. Chạy regression test:
-     `./leedevkit test web --unit-only --pattern "report-filters|payroll-summary|econtracts"`
+     `leedevkit test web --unit-only --pattern "report-filters|payroll-summary|econtracts"`
   4. Chụp màn hình Playwright MCP để kiểm tra giao diện bảng.
 
 ### Giai đoạn 2: Hộp thoại & Picker Modals (Dialogs & Selectors)
@@ -57,7 +57,7 @@
   1. Thay thế trong `bulk-employee-picker-modal.tsx`, `shift-picker-modal.tsx`, `permission-management-modal.tsx`, `template-gallery.tsx`.
   2. Đảm bảo hỗ trợ keyboard focus (`autoFocus` hoặc phím tắt).
   3. Chạy unit test:
-     `./leedevkit test web --unit-only --pattern "bulk-employee|shift-picker|permission-management"`
+     `leedevkit test web --unit-only --pattern "bulk-employee|shift-picker|permission-management"`
 
 ### Giai đoạn 3: Danh sách điều hướng & Widget Catalog
 - **Mục tiêu:** Đồng bộ `navigable-list-search.tsx` và `chart-catalog-sidebar.tsx`.

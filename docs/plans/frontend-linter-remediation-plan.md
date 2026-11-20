@@ -2,7 +2,7 @@
 
 ## Rule Compliance Check
 - `RULE-LINT-001` (Clean Code & Dead Code Policy): Zero unused imports, zero unused vars, zero unnecessary type assertions. (`.agent/rules/coding-standards.md` §2)
-- `RULE-LINT-002` (Hermetic Wrappers & Test Completeness): All verification runs via `./leedevkit test web --lint-only` and `./leedevkit test web`. (`.agent/rules/execution-wrappers.md`)
+- `RULE-LINT-002` (Hermetic Wrappers & Test Completeness): All verification runs via `leedevkit test web --lint-only` and `leedevkit test web`. (`.agent/rules/execution-wrappers.md`)
 - `RULE-LINT-003` (Design System Strictness): Eliminate raw HTML elements forbidden by policy (`<h1>-<h6>`, `<p>`, `<button>`) in favor of design system primitives (`Typography`, `Button`). (`.agent/rules/design-rules.md`)
 - `RULE-LINT-004` (Query Key Architecture): Ban ad-hoc query key array literals; consolidate into query key factories (`src/lib/query-keys.ts`). (`webdashboard/eslint.config.mjs`)
 
@@ -28,11 +28,11 @@
 
 ### Phase 1: Automated Remediation (Auto-Fix)
 - **Goal:** Clear ~1,009 warnings automatically without behavioral changes.
-- **Action:** Run `./leedevkit test web --lint-only --fix`.
+- **Action:** Run `leedevkit test web --lint-only --fix`.
 - **Files touched:** Broad formatting sweep across `webdashboard/src`.
 - **Verification:**
-  1. `./leedevkit test web --lint-only` (verify warnings drop to ~790).
-  2. `./leedevkit test web --unit-only` (verify zero test regressions).
+  1. `leedevkit test web --lint-only` (verify warnings drop to ~790).
+  2. `leedevkit test web --unit-only` (verify zero test regressions).
 
 ### Phase 2: ESLint Configuration Fine-Tuning
 - **Goal:** Clear false positives from framework contracts (~50 warnings).
@@ -47,7 +47,7 @@
      }
      ```
   2. Update `max-lines` / `complexity` ignore list for legacy mega-components already tracked for refactoring.
-- **Verification:** `./leedevkit test web --lint-only`.
+- **Verification:** `leedevkit test web --lint-only`.
 
 ### Phase 3: Runtime Defect Prevention & React Polish
 - **Goal:** Clear ~230 warnings related to render crashes and callbacks.
@@ -60,7 +60,7 @@
      - Strip unused variables or prefix intentional unused args with `_`.
   4. **`@typescript-eslint/no-unnecessary-condition`:**
      - Strip dead optional chaining on non-nullable types.
-- **Verification:** `./leedevkit test web --unit-only`.
+- **Verification:** `leedevkit test web --unit-only`.
 
 ### Phase 4: Query Key Architecture Standardization
 - **Goal:** Eliminate 274 warnings from `no-restricted-syntax`.
@@ -69,7 +69,7 @@
   2. Extend `webdashboard/src/lib/query-keys.ts` with missing domain key factories:
      - `shiftKeys`, `reportKeys`, `payrollKeys`, `auditLogKeys`, `holidayKeys`, `timeSettingsKeys`, `assignmentRuleKeys`.
   3. Replace literal arrays in target hooks/components with corresponding factory calls.
-- **Verification:** `./leedevkit test web --lint-only` & `./leedevkit test web --unit-only`.
+- **Verification:** `leedevkit test web --lint-only` & `leedevkit test web --unit-only`.
 
 ### Phase 5: Design System Compliance & Deprecations
 - **Goal:** Clear remaining ~100 warnings (`react/forbid-elements`, `@typescript-eslint/no-deprecated`).
@@ -77,12 +77,12 @@
   1. Replace `<p>`, `<h2>`, `<button>` in widgets with `<Typography>` and `<Button>`.
   2. Upgrade `z.uuid()` to `z.string().uuid()` or appropriate Zod v4 syntax.
 - **Verification:**
-  1. Full web test suite: `./leedevkit test web`.
-  2. Zero warnings check: `./leedevkit test web --lint-only`.
+  1. Full web test suite: `leedevkit test web`.
+  2. Zero warnings check: `leedevkit test web --lint-only`.
 
 ---
 
 ## 3. Definition of Done
 1. `bun scripts/lint.mjs src` reports `0 errors, 0 warnings`.
-2. `./leedevkit test web` passes completely (lint, unit tests, E2E).
+2. `leedevkit test web` passes completely (lint, unit tests, E2E).
 3. Zero regressions in UI rendering and data mutations.

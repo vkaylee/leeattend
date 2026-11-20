@@ -23,7 +23,7 @@ Verified hotspots: `apiserver/internal/repository/work_policy.go:215,226,273,337
 - [x] Work-policy typed IDs and named inputs migrated.
 - [x] Payroll employee, employment, employer, actor, period, input, formula, rule, tier, assignment, incentive, salary-component, payslip, and salary-management filter boundaries migrated where positional ambiguity was concrete.
 - [x] ADR recorded at `docs/decisions/2026-11-15-go-domain-ids.md`.
-- [x] Each slice passed focused checks and canonical `./leedevkit test api --json`; no migration or HTTP contract changed.
+- [x] Each slice passed focused checks and canonical `leedevkit test api --json`; no migration or HTTP contract changed.
 - [x] Rollout stopped at meaningful boundary coverage. Remaining raw UUIDs are DTO/output fields, SQL/scan locals, and unambiguous adapters; do not migrate by count.
 
 ## Verification evidence

@@ -113,10 +113,10 @@ Không sửa source, xoá migration hoặc reset volume khi status còn `Awaitin
 - Operations: reset procedure, migration logs, lock/transaction behavior, recovery from backup before destructive reset.
 
 ## Verification
-1. Use repository wrappers only; inspect `./leedevkit --help` and `./leedevkit test --help` before execution.
+1. Use repository wrappers only; inspect `leedevkit --help` and `leedevkit test --help` before execution.
 2. Run migration/schema-focused checks against fresh DB.
-3. Run `./leedevkit test api` full target, not `--unit-only`.
-4. Run `./leedevkit test all` because persistence and shared runtime initialization changed.
+3. Run `leedevkit test api` full target, not `--unit-only`.
+4. Run `leedevkit test all` because persistence and shared runtime initialization changed.
 5. Inspect per-phase logs, not only final green summary.
 6. Run final active-source grep for `workspaces`, `workspace_id`, and `workspace_`; classify remaining historical docs explicitly.
 
@@ -125,7 +125,7 @@ Không sửa source, xoá migration hoặc reset volume khi status còn `Awaitin
 - [ ] Active Go/API/SQL/runtime scripts contain no legacy workspace dependency.
 - [ ] Dev/test databases recreate cleanly from one baseline.
 - [ ] Schema contract and migration rerun tests pass.
-- [ ] `./leedevkit test api` and `./leedevkit test all` pass with phase logs inspected.
+- [ ] `leedevkit test api` and `leedevkit test all` pass with phase logs inspected.
 - [ ] Docs state fresh-only migration policy and recovery boundary.
 
 ## Review focus

@@ -6,4 +6,4 @@
   2. Approval Workflow tasks & pending task resolution evaluate approvers via `SystemDB` user membership and roles, eliminating broken cross-DB queries on Tenant DB.
   3. Tenant DB dead enum `member_role_type` is removed.
   4. Business policy tables (`leave_policy_assignments`, `overtime_policy_assignments`, `payroll_incentive_assignments`, `attendance_policy_assignments`) support `assignee_type = 'user'` with highest precedence in policy resolution cascades.
-- Verification: unit tests passing, full regression via `./leedevkit test api`.
+- Verification: unit tests passing, full regression via `leedevkit test api`.

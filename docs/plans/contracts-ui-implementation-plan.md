@@ -38,7 +38,7 @@ Tách đúng UI hợp đồng pháp lý thường khỏi UI e-contract; giữ co
 
 - [ ] **6. Chuẩn hóa UX/i18n/a11y.** Di chuyển hardcoded title/subtitle/action/filter/status strings sang locale keys; dùng UI components hiện có; bổ sung skeleton, empty, error/retry, delete pending/disabled, responsive table/mobile view, visible focus, labels cho icon-only actions và modal focus restore. Verify: locale hiện có không lộ key; WCAG keyboard/contrast checks trong component tests.
 
-- [ ] **7. Test impact và verification.** Cập nhật page, route guard, app registry, employee tab, API-hook tests: success, filter/empty, API error, unauthorized, old URL compatibility, mutation failure, stale query invalidation và feature-flag isolation. Chạy `./leedevkit test web`, đọc toàn bộ phase logs; sau đó `./leedevkit test all` nếu route/shared infrastructure thay đổi. Trước browser audit: đọc `docs/dev-accounts.md`, lập route × role matrix cho 5 role và ghi console/network evidence.
+- [ ] **7. Test impact và verification.** Cập nhật page, route guard, app registry, employee tab, API-hook tests: success, filter/empty, API error, unauthorized, old URL compatibility, mutation failure, stale query invalidation và feature-flag isolation. Chạy `leedevkit test web`, đọc toàn bộ phase logs; sau đó `leedevkit test all` nếu route/shared infrastructure thay đổi. Trước browser audit: đọc `docs/dev-accounts.md`, lập route × role matrix cho 5 role và ghi console/network evidence.
 
 ## Done when
 

@@ -39,9 +39,9 @@ The viewport list is a regression matrix, not a limit on real browser sizes. Com
 ## Playwright tier selection
 
 ```bash
-PLAYWRIGHT_VIEWPORT_TIER=required ./leedevkit test web --e2e-only
-PLAYWRIGHT_VIEWPORT_TIER=secondary ./leedevkit test web --e2e-only
-PLAYWRIGHT_VIEWPORT_TIER=smoke ./leedevkit test web --e2e-only
+PLAYWRIGHT_VIEWPORT_TIER=required leedevkit test web --e2e-only
+PLAYWRIGHT_VIEWPORT_TIER=secondary leedevkit test web --e2e-only
+PLAYWRIGHT_VIEWPORT_TIER=smoke leedevkit test web --e2e-only
 ```
 
 Unset `PLAYWRIGHT_VIEWPORT_TIER` runs all supported regression viewports.

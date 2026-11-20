@@ -22,7 +22,7 @@ LeeAttend has one active API runtime: the Go `apiserver`. Retired implementation
    ```
 2. Start the environment through the orchestrator:
    ```bash
-   ./leedevkit manage up staging
+   leedevkit manage up staging
    ```
 3. Verify API liveness and readiness:
    ```bash
@@ -31,7 +31,7 @@ LeeAttend has one active API runtime: the Go `apiserver`. Retired implementation
    ```
 4. Run the complete target suite before traffic release:
    ```bash
-   ./leedevkit test all
+   leedevkit test all
    ```
 
 ## 3. Release gates

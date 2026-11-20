@@ -40,7 +40,7 @@ go run .
 
 Via the repository orchestrator:
 ```bash
-./leedevkit test api
+leedevkit test api
 ```
 The server listens on `http://127.0.0.1:3000` when started directly.
 
@@ -68,7 +68,7 @@ The server listens on `http://127.0.0.1:3000` when started directly.
 Run API unit, integration, lint, and static-analysis gates through the repository orchestrator:
 
 ```bash
-./leedevkit test api
+leedevkit test api
 ```
 
 The test environment runs the Go module under `apiserver/`, applies database fixtures as required, and isolates integration resources in containers.

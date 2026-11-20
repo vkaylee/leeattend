@@ -29,7 +29,7 @@ Chuẩn hóa quyền của `hr_manager`, `shift_manager`, `team_lead`, `employee
 - [ ] 5. Chuẩn hóa consumers → cập nhật handler permission literals, frontend route/nav guards, mocks, i18n permission labels và dev-account expectations sang canonical names; giữ compatibility seam có thời hạn nếu cần. → Verify: grep active source không còn legacy literal ngoài migration/compatibility fixture; API/UI permission responses thống nhất.
 - [ ] 6. Bổ sung test bảo vệ contract → role matrix parity, unknown/retired permission rejection, bootstrap idempotency, legacy compatibility, scoped allow/deny, unauthorized 403 và no side effect. → Verify: test fail khi grant thừa hoặc thiếu; test không phụ thuộc thứ tự DB rows.
 - [ ] 7. Rollout và cleanup gate → deploy additive grants trước, quan sát `/me/permissions` và 403 metrics, sau compatibility window mới đề xuất xóa legacy rows/aliases bằng migration có `down.sql`; không tự cleanup production data. → Verify: reconciliation query, rollback procedure, owner/removal date cho compatibility code.
-- [ ] 8. Verification → chạy focused API tests, `./leedevkit test api`, kiểm tra phase logs; nếu backend/shared contract thay đổi thì chạy `./leedevkit test all`. → Verify: report pass/fail/skip/warnings và remaining risks; `git diff --check`.
+- [ ] 8. Verification → chạy focused API tests, `leedevkit test api`, kiểm tra phase logs; nếu backend/shared contract thay đổi thì chạy `leedevkit test all`. → Verify: report pass/fail/skip/warnings và remaining risks; `git diff --check`.
 
 ## Done When
 - [ ] Mỗi non-admin role có matrix canonical được review.

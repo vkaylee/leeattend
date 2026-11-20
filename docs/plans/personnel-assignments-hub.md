@@ -9,7 +9,7 @@
   - Implementation: Dual-mode modal for shared assignment creation/editing across Employee Detail and Central Registry; separation of concerns between data hooks, UI presentation, and filtering logic.
 - **Rule ID 3: `TEST-STD-001` (Testing Standards & Completeness)**
   - Source: `.agent/rules/testing-standards.md`
-  - Implementation: Unit tests for filter state and dual-mode modal, integration/E2E test verification via `./leedevkit test web`.
+  - Implementation: Unit tests for filter state and dual-mode modal, integration/E2E test verification via `leedevkit test web`.
 - **Rule ID 4: `EXEC-PTY-001` (PTY Safety & Hermetic Execution)**
   - Source: `.agent/rules/execution-wrappers.md`
   - Implementation: Output redirection to `logs/run_*.log`, non-blocking commands, hermetic wrapper invocation.

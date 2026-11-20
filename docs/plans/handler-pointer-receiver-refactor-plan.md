@@ -24,7 +24,7 @@ Standardize HTTP API handlers on pointer receivers and pointer-owned route wirin
 - [ ] Convert remaining stateless handlers in bounded groups, keeping receiver declarations and route parameters aligned. Verify: each group passes focused package tests and route registration tests.
 - [ ] Convert pointer-heavy/stateful handlers (`MonitorHandler`, `FileHandler`, `EmployeeImportHandler`, `ReportHandler`, `PayrollHandler`, `ScheduleHandler`, `ESSHandler`) last. Inspect mutex, cache, stream, Redis, storage, and lifecycle fields before conversion. Verify: no copied synchronization/state fields and race-enabled handler tests pass.
 - [ ] Add one compile-time method-set check or route wiring test proving pointer handler instances satisfy all required registration contracts. Verify: value handler cannot silently re-enter route wiring through accidental copies.
-- [ ] Run formatting, vet, static analysis, focused API tests, then full `./leedevkit test api`; inspect phase logs. Verify: no behavior or contract regression.
+- [ ] Run formatting, vet, static analysis, focused API tests, then full `leedevkit test api`; inspect phase logs. Verify: no behavior or contract regression.
 
 ## Done When
 - [ ] All HTTP API handler methods use pointer receivers unless an explicit documented exception exists.

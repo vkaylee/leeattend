@@ -64,7 +64,7 @@ Rejected. Project is archived and is not suitable for a new long-lived dependenc
 
 ## Migration and Rollback
 
-1. Record baseline route inventory and run `./leedevkit test api`.
+1. Record baseline route inventory and run `leedevkit test api`.
 2. Add chi and path-value compatibility tests.
 3. Migrate one low-risk route group and compare status/method/path behavior.
 4. Migrate remaining groups in small diffs, preserving handlers and middleware.
@@ -81,6 +81,6 @@ Removal criterion for transitional adapter: remove only after all handlers stop 
 - System and tenant authorization negative tests pass.
 - Request path parameters remain available through `Request.PathValue`.
 - CORS, body limits, rate limits, request IDs, streaming, and WebSocket upgrade tests pass.
-- `./leedevkit test api` passes with integration phases included.
+- `leedevkit test api` passes with integration phases included.
 - Route inventory parity verified against `52d733021`: 379 baseline registrations; 377 module patterns plus two direct health routes.
 - No unapproved dead code or unused dependency remains.

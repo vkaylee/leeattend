@@ -32,7 +32,7 @@ Choose Option A. `systemPool` and `workerPool` already have separate transaction
 No schema SQL change. Deployment applies `migrations/system/` then `migrations/tenant/` once to standalone's shared database, with globally unique directory versions verified before implementation. Both initial migrations define `fn_set_updated_at` with `CREATE OR REPLACE`, so order is compatible. Roll back by restoring previous application image; no data migration is required for pool ownership change.
 
 ## Verification
-- Passed: `./scripts/_go-gates.sh --fix`, `./scripts/_go-gates.sh`, targeted pool and bootstrap race tests, and `./leedevkit test web` (3014/3014).
+- Passed: `./scripts/_go-gates.sh --fix`, `./scripts/_go-gates.sh`, targeted pool and bootstrap race tests, and `leedevkit test web` (3014/3014).
 - Passed: standalone Compose structural smoke with non-secret placeholders.
-- Earlier blocker: `./leedevkit test all` used stale `api-go`/`apiserver` service names; active Compose, devkit targets, lifecycle health checks, CI override, and Go gate now use canonical `apiserver`. CLI target remains `api`.
+- Earlier blocker: `leedevkit test all` used stale `api-go`/`apiserver` service names; active Compose, devkit targets, lifecycle health checks, CI override, and Go gate now use canonical `apiserver`. CLI target remains `api`.
 - Active configuration/docs audit: `apiserver/.env.example` and `docs/architecture/database-architecture.md` describe standalone shared DB and SaaS-only dynamic tenant URLs.

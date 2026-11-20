@@ -28,11 +28,11 @@ Expose the existing approval inbox at `/approvals` through the primary navigatio
 
 ## Verification
 - Focused frontend tests for navigation, route coverage, and App Launcher permission filtering.
-- Required project target: `./leedevkit test webdashboard` if supported by the repository target discovery; otherwise use the documented frontend target from `./leedevkit --help`.
+- Required project target: `leedevkit test webdashboard` if supported by the repository target discovery; otherwise use the documented frontend target from `leedevkit --help`.
 - Smoke check: open the authenticated app with a permitted development account, confirm `Hộp thư Phê duyệt` appears in the menu, navigate to `/approvals`, and confirm `/approvals/ot` remains available.
 
 - [x] `/approvals` is discoverable from primary navigation and App Launcher.
 - [x] Navigation and App Launcher use only backend-defined permissions.
 - [x] `/approvals` metadata displays inbox wording, not OT wording.
-- [ ] Route, permission-filtering, and active-group tests pass. Blocked: `./leedevkit test web --unit-only` and `./leedevkit test web --lint-only --timeout 600 --quiet` stalled during isolated environment startup; unit retry exited after signal 15 cleanup.
+- [ ] Route, permission-filtering, and active-group tests pass. Blocked: `leedevkit test web --unit-only` and `leedevkit test web --lint-only --timeout 600 --quiet` stalled during isolated environment startup; unit retry exited after signal 15 cleanup.
 - [ ] Full applicable LeeDevKit verification and authenticated UI smoke check pass. UI smoke check not run because the test/dev environment did not start successfully.

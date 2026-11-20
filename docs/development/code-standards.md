@@ -33,7 +33,7 @@
 
 ## Verification
 
-- Use `./leedevkit test api`, `./leedevkit test web`, or `./leedevkit test all`.
+- Use `leedevkit test api`, `leedevkit test web`, or `leedevkit test all`.
 - Run integration and end-to-end phases after focused checks. Unit-only output is insufficient.
 - Capture output under `logs/` and inspect warnings, skipped phases, and integration failures.
 

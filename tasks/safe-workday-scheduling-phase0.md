@@ -57,4 +57,4 @@ Phase 0 and Phase 1 only. No UI, roster mutation, raw-event schema, or Shift cha
 
 ## Verification limitation
 
-`./leedevkit test api --unit-only` was attempted but could not start because the repository wrapper is `0.11.2` while `leedevkit.toml` requires `0.11.1`; the compatible runtime exists only in `.leedevkit.bak`. Focused Go verification used the tracked `scripts/_go-gates.sh` wrapper in the project container. Full LeeDevKit gates remain pending until the runtime mismatch is repaired by the project owner.
+`leedevkit test api --unit-only` was attempted but could not start because the repository wrapper is `0.11.2` while `leedevkit.toml` requires `0.11.1`; the compatible runtime exists only in `.leedevkit.bak`. Focused Go verification used the tracked `scripts/_go-gates.sh` wrapper in the project container. Full LeeDevKit gates remain pending until the runtime mismatch is repaired by the project owner.

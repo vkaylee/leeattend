@@ -3,7 +3,7 @@
 - UI-AUDIT-01: Audit all documented roles and representative allowed/denied routes with MCP evidence before editing.
 - UI-SHARED-02: Fix repeated behavior at shared shell/design-token/startup layers before page-specific components.
 - UI-A11Y-03: Preserve keyboard access, focus visibility, dialog Escape handling, and focus restoration.
-- UI-VERIFY-04: Re-run desktop/mobile route smoke, console/network evidence, then `./leedevkit test web`.
+- UI-VERIFY-04: Re-run desktop/mobile route smoke, console/network evidence, then `leedevkit test web`.
 
 ## Test impact matrix
 

@@ -10,7 +10,7 @@ Remove `/system/tenants` and `/system/roles` completely from the standalone prod
 - Retained system routes (`/system/smtp/*`, `/system/health`, monitor routes) MUST remain authenticated and fail closed for non-admins and authorization dependency failures.
 - API removal is a breaking contract. Verify repository consumers and update source OpenAPI, generated clients, docs, and tests together.
 - Destructive schema cleanup requires backup protection, explicit approval already granted for this task, forward/down migration testing, and admin-access reconciliation.
-- Use repository wrappers and `./leedevkit test`; do not run host dependency tools directly.
+- Use repository wrappers and `leedevkit test`; do not run host dependency tools directly.
 
 ## Implementation status
 

@@ -10,7 +10,7 @@ Make standalone cutover verifiable end-to-end by restoring a trustworthy API con
 - `webdashboard/src/types/api-generated.ts` is generated and MUST NOT be hand-edited.
 - API contract removal is breaking. Contract source, generated clients, compatibility evidence, and consumer tests MUST move together under approved change control.
 - Existing failing tests MUST be fixed at their root cause; no skips, retries, warning suppression, or weakened assertions.
-- Use `./leedevkit`, `scripts/_go-gates.sh`, and repository wrappers only.
+- Use `leedevkit`, `scripts/_go-gates.sh`, and repository wrappers only.
 - Preserve security, migration, and standalone authorization gates already passing.
 
 ## Tasks
@@ -19,13 +19,13 @@ Make standalone cutover verifiable end-to-end by restoring a trustworthy API con
 
 - [ ] **Regenerate and validate frontend API types.** Run the canonical generator from the restored source, confirm `api-generated.ts` removes obsolete operations/schemas, update only legitimate generated re-exports/consumers, and run contract compatibility checks. Record the breaking-change migration note and generated hash/source citation.
 
-- [ ] **Fix the 13 blocking frontend lint errors only.** Group work by DSM launcher, table-density UI, approvals, i18n config, and ESS clock. Preserve behavior and accessibility; use native interactive elements or complete keyboard semantics where required. Do not bulk-fix the 1,138 warnings in this blocker pass. Verify `./leedevkit test web --lint-only` reaches zero errors; warnings remain separately tracked.
+- [ ] **Fix the 13 blocking frontend lint errors only.** Group work by DSM launcher, table-density UI, approvals, i18n config, and ESS clock. Preserve behavior and accessibility; use native interactive elements or complete keyboard semantics where required. Do not bulk-fix the 1,138 warnings in this blocker pass. Verify `leedevkit test web --lint-only` reaches zero errors; warnings remain separately tracked.
 
 - [ ] **Repair frontend unit-test fixtures.** Fix the `Response` mock contract in `src/lib/__tests__/api.test.ts` so all methods consumed by `openapi-fetch` exist. Fix `employees-page.test.tsx` module mocking/import setup so the test uses the mocked API namespace. Verify focused files first, then the complete web unit phase; retain assertions and add no skips.
 
 - [ ] **Diagnose and fix E2E failures by failure cluster.** First reproduce dashboard, responsive, branding, and overtime groups separately with traces/error contexts. Check shared bootstrap/API mocks, viewport breakpoints, route readiness, and state isolation before changing product code. Fix the shared root cause, then repair individual flow contracts. Address the test image’s missing `git` only if it affects version/build behavior. Verify all E2E projects, including retries disabled during diagnosis.
 
-- [ ] **Verify current test orchestration.** Trace API, database, Redis, and integration healthcheck phases to their LeeDevKit/compose source. Verify `./leedevkit test api` and `./leedevkit test all` execute intended services and fail on real regressions.
+- [ ] **Verify current test orchestration.** Trace API, database, Redis, and integration healthcheck phases to their LeeDevKit/compose source. Verify `leedevkit test api` and `leedevkit test all` execute intended services and fail on real regressions.
 
 - [ ] **Run final cross-surface verification and review.** Run security audit, migration fixture validation, canonical Go gates, frontend lint/typecheck/unit/build, E2E, contract generation/validation, compose validation, and standalone smoke checks. Review the complete diff for generated artifacts, secrets, stale routes, and accidental warning suppression. Obtain required code review before merge.
 

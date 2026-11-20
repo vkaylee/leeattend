@@ -70,7 +70,7 @@ Nâng cấp trải nghiệm người dùng toàn diện cho phân hệ Settings 
 1. **Unit Tests**:
    - Cập nhật test suite `settings-layout.test.tsx` kiểm tra việc đóng menu mobile khi click item.
    - Bổ sung test kiểm tra `isActive` cho Settings trên `floating-dock.test.tsx`.
-   - Chạy `./leedevkit test web --unit-only` đảm bảo 100% test case pass.
+   - Chạy `leedevkit test web --unit-only` đảm bảo 100% test case pass.
 2. **Visual & Browser E2E Verification**:
    - Sử dụng Playwright chụp lại ảnh màn hình Mobile (390×844) kiểm tra tương phản nút selector menu.
    - Chụp lại ảnh màn hình Desktop ở cả Light mode và Dark mode kiểm tra header sidebar, nhãn tiếng Việt và định dạng timezone.
