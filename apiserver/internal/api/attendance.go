@@ -182,6 +182,7 @@ type AttendanceDailySummaryRecord struct {
 	BreakExceptionCode      *string    `json:"break_exception_code,omitempty"`
 	StandardCredits         float64    `json:"standard_credits"`
 	WorkPolicyVersionID     *uuid.UUID `json:"work_policy_version_id,omitempty"`
+	ShiftVersionID          *uuid.UUID `json:"shift_version_id,omitempty"`
 	OTStatus                string     `json:"ot_status"`
 	OTReason                *string    `json:"ot_reason,omitempty"`
 	ManagerNote             *string    `json:"manager_note,omitempty"`

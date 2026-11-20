@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/buckets"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
@@ -381,6 +382,113 @@ func (r AttendanceRepository) GetESSAttendanceState(ctx context.Context, employe
 	return api.AttendanceActionResponse{State: "working", NextAllowedActions: []string{api.AttendanceActionBreakStart, api.AttendanceActionWorkOut}, Entry: &entry}, nil
 }
 
+func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate, endDate string, employeeID *uuid.UUID) (api.ReprocessResponse, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return api.ReprocessResponse{}, err
+	}
+	where := "te.punch_in_time::date >= $1::date AND te.punch_in_time::date <= $2::date"
+	args := []any{startDate, endDate}
+	if employeeID != nil {
+		where += " AND e.employee_id = $3"
+		args = append(args, *employeeID)
+	}
+	rows, err := db.Query(ctx, `SELECT te.employment_id, te.punch_in_time::date::text, te.punch_in_time, te.punch_out_time, te.duration_minutes, te.segment_id, te.shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot, wp.id, wc.minutes_per_credit, wc.early_ot_enabled, wc.early_ot_qualification_grace_minutes, wc.early_ot_max_minutes, wc.break_auto_deduct, wc.break_is_overtime
+		FROM time_entries te
+		JOIN employments e ON e.id = te.employment_id
+		LEFT JOIN work_segments ws ON ws.id = te.segment_id
+		LEFT JOIN labor_policy_memberships lm ON lm.employment_id = te.employment_id AND lm.effective_from <= te.punch_in_time::date AND (lm.effective_to IS NULL OR lm.effective_to > te.punch_in_time::date)
+		LEFT JOIN labor_policy_group_versions wp ON wp.group_id = lm.group_id AND wp.effective_from <= te.punch_in_time::date AND (wp.effective_to IS NULL OR wp.effective_to > te.punch_in_time::date)
+		LEFT JOIN work_credit_policies wc ON wc.id = wp.work_credit_policy_id
+		WHERE `+where+` AND te.punch_out_time IS NOT NULL ORDER BY te.employment_id, te.punch_in_time`, args...)
+	if err != nil {
+		return api.ReprocessResponse{}, err
+	}
+	defer rows.Close()
+	type daily struct {
+		employmentID                           uuid.UUID
+		date                                   string
+		actual, standard, early, late, breakOT int
+		policyID, shiftID                      *uuid.UUID
+		minutesPerCredit                       int
+	}
+	results := make(map[string]*daily)
+	for rows.Next() {
+		var d daily
+		var punchIn, punchOut time.Time
+		var duration *int
+		var segmentID, shiftID, policyID *uuid.UUID
+		var startAt, endAt *time.Time
+		var breaks []byte
+		var earlyEnabled, breakAuto, breakOT bool
+		var grace int
+		var maxEarly *int
+		if err := rows.Scan(&d.employmentID, &d.date, &punchIn, &punchOut, &duration, &segmentID, &shiftID, &startAt, &endAt, &breaks, &policyID, &d.minutesPerCredit, &earlyEnabled, &grace, &maxEarly, &breakAuto, &breakOT); err != nil {
+			return api.ReprocessResponse{}, err
+		}
+		if policyID == nil {
+			return api.ReprocessResponse{}, api.ErrPayrollPolicyMissing
+		}
+		var scheduledStart, scheduledEnd *time.Time = startAt, endAt
+		var breakStart, breakEnd *time.Time
+		var scheduledBreak int32
+		if len(breaks) > 0 {
+			var parsed []struct {
+				Start    string `json:"start"`
+				End      string `json:"end"`
+				Duration int    `json:"duration_minutes"`
+			}
+			_ = json.Unmarshal(breaks, &parsed)
+			if len(parsed) > 0 {
+				if parsed[0].Start != "" {
+					v, _ := time.Parse(time.RFC3339, parsed[0].Start)
+					breakStart = &v
+				}
+				if parsed[0].End != "" {
+					v, _ := time.Parse(time.RFC3339, parsed[0].End)
+					breakEnd = &v
+				}
+				scheduledBreak = int32(parsed[0].Duration)
+			}
+		}
+		key := d.employmentID.String() + ":" + d.date
+		item := results[key]
+		if item == nil {
+			item = &d
+			results[key] = item
+		}
+		item.actual += int(punchOut.Sub(punchIn) / time.Minute)
+		input := buckets.DailyCalcInput{PunchIn: punchIn, PunchOut: punchOut, ShiftStart: scheduledStart, ShiftEnd: scheduledEnd, ScheduledBreakMinutes: scheduledBreak, BreakStart: breakStart, BreakEnd: breakEnd, WorkUnit: int32(max(1, d.minutesPerCredit)), GracePeriodMinutes: int32(grace), AllowEarlyOT: earlyEnabled, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT, MaxEarlyOTMinutes: func() *int32 {
+			if maxEarly == nil {
+				return nil
+			}
+			v := int32(*maxEarly)
+			return &v
+		}()}
+		calculated := buckets.CalculateBuckets(input)
+		item.standard += int(calculated.StandardMinutes)
+		item.early += int(calculated.EarlyOTMinutes)
+		item.late += int(calculated.LateOTMinutes)
+		item.breakOT += int(calculated.BreakOTMinutes)
+		item.policyID = policyID
+		item.shiftID = shiftID
+	}
+	if err := rows.Err(); err != nil {
+		return api.ReprocessResponse{}, err
+	}
+	for _, item := range results {
+		_, err := db.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, employment_id, date, actual_work_minutes, standard_minutes, system_detected_ot_minutes, early_ot_minutes, late_ot_minutes, break_ot_minutes, work_policy_version_id, shift_version_id, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, date) DO UPDATE SET actual_work_minutes = EXCLUDED.actual_work_minutes, standard_minutes = EXCLUDED.standard_minutes, system_detected_ot_minutes = EXCLUDED.system_detected_ot_minutes, early_ot_minutes = EXCLUDED.early_ot_minutes, late_ot_minutes = EXCLUDED.late_ot_minutes, break_ot_minutes = EXCLUDED.break_ot_minutes, work_policy_version_id = EXCLUDED.work_policy_version_id, shift_version_id = EXCLUDED.shift_version_id, updated_at = CURRENT_TIMESTAMP`, uuid.New(), item.employmentID, item.date, item.actual, item.standard, item.early+item.late+item.breakOT, item.early, item.late, item.breakOT, item.policyID, item.shiftID)
+		if err != nil {
+			return api.ReprocessResponse{}, err
+		}
+	}
+	result := api.ReprocessResponse{StartDate: startDate, EndDate: endDate, Days: len(results), Recalculated: len(results)}
+	if employeeID != nil {
+		result.EmploymentID = employeeID
+	}
+	return result, nil
+}
+
 func (r AttendanceRepository) db(ctx context.Context) (DBTX, error) {
 	if r.DB == nil {
 		return nil, errors.New("attendance repository: database is not configured")
@@ -691,7 +799,7 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, startD
 		return api.PaginatedSummaries{}, err
 	}
 
-	dataQuery := fmt.Sprintf(`SELECT s.id, s.employment_id, s.date::text, s.actual_work_minutes, s.standard_minutes, s.system_detected_ot_minutes, s.claimed_ot_minutes, s.approved_ot_minutes, s.early_ot_minutes, s.late_ot_minutes, s.break_ot_minutes, s.scheduled_break_minutes, s.actual_break_minutes, s.deducted_break_minutes, s.net_work_minutes, s.net_paid_minutes, s.break_provisional, s.break_exception_code, COALESCE(policy.minutes_per_credit, 0)::double precision, policy.version_id, s.ot_status::text, s.ot_reason, s.manager_note, s.is_weekend, s.is_holiday, s.holiday_name, s.created_at, s.updated_at
+	dataQuery := fmt.Sprintf(`SELECT s.id, s.employment_id, s.date::text, s.actual_work_minutes, s.standard_minutes, s.system_detected_ot_minutes, s.claimed_ot_minutes, s.approved_ot_minutes, s.early_ot_minutes, s.late_ot_minutes, s.break_ot_minutes, s.scheduled_break_minutes, s.actual_break_minutes, s.deducted_break_minutes, s.net_work_minutes, s.net_paid_minutes, s.break_provisional, s.break_exception_code, COALESCE(policy.minutes_per_credit, 0)::double precision, policy.version_id, s.shift_version_id, s.ot_status::text, s.ot_reason, s.manager_note, s.is_weekend, s.is_holiday, s.holiday_name, s.created_at, s.updated_at
 FROM attendance_daily_summaries s
 LEFT JOIN LATERAL (
 	SELECT wc.minutes_per_credit, v.id AS version_id
@@ -719,7 +827,7 @@ WHERE %s ORDER BY s.date DESC LIMIT $%d OFFSET $%d`, whereSQL, idx, idx+1)
 	for rows.Next() {
 		var rec api.AttendanceDailySummaryRecord
 		var minutesPerCredit float64
-		if err := rows.Scan(&rec.ID, &rec.EmploymentID, &rec.Date, &rec.ActualWorkMinutes, &rec.StandardMinutes, &rec.SystemDetectedOTMinutes, &rec.ClaimedOTMinutes, &rec.ApprovedOTMinutes, &rec.EarlyOTMinutes, &rec.LateOTMinutes, &rec.BreakOTMinutes, &rec.ScheduledBreakMinutes, &rec.ActualBreakMinutes, &rec.DeductedBreakMinutes, &rec.NetWorkMinutes, &rec.NetPaidMinutes, &rec.BreakProvisional, &rec.BreakExceptionCode, &minutesPerCredit, &rec.WorkPolicyVersionID, &rec.OTStatus, &rec.OTReason, &rec.ManagerNote, &rec.IsWeekend, &rec.IsHoliday, &rec.HolidayName, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
+		if err := rows.Scan(&rec.ID, &rec.EmploymentID, &rec.Date, &rec.ActualWorkMinutes, &rec.StandardMinutes, &rec.SystemDetectedOTMinutes, &rec.ClaimedOTMinutes, &rec.ApprovedOTMinutes, &rec.EarlyOTMinutes, &rec.LateOTMinutes, &rec.BreakOTMinutes, &rec.ScheduledBreakMinutes, &rec.ActualBreakMinutes, &rec.DeductedBreakMinutes, &rec.NetWorkMinutes, &rec.NetPaidMinutes, &rec.BreakProvisional, &rec.BreakExceptionCode, &minutesPerCredit, &rec.WorkPolicyVersionID, &rec.ShiftVersionID, &rec.OTStatus, &rec.OTReason, &rec.ManagerNote, &rec.IsWeekend, &rec.IsHoliday, &rec.HolidayName, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
 			return api.PaginatedSummaries{}, err
 		}
 		if minutesPerCredit > 0 {
