@@ -28,6 +28,7 @@ var (
 	ErrScheduleValidation           = errors.New("schedule lifecycle validation failed")
 	ErrScheduleApprovalInvalid      = errors.New("schedule lifecycle approval is invalid")
 	ErrScheduleConflict             = errors.New("schedule lifecycle schedule conflict")
+	ErrScheduleBreakOverrideInvalid = errors.New("schedule lifecycle break override is invalid")
 )
 
 const (
@@ -97,6 +98,24 @@ type ScheduleReplanPreviewRequest struct {
 	Replacement      ScheduleReplanReplacement `json:"replacement"`
 }
 
+type MarkBreakWorkedRequest struct {
+	SegmentID uuid.UUID `json:"segment_id"`
+	Start     string    `json:"start"`
+	End       string    `json:"end"`
+	Reason    string    `json:"reason"`
+}
+
+type MarkBreakWorkedResponse struct {
+	ID           uuid.UUID `json:"id"`
+	EmploymentID uuid.UUID `json:"employment_id"`
+	BusinessDate string    `json:"business_date"`
+	SegmentID    uuid.UUID `json:"segment_id"`
+	Start        time.Time `json:"start"`
+	End          time.Time `json:"end"`
+	Minutes      int       `json:"minutes"`
+	Status       string    `json:"status"`
+}
+
 type ScheduleReplanRequest struct {
 	ExpectedRevision int64                     `json:"expected_revision"`
 	Reason           string                    `json:"reason"`
@@ -150,6 +169,7 @@ type ScheduleActivationRepository interface {
 }
 
 type ScheduleLifecycleRepository interface {
+	MarkBreakWorked(context.Context, uuid.UUID, uuid.UUID, string, MarkBreakWorkedRequest) (MarkBreakWorkedResponse, error)
 	CreatePreview(context.Context, uuid.UUID, SchedulePreviewRequest) (SchedulePreviewResponse, error)
 	Publish(context.Context, uuid.UUID, string, SchedulePublishRequest) (SchedulePublicationResponse, error)
 	PreviewReplan(context.Context, uuid.UUID, uuid.UUID, string, ScheduleReplanPreviewRequest) (ScheduleReplanPreviewResponse, error)
@@ -431,6 +451,33 @@ func (h *ScheduleHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
+func (h *ScheduleHandler) MarkBreakWorked(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionAmend)
+	if !ok {
+		return
+	}
+	employmentID, date, ok := lifecyclePath(w, r)
+	if !ok {
+		return
+	}
+	request, err := DecodeJSON[MarkBreakWorkedRequest](r, 1<<16)
+	if err != nil || request.SegmentID == uuid.Nil || strings.TrimSpace(request.Start) == "" || strings.TrimSpace(request.End) == "" || strings.TrimSpace(request.Reason) == "" {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	lifecycle, ok := h.lifecycleRepository()
+	if !ok {
+		h.lifecycleUnavailable(w, r)
+		return
+	}
+	result, err := lifecycle.MarkBreakWorked(r.Context(), userID, employmentID, date, request)
+	if err != nil {
+		h.writeLifecycleError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, result)
+}
+
 func (h *ScheduleHandler) PreviewReplan(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionAmend)
 	if !ok {
@@ -523,7 +570,7 @@ func (h *ScheduleHandler) writeLifecycleError(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 	case errors.Is(err, ErrSchedulePreviewStale), errors.Is(err, ErrScheduleRevisionStale), errors.Is(err, ErrScheduleAlreadyPublished), errors.Is(err, ErrScheduleLockedPeriod), errors.Is(err, ErrScheduleNoCurrentRevision), errors.Is(err, ErrScheduleIdempotencyConflict), errors.Is(err, ErrScheduleConflict):
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
-	case errors.Is(err, ErrSchedulePreviewScope), errors.Is(err, ErrScheduleTimezoneMismatch), errors.Is(err, ErrScheduleValidation), errors.Is(err, ErrScheduleApprovalInvalid):
+	case errors.Is(err, ErrSchedulePreviewScope), errors.Is(err, ErrScheduleTimezoneMismatch), errors.Is(err, ErrScheduleValidation), errors.Is(err, ErrScheduleApprovalInvalid), errors.Is(err, ErrScheduleBreakOverrideInvalid):
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 	default:
 		apperror.WriteError(w, r, apperror.Internal(err))

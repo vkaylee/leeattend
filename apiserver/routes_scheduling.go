@@ -38,6 +38,7 @@ func registerSchedulingRoutes(
 	registerRoute(router, "POST /api/v1/schedules/preview/rotating", schedule.PreviewRotating)
 	registerRoute(router, "POST /api/v1/schedules/publish", schedule.Publish)
 	registerRoute(router, "POST /api/v1/schedules/publish/rotating", schedule.PublishRotating)
+	registerRoute(router, "POST /api/v1/schedules/{employment_id}/{business_date}/break-worked", schedule.MarkBreakWorked)
 	registerRoute(router, "POST /api/v1/schedules/{employment_id}/{business_date}/replan/preview", schedule.PreviewReplan)
 	registerRoute(router, "POST /api/v1/schedules/{employment_id}/{business_date}/replan", schedule.CommitReplan)
 	registerRoute(router, "GET /api/v1/schedules/history", schedule.History)

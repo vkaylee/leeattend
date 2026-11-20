@@ -529,6 +529,86 @@ func previewIntervals(version shiftVersionInfo, businessDate, timezone string) (
 	return result, nil
 }
 
+func (r ScheduleRepository) MarkBreakWorked(ctx context.Context, actorID, employmentID uuid.UUID, businessDate string, request api.MarkBreakWorkedRequest) (api.MarkBreakWorkedResponse, error) {
+	if actorID == uuid.Nil || employmentID == uuid.Nil || request.SegmentID == uuid.Nil || strings.TrimSpace(request.Reason) == "" {
+		return api.MarkBreakWorkedResponse{}, api.ErrScheduleBreakOverrideInvalid
+	}
+	start, err := time.Parse(time.RFC3339, request.Start)
+	if err != nil {
+		return api.MarkBreakWorkedResponse{}, api.ErrScheduleBreakOverrideInvalid
+	}
+	end, err := time.Parse(time.RFC3339, request.End)
+	if err != nil || !end.After(start) {
+		return api.MarkBreakWorkedResponse{}, api.ErrScheduleBreakOverrideInvalid
+	}
+	beginner, err := r.beginLifecycle(ctx)
+	if err != nil {
+		return api.MarkBreakWorkedResponse{}, err
+	}
+	var response api.MarkBreakWorkedResponse
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
+		var employerID uuid.UUID
+		var scheduledStart, scheduledEnd time.Time
+		var breaks []byte
+		if err := tx.QueryRow(ctx, `SELECT e.employer_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot FROM work_segments ws JOIN employments e ON e.id = ws.employment_id WHERE ws.id = $1 AND ws.employment_id = $2 AND ws.date = $3::date FOR UPDATE`, request.SegmentID, employmentID, businessDate).Scan(&employerID, &scheduledStart, &scheduledEnd, &breaks); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return api.ErrScheduleBreakOverrideInvalid
+			}
+			return err
+		}
+		if err := ensureMutationPeriodOpen(ctx, tx, employerID, businessDate); err != nil {
+			return err
+		}
+		if scheduledStart.IsZero() || scheduledEnd.IsZero() || !scheduledEnd.After(scheduledStart) {
+			return api.ErrScheduleBreakOverrideInvalid
+		}
+		if err := json.Unmarshal(breaks, &[]map[string]any{}); err != nil {
+			return api.ErrScheduleBreakOverrideInvalid
+		}
+		var breakFound bool
+		var breakItems []struct {
+			StartAt time.Time `json:"start_at"`
+			EndAt   time.Time `json:"end_at"`
+		}
+		if err := json.Unmarshal(breaks, &breakItems); err != nil {
+			return api.ErrScheduleBreakOverrideInvalid
+		}
+		for _, item := range breakItems {
+			if item.EndAt.After(item.StartAt) && start.Before(item.EndAt) && end.After(item.StartAt) {
+				if start.Before(item.StartAt) || end.After(item.EndAt) {
+					return api.ErrScheduleBreakOverrideInvalid
+				}
+				breakFound = true
+				break
+			}
+		}
+		if !breakFound || start.Before(scheduledStart) || end.After(scheduledEnd) {
+			return api.ErrScheduleBreakOverrideInvalid
+		}
+		var overlap bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM schedule_day_overrides WHERE employment_id = $1 AND business_date = $2::date AND status IN ('approved', 'pending') AND start_at < $4 AND end_at > $3)`, employmentID, businessDate, start, end).Scan(&overlap); err != nil {
+			return err
+		}
+		if overlap {
+			return api.ErrScheduleBreakOverrideInvalid
+		}
+		minutes := int(end.Sub(start).Minutes())
+		id := uuid.New()
+		if _, err := tx.Exec(ctx, `INSERT INTO schedule_day_overrides (id, employment_id, business_date, work_segment_id, override_type, start_at, end_at, minutes, reason, status, created_by, created_at) VALUES ($1, $2, $3::date, $4, 'break_worked', $5, $6, $7, $8, 'approved', $9, CURRENT_TIMESTAMP)`, id, employmentID, businessDate, request.SegmentID, start, end, minutes, strings.TrimSpace(request.Reason), actorID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at) VALUES ($1, $2, 'schedule.break_worked.marked', jsonb_build_object('employment_id', $3, 'business_date', $4, 'segment_id', $5, 'start', $6, 'end', $7, 'minutes', $8, 'reason', $9), 'human', CURRENT_TIMESTAMP)`, actorID, id, employmentID, businessDate, request.SegmentID, start, end, minutes, strings.TrimSpace(request.Reason)); err != nil {
+			return err
+		}
+		response = api.MarkBreakWorkedResponse{ID: id, EmploymentID: employmentID, BusinessDate: businessDate, SegmentID: request.SegmentID, Start: start, End: end, Minutes: minutes, Status: "approved"}
+		return nil
+	})
+	if err != nil {
+		return api.MarkBreakWorkedResponse{}, err
+	}
+	return response, nil
+}
+
 func (r ScheduleRepository) PreviewReplan(ctx context.Context, actorID, employmentID uuid.UUID, businessDate string, request api.ScheduleReplanPreviewRequest) (api.ScheduleReplanPreviewResponse, error) {
 	if err := validateReplanInput(employmentID, businessDate, request); err != nil {
 		return api.ScheduleReplanPreviewResponse{}, err

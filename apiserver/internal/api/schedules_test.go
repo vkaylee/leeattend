@@ -117,6 +117,10 @@ func (m *activationRepositoryMock) DeactivateScheduleEmployer(context.Context, u
 
 type lifecycleRepositoryMock struct{}
 
+func (lifecycleRepositoryMock) MarkBreakWorked(context.Context, uuid.UUID, uuid.UUID, string, MarkBreakWorkedRequest) (MarkBreakWorkedResponse, error) {
+	return MarkBreakWorkedResponse{}, ErrScheduleLifecycleUnavailable
+}
+
 func (lifecycleRepositoryMock) CreatePreview(context.Context, uuid.UUID, SchedulePreviewRequest) (SchedulePreviewResponse, error) {
 	return SchedulePreviewResponse{}, ErrScheduleLifecycleUnavailable
 }

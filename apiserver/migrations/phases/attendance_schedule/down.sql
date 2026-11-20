@@ -105,6 +105,7 @@ DROP TABLE IF EXISTS public.attendance_adjustment_requests CASCADE;
 
 DROP TABLE IF EXISTS public.assignment_rules CASCADE;
 
+DROP TABLE IF EXISTS public.schedule_day_overrides CASCADE;
 DROP TABLE IF EXISTS public.attendance_action_idempotency CASCADE;
 DROP TABLE IF EXISTS public.time_entry_breaks CASCADE;
 

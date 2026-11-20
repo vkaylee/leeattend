@@ -67,7 +67,8 @@ BEGIN
        OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'attendance_closure_days' AND column_name = 'time_entry_snapshot' AND is_nullable = 'NO')
        OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'shift_default_intervals' AND column_name = 'break_punch_mode')
        OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'attendance_daily_summaries' AND column_name = 'scheduled_break_minutes')
-       OR to_regclass('public.attendance_punch_events') IS NULL THEN
+       OR to_regclass('public.attendance_punch_events') IS NULL
+       OR to_regclass('public.schedule_day_overrides') IS NULL THEN
         RAISE EXCEPTION 'phased schema check failed: shift policy snapshot columns or foreign keys missing';
     END IF;
 
