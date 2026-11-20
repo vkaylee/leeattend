@@ -20,15 +20,13 @@ export interface ShiftBadgeStyle {
   accent: string;
   /** Soft background for the badge pill. */
   bg: string;
-  /** @deprecated Alias of {@link accent}, kept for existing callers. */
-  dot: string;
   /** Empty when the shift needs no pill (plain day shifts). */
   label: string;
   /** Pill text colour, contrast-checked against `bg` (WCAG AA, ≥4.5:1). */
   text: string;
 }
 
-const ACCENT_STYLES: Record<ShiftAccent, Omit<ShiftBadgeStyle, "dot" | "label">> = {
+const ACCENT_STYLES: Record<ShiftAccent, Omit<ShiftBadgeStyle, "label">> = {
   afternoon: {
     accent: "bg-sky-500",
     bg: "bg-sky-50 dark:bg-sky-950/40",
@@ -70,5 +68,5 @@ export function getShiftBadge(shift: Shift, t: (key: string) => string): ShiftBa
     split: t("shifts.picker.filter_split"),
   };
 
-  return { ...style, dot: style.accent, label: labels[accent] };
+  return { ...style, label: labels[accent] };
 }
