@@ -5290,13 +5290,19 @@ paths:
     post:
       operationId: post_api_v1_files_presigned
       tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUploadUrlRequest'
       responses:
         '200':
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JsonObject'
+                $ref: '#/components/schemas/CreateUploadUrlResponse'
         '204':
           description: Successful response without body
         '400':
@@ -5313,13 +5319,31 @@ paths:
     post:
       operationId: post_api_v1_files_upload
       tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                category:
+                  type: string
+                owner_type:
+                  type: string
+                owner_id:
+                  type: string
+                  format: uuid
+              required: [file, category, owner_type]
       responses:
-        '200':
+        '201':
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JsonObject'
+                $ref: '#/components/schemas/FileRecord'
         '204':
           description: Successful response without body
         '400':
@@ -12888,6 +12912,13 @@ components:
           type: string
         owner_type:
           type: string
+      required:
+        - category
+        - file_name
+        - file_size
+        - mime_type
+        - owner_id
+        - owner_type
     CreateUploadUrlResponse:
       properties:
         file:

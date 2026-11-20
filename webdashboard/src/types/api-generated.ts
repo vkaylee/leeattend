@@ -6194,13 +6194,13 @@ export interface components {
         };
         CreateStorageConfigRequest: components["schemas"]["StorageConfigRequest"];
         CreateUploadUrlRequest: {
-            category?: string;
+            category: string;
             expires_in_secs?: number | null;
-            file_name?: string;
-            file_size?: number;
-            mime_type?: string;
-            owner_id?: string;
-            owner_type?: string;
+            file_name: string;
+            file_size: number;
+            mime_type: string;
+            owner_id: string;
+            owner_type: string;
         };
         CreateUploadUrlResponse: {
             file: components["schemas"]["FileRecord"];
@@ -16538,7 +16538,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUploadUrlRequest"];
+            };
+        };
         responses: {
             /** @description Successful response */
             200: {
@@ -16546,7 +16550,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JsonObject"];
+                    "application/json": components["schemas"]["CreateUploadUrlResponse"];
                 };
             };
             /** @description Successful response without body */
@@ -16570,15 +16574,26 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    category: string;
+                    owner_type: string;
+                    /** Format: uuid */
+                    owner_id?: string;
+                };
+            };
+        };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JsonObject"];
+                    "application/json": components["schemas"]["FileRecord"];
                 };
             };
             /** @description Successful response without body */
