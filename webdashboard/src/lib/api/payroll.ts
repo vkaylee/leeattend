@@ -356,6 +356,7 @@ export async function retirePayrollFormulaRule(ruleId: string): Promise<PayrollF
 }
 
 export interface PayrollImpactResponse {
+  input_fingerprint?: string;
   evaluated_at?: string;
   expires_at?: string;
   stale_after_seconds?: number;
@@ -377,6 +378,7 @@ export interface PayrollImpactResponse {
 }
 
 export interface PayrollImpactBatchItem {
+  input_fingerprint?: string;
   computed: boolean;
   delta?: PayrollImpactResponse;
   employment_id: string;

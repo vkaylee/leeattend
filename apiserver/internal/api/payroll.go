@@ -388,12 +388,13 @@ type PayrollImpactBatchRequest struct {
 }
 
 type PayrollImpactBatchItem struct {
-	EmploymentID uuid.UUID              `json:"employment_id"`
-	Computed     bool                   `json:"computed"`
-	Stale        bool                   `json:"stale"`
-	StaleReasons []string               `json:"stale_reasons,omitempty"`
-	Reason       string                 `json:"reason,omitempty"`
-	Delta        *PayrollImpactResponse `json:"delta,omitempty"`
+	EmploymentID     uuid.UUID              `json:"employment_id"`
+	InputFingerprint string                 `json:"input_fingerprint,omitempty"`
+	Computed         bool                   `json:"computed"`
+	Stale            bool                   `json:"stale"`
+	StaleReasons     []string               `json:"stale_reasons,omitempty"`
+	Reason           string                 `json:"reason,omitempty"`
+	Delta            *PayrollImpactResponse `json:"delta,omitempty"`
 }
 
 type PayrollImpactBatchResponse struct {
@@ -409,6 +410,7 @@ type PayrollImpactBatchResponse struct {
 
 type PayrollImpactResponse struct {
 	EmploymentID       uuid.UUID       `json:"employment_id"`
+	InputFingerprint   string          `json:"input_fingerprint,omitempty"`
 	EvaluatedAt        string          `json:"evaluated_at"`
 	ExpiresAt          string          `json:"expires_at"`
 	StaleAfterSeconds  int             `json:"stale_after_seconds"`

@@ -1,6 +1,8 @@
 package payroll
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"reflect"
@@ -28,6 +30,7 @@ type ImpactSnapshot struct {
 }
 
 type ImpactDelta struct {
+	InputFingerprint   string
 	BasePayDelta       decimal.Decimal
 	OvertimePayDelta   decimal.Decimal
 	DeductionsDelta    decimal.Decimal
@@ -114,18 +117,44 @@ func DecodeImpactSnapshot(raw []byte) (ImpactSnapshot, error) {
 	return ImpactSnapshot{BasePay: basePay, OvertimePay: overtimePay, Deductions: deductions, NetPay: netPay, StandardUnits: standardUnits, OvertimeUnits: overtimeUnits}, nil
 }
 
+func canonicalImpactInput(raw []byte) (map[string]any, error) {
+	var values map[string]any
+	if err := json.Unmarshal(raw, &values); err != nil {
+		return nil, ErrImpactSnapshotMalformed
+	}
+	delete(values, "policy")
+	return values, nil
+}
+
+func ImpactInputFingerprint(raw []byte) (string, error) {
+	values, err := canonicalImpactInput(raw)
+	if err != nil {
+		return "", err
+	}
+	canonical, err := json.Marshal(values)
+	if err != nil {
+		return "", ErrImpactSnapshotMalformed
+	}
+	digest := sha256.Sum256(canonical)
+	return hex.EncodeToString(digest[:]), nil
+}
+
 func EqualImpactInputs(before, after []byte) bool {
-	var left, right map[string]any
-	if json.Unmarshal(before, &left) != nil || json.Unmarshal(after, &right) != nil {
+	left, leftErr := canonicalImpactInput(before)
+	right, rightErr := canonicalImpactInput(after)
+	if leftErr != nil || rightErr != nil {
 		return false
 	}
-	delete(left, "policy")
-	delete(right, "policy")
 	return reflect.DeepEqual(left, right)
 }
 
 func CompareImpactSnapshots(beforeInput, beforeOutput, afterInput, afterOutput []byte) (ImpactDelta, error) {
-	if !EqualImpactInputs(beforeInput, afterInput) {
+	beforeFingerprint, beforeErr := ImpactInputFingerprint(beforeInput)
+	afterFingerprint, afterErr := ImpactInputFingerprint(afterInput)
+	if beforeErr != nil || afterErr != nil {
+		return ImpactDelta{}, ErrImpactSnapshotMalformed
+	}
+	if beforeFingerprint != afterFingerprint {
 		return ImpactDelta{}, ErrImpactInputMismatch
 	}
 	before, err := DecodeImpactSnapshot(beforeOutput)
@@ -136,7 +165,12 @@ func CompareImpactSnapshots(beforeInput, beforeOutput, afterInput, afterOutput [
 	if err != nil {
 		return ImpactDelta{}, err
 	}
-	return CompareImpact(before, after)
+	delta, err := CompareImpact(before, after)
+	if err != nil {
+		return ImpactDelta{}, err
+	}
+	delta.InputFingerprint = beforeFingerprint
+	return delta, nil
 }
 
 func CompareImpact(before, after ImpactSnapshot) (ImpactDelta, error) {

@@ -52,6 +52,26 @@ func TestDecodeImpactSnapshotRejectsMalformedValues(t *testing.T) {
 	}
 }
 
+func TestImpactInputFingerprintIgnoresPolicyProvenance(t *testing.T) {
+	before, err := ImpactInputFingerprint([]byte(`{"kpi_inputs":{"actual":"1"},"policy":{"version_id":"a"}}`))
+	if err != nil {
+		t.Fatalf("fingerprint before: %v", err)
+	}
+	after, err := ImpactInputFingerprint([]byte(`{"policy":{"version_id":"b"},"kpi_inputs":{"actual":"1"}}`))
+	if err != nil {
+		t.Fatalf("fingerprint after: %v", err)
+	}
+	if before != after || len(before) != 64 {
+		t.Fatalf("policy-only change must preserve SHA-256 fingerprint: before=%q after=%q", before, after)
+	}
+}
+
+func TestImpactInputFingerprintRejectsMalformedJSON(t *testing.T) {
+	if _, err := ImpactInputFingerprint([]byte(`{"kpi_inputs":`)); !errors.Is(err, ErrImpactSnapshotMalformed) {
+		t.Fatalf("expected malformed fingerprint input error, got %v", err)
+	}
+}
+
 func TestEqualImpactInputsRequiresSameSnapshot(t *testing.T) {
 	if EqualImpactInputs([]byte(`{"kpi_inputs":{"actual":"1"}}`), []byte(`{"kpi_inputs":{"actual":"2"}}`)) {
 		t.Fatal("different calculation inputs must not compare as equal")

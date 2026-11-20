@@ -1274,7 +1274,8 @@ ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID
 			item.Stale = true
 			item.StaleReasons = reasons
 		}
-		item.Delta = &api.PayrollImpactResponse{EmploymentID: employmentID, EvaluatedAt: evaluatedAt, PeriodYear: req.Year, PeriodMonth: req.Month, BeforeRunID: req.BeforeRunID, AfterRunID: req.AfterRunID, Computed: true, Stale: item.Stale, StaleReasons: item.StaleReasons, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta, DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta, StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta}
+		item.InputFingerprint = delta.InputFingerprint
+		item.Delta = &api.PayrollImpactResponse{EmploymentID: employmentID, InputFingerprint: delta.InputFingerprint, EvaluatedAt: evaluatedAt, PeriodYear: req.Year, PeriodMonth: req.Month, BeforeRunID: req.BeforeRunID, AfterRunID: req.AfterRunID, Computed: true, Stale: item.Stale, StaleReasons: item.StaleReasons, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta, DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta, StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta}
 		if !delta.BasePayDelta.IsZero() || !delta.OvertimePayDelta.IsZero() || !delta.DeductionsDelta.IsZero() || !delta.NetPayDelta.IsZero() || delta.StandardUnitsDelta != 0 || delta.OvertimeUnitsDelta != 0 {
 			result.Affected++
 		}
@@ -1393,7 +1394,7 @@ WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY
 	}
 	evaluated := time.Now().UTC()
 	return api.PayrollImpactResponse{
-		EmploymentID: uuid.UUID(employmentID), EvaluatedAt: evaluated.Format(time.RFC3339), ExpiresAt: evaluated.Add(payroll.ImpactFreshnessTTL).Format(time.RFC3339), StaleAfterSeconds: int(payroll.ImpactFreshnessTTL / time.Second), PeriodYear: year, PeriodMonth: month,
+		EmploymentID: uuid.UUID(employmentID), InputFingerprint: delta.InputFingerprint, EvaluatedAt: evaluated.Format(time.RFC3339), ExpiresAt: evaluated.Add(payroll.ImpactFreshnessTTL).Format(time.RFC3339), StaleAfterSeconds: int(payroll.ImpactFreshnessTTL / time.Second), PeriodYear: year, PeriodMonth: month,
 		BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: delta.Complete, Stale: stale, StaleReasons: staleReason,
 		Reason: delta.Reason, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta,
 		DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta,
