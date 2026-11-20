@@ -3,11 +3,13 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
@@ -80,6 +82,81 @@ func TestIntegrationRawPunchIngestRemainsAllowedAfterClosedAttendanceSnapshot(t 
 	if punchIn.EmploymentID != employmentID {
 		t.Fatalf("late punch-in employment = %s, want %s", punchIn.EmploymentID, employmentID)
 	}
+}
+
+func TestIntegrationOvernightPunchPinsBusinessDateSegment(t *testing.T) {
+	pool, ctx, employmentID, employeeID, templateID, versionID := seedAttendanceSegmentFixture(t, "overnight")
+	segmentID := uuid.New()
+	if _, err := pool.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, source, source_detail, generation_metadata, template_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot) VALUES ($1, $2, DATE '2026-11-20', 0, '22:00', '06:00', 'work', 'scheduled', 1, 'unpaid', 0, 'manual', '{}'::jsonb, '{}'::jsonb, $3, $4, TIMESTAMPTZ '2026-11-20 22:00:00+00', TIMESTAMPTZ '2026-11-21 06:00:00+00', '[]'::jsonb)`, segmentID, employmentID, templateID, versionID); err != nil {
+		t.Fatalf("insert overnight segment: %v", err)
+	}
+	in, err := (AttendanceRepository{DB: pool}).PunchIn(ctx, employmentID, nil, "work", nil, false, time.Date(2026, 11, 20, 23, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("overnight punch-in: %v", err)
+	}
+	if in.SegmentID == nil || *in.SegmentID != segmentID {
+		t.Fatalf("overnight segment=%v, want %s", in.SegmentID, segmentID)
+	}
+	out, err := (AttendanceRepository{DB: pool}).PunchOut(ctx, employeeID, nil, time.Date(2026, 11, 21, 6, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("overnight punch-out: %v", err)
+	}
+	if out.SegmentID == nil || *out.SegmentID != segmentID {
+		t.Fatalf("overnight punch-out segment=%v, want %s", out.SegmentID, segmentID)
+	}
+}
+
+func TestIntegrationSplitShiftUsesIndependentTimeEntrySessions(t *testing.T) {
+	pool, ctx, employmentID, employeeID, templateID, versionID := seedAttendanceSegmentFixture(t, "split")
+	firstID, secondID := uuid.New(), uuid.New()
+	insert := `INSERT INTO work_segments (id, employment_id, date, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, source, source_detail, generation_metadata, template_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot) VALUES ($1, $2, DATE '2026-11-20', $3, $4, $5, 'work', 'scheduled', 1, 'unpaid', 0, 'manual', '{}'::jsonb, '{}'::jsonb, $6, $7, $8, $9, '[]'::jsonb)`
+	if _, err := pool.Exec(ctx, insert, firstID, employmentID, 0, "08:00", "12:00", templateID, versionID, time.Date(2026, 11, 20, 8, 0, 0, 0, time.UTC), time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("insert first split segment: %v", err)
+	}
+	if _, err := pool.Exec(ctx, insert, secondID, employmentID, 1, "13:00", "17:00", templateID, versionID, time.Date(2026, 11, 20, 13, 0, 0, 0, time.UTC), time.Date(2026, 11, 20, 17, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("insert second split segment: %v", err)
+	}
+	repo := AttendanceRepository{DB: pool}
+	first, err := repo.PunchIn(ctx, employmentID, nil, "work", nil, false, time.Date(2026, 11, 20, 8, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("first split punch-in: %v", err)
+	}
+	if _, err := repo.PunchOut(ctx, employeeID, nil, time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("first split punch-out: %v", err)
+	}
+	second, err := repo.PunchIn(ctx, employmentID, nil, "work", nil, false, time.Date(2026, 11, 20, 13, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("second split punch-in: %v", err)
+	}
+	if _, err := repo.PunchOut(ctx, employeeID, nil, time.Date(2026, 11, 20, 17, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("second split punch-out: %v", err)
+	}
+	if first.SegmentID == nil || *first.SegmentID != firstID || second.SegmentID == nil || *second.SegmentID != secondID {
+		t.Fatalf("split segment pins first=%v second=%v, want %s/%s", first.SegmentID, second.SegmentID, firstID, secondID)
+	}
+}
+
+func seedAttendanceSegmentFixture(t *testing.T, name string) (*pgxpool.Pool, context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID) {
+	t.Helper()
+	pool, ctx := requireIntegrationDatabase(t)
+	employerID, employeeID, employmentID, actorID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	tenureID, relationshipID := uuid.New(), uuid.New()
+	templateID, versionID := uuid.New(), uuid.New()
+	exec := func(query string, args ...any) {
+		t.Helper()
+		if _, err := pool.Exec(ctx, query, args...); err != nil {
+			t.Fatalf("%s fixture query failed: %v", name, err)
+		}
+	}
+	exec(`INSERT INTO employers (id, name) VALUES ($1, $2)`, employerID, name+"-employer")
+	exec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, $3, DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String(), name+"-employee")
+	exec(`INSERT INTO employee_tenures (id, employee_id, employee_number, start_date) VALUES ($1, $2, $3, DATE '2026-01-01')`, tenureID, employeeID, employeeID.String())
+	exec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, relationshipID, employeeID, employerID, tenureID)
+	exec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID, relationshipID)
+	exec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
+	exec(`INSERT INTO shift_templates (id, name) VALUES ($1, $2)`, templateID, name+"-template")
+	exec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, $3, DATE '2026-01-01', 'create', $4)`, versionID, templateID, name+"-version", actorID)
+	return pool, ctx, employmentID, employeeID, templateID, versionID
 }
 
 func TestIntegrationRequiredBreakWorkOutRejectsOpenOrMissingBreak(t *testing.T) {
