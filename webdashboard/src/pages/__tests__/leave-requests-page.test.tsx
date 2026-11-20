@@ -73,10 +73,8 @@ vi.mock("../../lib/api", () => ({
 
 // Mock useBehalfEmployees
 vi.mock("@/hooks/use-behalf-employees", () => {
-  console.log("Mocked useBehalfEmployees factory executed");
   return {
     useBehalfEmployees: vi.fn(() => {
-      console.log("Mocked useBehalfEmployees hook called");
       return {
         employees: [
           { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", is_active: true, active_employment_id: "employment-1" }

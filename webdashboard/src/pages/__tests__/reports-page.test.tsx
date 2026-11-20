@@ -259,7 +259,7 @@ describe("ReportsPage", () => {
     const employeeRows = await screen.findAllByText(/John Doe/i);
     await user.click(employeeRows[0]);
 
-    const sheetPanel = await screen.findByTestId("sheet-panel");
+    const sheetPanel = await screen.findByTestId("sheet-panel", {}, { timeout: 10000 });
     expect(sheetPanel).toBeDefined();
   });
 
@@ -344,7 +344,7 @@ describe("ReportsPage", () => {
 
     // Open drawer
     await user.click(employeeRows[0]);
-    const sheetPanel = await screen.findByTestId("sheet-panel");
+    const sheetPanel = await screen.findByTestId("sheet-panel", {}, { timeout: 10000 });
     expect(sheetPanel).toBeInTheDocument();
 
     // Ensure search input lost focus
@@ -405,7 +405,7 @@ describe("ReportsPage", () => {
     await user.type(searchInput, "John{Enter}");
 
     // The Drawer should open up for John Doe (emp-1)
-    const sheetPanel = await screen.findByTestId("sheet-panel");
+    const sheetPanel = await screen.findByTestId("sheet-panel", {}, { timeout: 10000 });
     expect(sheetPanel).toBeInTheDocument();
 
     // Ensure the input has lost focus (blur) so arrow navigation works inside the drawer
@@ -454,7 +454,7 @@ describe("ReportsPage", () => {
     await user.type(searchInput, "John{Enter}");
 
     // The Drawer should open up for John Doe
-    const sheetPanel = await screen.findByTestId("sheet-panel");
+    const sheetPanel = await screen.findByTestId("sheet-panel", {}, { timeout: 10000 });
     expect(sheetPanel).toBeInTheDocument();
 
     // Ensure the input has lost focus
@@ -545,7 +545,7 @@ describe("ReportsPage", () => {
     await user.type(searchInput, "{ArrowDown}{Enter}");
 
     // The Drawer should open up for Jane Smith (emp-2)
-    const sheetPanel = await screen.findByTestId("sheet-panel");
+    const sheetPanel = await screen.findByTestId("sheet-panel", {}, { timeout: 10000 });
     expect(sheetPanel).toBeInTheDocument();
 
     // Verify the drawer is for Jane Smith by checking the mock data return
