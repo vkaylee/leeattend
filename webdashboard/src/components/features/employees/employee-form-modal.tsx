@@ -1,165 +1,107 @@
 import { useQuery } from "@tanstack/react-query";
 import { UserCircle } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
-import type { OrganizationMember, CreateEmployeeRequest, UpdateEmployeeRequest } from "@/lib/api";
+import type { Employee, Employment, UpdateEmployeeRequest } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
-import {
-  createEmployee, updateEmployee, fetchOrganizationMembers,
-  Employee, fetchEmployers, fetchEmployeeEmployments,
-  updateEmployeeEmployment, Employment,
-} from "@/lib/api";
-import { logError } from "@/lib/logger";
-import { employeeKeys, createQueryKey  } from "@/lib/query-keys";
+import { fetchEmployeeEmployments, fetchEmployers, updateEmployee, updateEmployeeEmployment } from "@/lib/api";
+import { createQueryKey, employeeKeys } from "@/lib/query-keys";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 import EmployeeFormInputs from "./employee-form-inputs";
 
-
 interface EmployeeFormModalProps {
-  editingEmployee: Employee | null;
+  editingEmployee: Employee;
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  prefillEnrollmentId?: string;
 }
 
-function useEmployeeMutations(onClose: () => void, onSuccess?: () => void) {
-  const { t } = useTranslation();
-  const toast = useToast();
-
-  const createMutation = useOrganizationMutation<
-    CreateEmployeeRequest,
-    Awaited<ReturnType<typeof createEmployee>>
-  >({
-    keys: [employeeKeys.all()],
-    mutationFn: (data) => createEmployee(data),
-    onSuccess: () => {
-      onClose();
-      toast.success(t("common.success"));
-      onSuccess?.();
-    },
-  });
-
-  const updateMutation = useOrganizationMutation<
+function useEmployeeMutation() {
+  return useOrganizationMutation<
     { id: string; employee: UpdateEmployeeRequest },
     Awaited<ReturnType<typeof updateEmployee>>
   >({
     keys: [employeeKeys.all()],
     mutationFn: (data) => updateEmployee(data.id, data.employee),
-    onSuccess: () => {
-      onClose();
-      toast.success(t("common.success"));
-      onSuccess?.();
-    },
   });
-
-  return { createMutation, updateMutation };
 }
 
-function useFormDefaults(editingEmployee: Employee | null, activeLocationId: string, activeEmployerId: string) {
-  const externalUserId = editingEmployee?.user_id ?? "";
-  const externalLocId = editingEmployee ? activeLocationId : "";
-  const externalEmpId = editingEmployee ? activeEmployerId : "";
-
-  const [selectedUserId, setSelectedUserId] = useDerivedStateFrom(externalUserId);
-  const [selectedLocationId, setSelectedLocationId] = useDerivedStateFrom(externalLocId);
-  const [selectedEmployerId, setSelectedEmployerId] = useDerivedStateFrom(externalEmpId);
+function useFormDefaults(activeLocationId: string, activeEmployerId: string) {
+  const [selectedLocationId, setSelectedLocationId] = useDerivedStateFrom(activeLocationId);
+  const [selectedEmployerId, setSelectedEmployerId] = useDerivedStateFrom(activeEmployerId);
 
   return {
-    selectedUserId, setSelectedUserId,
-    selectedLocationId, setSelectedLocationId,
-    selectedEmployerId, setSelectedEmployerId,
+    selectedLocationId,
+    setSelectedLocationId,
+    selectedEmployerId,
+    setSelectedEmployerId,
   };
 }
 
-/**
- * EmployeeFormModal — create or edit an employee.
- *
- * The component has been decomposed into useEmployeeMutations, useFormDefaults,
- * and EmployeeFormInputs. The remaining branches are genuine business logic
- * (create vs update, optional employment mutation).
- */
-// eslint-disable-next-line complexity -- JSX composition + query wiring; logic already in useEmployeeMutations / useFormDefaults
+/** Edit employee profile and employment assignment. Account linking belongs to Members. */
 export default function EmployeeFormModal({
-  isOpen, onClose, editingEmployee,prefillEnrollmentId, onSuccess,
+  isOpen,
+  onClose,
+  onSuccess,
+  editingEmployee,
 }: EmployeeFormModalProps) {
   const { t } = useTranslation();
-  const { createMutation, updateMutation } = useEmployeeMutations(onClose, onSuccess);
+  const toast = useToast();
+  const updateMutation = useEmployeeMutation();
   const { data: locations, isError: locationsUnavailable } = useLocations();
-  const { data: employers } = useQuery({ queryKey: createQueryKey("employers"), queryFn: () => fetchEmployers(),
- });
+  const { data: employers } = useQuery({
+    queryKey: createQueryKey("employers"),
+    queryFn: fetchEmployers,
+  });
+  const { data: employments = [] } = useQuery({
+    queryKey: createQueryKey("employee-employments", editingEmployee.id),
+    queryFn: () => fetchEmployeeEmployments(editingEmployee.id),
+    enabled: isOpen,
+  });
+  const active: Employment | undefined = employments.find((employment) => employment.status === "active");
+  const defaults = useFormDefaults(active?.primary_location_id ?? "", active?.employer_id ?? "");
 
-  const { data: employments = [] } = useQuery({ queryKey: createQueryKey("employee-employments", editingEmployee?.id), queryFn: () => {
-    if (!editingEmployee?.id) throw new Error("editingEmployee.id required");
-    return fetchEmployeeEmployments(editingEmployee.id);
-  },
-  enabled: !!editingEmployee?.id && isOpen, });
-  const active: Employment | undefined = employments.find(e => e.status === "active");
-  const activeLocationId = active?.primary_location_id ?? "";
-  const activeEmployerId = active?.employer_id ?? "";
-
-  const defaults = useFormDefaults(editingEmployee, activeLocationId, activeEmployerId);
-
-  const [members, setMembers] = useState<OrganizationMember[]>([]);
-  useEffect(() => {
-    if (isOpen ) {
-      const loadMembers = async () => {
-        try {
-          const data = await fetchOrganizationMembers();
-          setMembers(data);
-        } catch (e: unknown) {
-          logError(e, { component: 'EmployeeFormModal.loadMembers' });
-          /* proceed with empty member list */
-        }
-      };
-      void loadMembers();
-    }
-  }, [isOpen]);
-
-  async function syncEmploymentIfChanged(employee: Employee) {
-    if (defaults.selectedLocationId !== activeLocationId || defaults.selectedEmployerId !== activeEmployerId) {
-      await updateEmployeeEmployment(employee.id, active?.id ?? "", {
+  async function syncEmploymentIfChanged() {
+    if (
+      defaults.selectedLocationId !== (active?.primary_location_id ?? "")
+      || defaults.selectedEmployerId !== (active?.employer_id ?? "")
+    ) {
+      await updateEmployeeEmployment(editingEmployee.id, active?.id ?? "", {
         primary_location_id: defaults.selectedLocationId || null,
         employer_id: defaults.selectedEmployerId || undefined,
       });
     }
   }
 
-  const getFormString = (fd: FormData, key: string): string => {
-    const val = fd.get(key);
-    return typeof val === "string" ? val : "";
-  };
+  const handleSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const value = (key: string) => {
+      const field = formData.get(key);
+      return typeof field === "string" ? field : "";
+    };
 
-  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-
-    if (editingEmployee) {
-      const payload: UpdateEmployeeRequest = {
-        full_name: getFormString(fd, "full_name"),
-        employee_id_number: getFormString(fd, "employee_id_number"),
-        user_id: defaults.selectedUserId || undefined,
-      };
-      await updateMutation.mutateAsync({ id: editingEmployee.id, employee: payload });
-      await syncEmploymentIfChanged(editingEmployee);
-    } else {
-      const payload: CreateEmployeeRequest = {
-        full_name: getFormString(fd, "full_name"),
-        employee_id_number: getFormString(fd, "employee_id_number"),
-        hire_date: getFormString(fd, "hire_date"),
-        employer_id: defaults.selectedEmployerId || "",
-        primary_location_id: defaults.selectedLocationId || undefined,
-        user_id: defaults.selectedUserId || undefined,
-        tags: [],
-      };
-      createMutation.mutate(payload);
+    try {
+      await updateMutation.mutateAsync({
+        id: editingEmployee.id,
+        employee: {
+          full_name: value("full_name"),
+          employee_id_number: value("employee_id_number"),
+        },
+      });
+      await syncEmploymentIfChanged();
+      onClose();
+      onSuccess?.();
+      toast.success(t("common.success"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("common.error"));
     }
   };
 
@@ -170,23 +112,24 @@ export default function EmployeeFormModal({
       maxWidth="lg"
       onClose={onClose}
       subtitle={t("employees.form.subtitle")}
-      title={editingEmployee ? t("employees.form.edit_title") : t("employees.form.add_title")}
+      title={t("employees.form.edit_title")}
     >
       <form className="space-y-8 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
         <EmployeeFormInputs
           activeEmployment={active}
           editingEmployee={editingEmployee}
           employers={employers ?? []}
-          locations={locations}
+          locations={locations ?? []}
           locationsUnavailable={locationsUnavailable}
-          members={members}
-          prefillEnrollmentId={prefillEnrollmentId ?? ""}
+          members={[]}
+          prefillEnrollmentId=""
           selectedEmployerId={defaults.selectedEmployerId}
           selectedLocationId={defaults.selectedLocationId}
-          selectedUserId={defaults.selectedUserId}
+          selectedUserId=""
           setSelectedEmployerId={defaults.setSelectedEmployerId}
           setSelectedLocationId={defaults.setSelectedLocationId}
-          setSelectedUserId={defaults.setSelectedUserId}
+          setSelectedUserId={() => undefined}
+          showUserLink={false}
           t={t}
         />
         <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
@@ -195,12 +138,12 @@ export default function EmployeeFormModal({
           </Button>
           <Button
             data-testid="save-employee-btn"
-            loading={createMutation.isPending || updateMutation.isPending}
+            loading={updateMutation.isPending}
             size="lg"
             type="submit"
             variant="secondary"
           >
-            {editingEmployee ? t("employees.form.update").toUpperCase() : t("employees.form.save").toUpperCase()}
+            {t("employees.form.update").toUpperCase()}
           </Button>
         </div>
       </form>

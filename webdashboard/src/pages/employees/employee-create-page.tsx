@@ -49,6 +49,9 @@ export default function EmployeeCreatePage() {
       toast.success(t("common.success"));
       void navigate({ to: "/employees/$employeeId", params: { employeeId: employee.id } });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : t("common.error"));
+    },
   });
 
   const handleCancel = () => {

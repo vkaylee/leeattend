@@ -8,7 +8,6 @@ import { useDepartments } from "@/hooks/use-departments";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import {
   searchEmployees,
-  updateEmployee,
   Employee,
   fetchEmployeeDepartmentHistory,
   updateEmployeeEmployment,
@@ -26,8 +25,6 @@ debouncedSearch: string;
 filterDeptIds: string[];
 filterStatus: string;
 selectedEmployee: Employee | null;
-setEditingEmployee?: (emp: Employee | null) => void;
-setIsModalOpen?: (open: boolean) => void;
 setSelectedEmployee?: (emp: Employee | null) => void;
 sortDir: SortDir;
 sortKey: SortKey | null;  }
@@ -39,8 +36,6 @@ export const useEmployeesData = ({
   filterDeptIds,
   filterStatus,
   selectedEmployee,
-  setIsModalOpen,
-  setEditingEmployee,
   setSelectedEmployee,
   customFieldFilters,
 }: UseEmployeesDataProps) => {
@@ -113,17 +108,6 @@ export const useEmployeesData = ({
 
 
 
-  const updateMutation = useOrganizationMutation<
-    { id: string; employee: UpdateEmployeeRequest },
-    Awaited<ReturnType<typeof updateEmployee>>
-  >({ keys: [employeeKeys.all()],
-  mutationFn: (data) => updateEmployee(data.id, data.employee),
-  onSuccess: () => {
-    setIsModalOpen?.(false);
-    setEditingEmployee?.(null);
-    toast.success(t("common.success"));
-  }, });
-
   const terminateMutation = useOrganizationMutation<
     { employeeId: string; employmentId: string; endDate: string },
     Awaited<ReturnType<typeof updateEmployeeEmployment>>
@@ -150,7 +134,6 @@ export const useEmployeesData = ({
     departments,
     deptHistory,
 
-    updateMutation,
     terminateMutation,
     isLoading,
     isFetching,

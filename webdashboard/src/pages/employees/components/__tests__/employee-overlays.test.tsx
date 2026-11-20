@@ -18,7 +18,7 @@ vi.mock("@/components/features/employees/employee-detail-drawer", () => ({
 }));
 
 vi.mock("@/components/features/employees/employee-form-modal", () => ({
-  default: (props: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) =>
+  default: (props: { isOpen: boolean; onClose: () => void }) =>
     props.isOpen ? <div data-testid="employee-form-modal">Form</div> : null,
 }));
 
@@ -64,26 +64,13 @@ function createDefaults(overrides: Partial<Parameters<typeof EmployeeOverlays>[0
     departments: [],
     deptHistory: [],
     activeEmploymentId: null,
-    editingEmployee: null,
+    activeModal: null,
+    closeModal: vi.fn(),
     formatDate: (d: string) => d,
     handleDrawerClose: vi.fn(),
-    isImportDialogOpen: false,
-    isModalOpen: false,
-    isRehireModalOpen: false,
-    isTerminateModalOpen: false,
-    isTerminationImportOpen: false,
-    isTransferModalOpen: false,
-    prefillEnrollmentId: "",
+    openModal: vi.fn(),
     selectedDeptId: "",
     selectedEmployee: null,
-    setEditingEmployee: vi.fn(),
-    setIsImportDialogOpen: vi.fn(),
-    setIsModalOpen: vi.fn(),
-    setIsRehireModalOpen: vi.fn(),
-    setIsTerminateModalOpen: vi.fn(),
-    setIsTerminationImportOpen: vi.fn(),
-    setIsTransferModalOpen: vi.fn(),
-    setPrefillEnrollmentId: vi.fn(),
     setSelectedDeptId: vi.fn(),
     setSelectedEmployee: vi.fn(),
     ...overrides,
@@ -125,24 +112,24 @@ describe("EmployeeOverlays", () => {
   });
 
   describe("EmployeeFormModal (lazy-loaded)", () => {
-    it("renders when isModalOpen is true", async () => {
-      render(<EmployeeOverlays {...createDefaults({ isModalOpen: true })} />);
+    it("renders only for edit modal state", async () => {
+      render(<EmployeeOverlays {...createDefaults({ activeModal: { type: "edit", employee: mockEmployee } })} />);
 
       await waitFor(() => {
         expect(screen.getByTestId("employee-form-modal")).toBeDefined();
       });
     });
 
-    it("does not render when isModalOpen is false", () => {
-      render(<EmployeeOverlays {...createDefaults({ isModalOpen: false })} />);
+    it("does not render for closed modal state", () => {
+      render(<EmployeeOverlays {...createDefaults()} />);
       expect(screen.queryByTestId("employee-form-modal")).toBeNull();
     });
   });
 
   describe("AttendanceImportDialog (lazy-loaded)", () => {
-    it("renders when isImportDialogOpen is true", async () => {
+    it("renders import dialog for import modal state", async () => {
       render(
-        <EmployeeOverlays {...createDefaults({ isImportDialogOpen: true })} />,
+        <EmployeeOverlays {...createDefaults({ activeModal: { type: "import" } })} />,
       );
 
       await waitFor(() => {
@@ -152,9 +139,9 @@ describe("EmployeeOverlays", () => {
   });
 
   describe("TransferEmployeeModal (lazy-loaded)", () => {
-    it("renders when isTransferModalOpen is true", async () => {
+    it("renders transfer modal for transfer modal state", async () => {
       render(
-        <EmployeeOverlays {...createDefaults({ isTransferModalOpen: true })} />,
+        <EmployeeOverlays {...createDefaults({ activeModal: { type: "transfer", employee: mockEmployee } })} />,
       );
 
       await waitFor(() => {
@@ -164,11 +151,11 @@ describe("EmployeeOverlays", () => {
   });
 
   describe("TerminateEmployeeModal (lazy-loaded)", () => {
-    it("renders when isTerminateModalOpen is true", async () => {
+    it("renders terminate modal for terminate modal state", async () => {
       render(
         <EmployeeOverlays
           {...createDefaults({
-            isTerminateModalOpen: true,
+            activeModal: { type: "terminate", employee: mockEmployee },
             selectedEmployee: mockEmployee,
           })}
         />,
@@ -181,9 +168,9 @@ describe("EmployeeOverlays", () => {
   });
 
   describe("RehireEmployeeModal (lazy-loaded)", () => {
-    it("renders when isRehireModalOpen is true", async () => {
+    it("renders rehire modal for rehire modal state", async () => {
       render(
-        <EmployeeOverlays {...createDefaults({ isRehireModalOpen: true })} />,
+        <EmployeeOverlays {...createDefaults({ activeModal: { type: "rehire", employee: mockEmployee } })} />,
       );
 
       await waitFor(() => {
@@ -193,10 +180,10 @@ describe("EmployeeOverlays", () => {
   });
 
   describe("EmployeeTerminationImportDialog (lazy-loaded)", () => {
-    it("renders when isTerminationImportOpen is true", async () => {
+    it("renders termination import for import-termination modal state", async () => {
       render(
         <EmployeeOverlays
-          {...createDefaults({ isTerminationImportOpen: true })}
+          {...createDefaults({ activeModal: { type: "import-termination" } })}
         />,
       );
 
@@ -211,7 +198,7 @@ describe("EmployeeOverlays", () => {
       render(
         <EmployeeOverlays
           {...createDefaults({
-            isModalOpen: true,
+            activeModal: { type: "edit", employee: mockEmployee },
             selectedEmployee: mockEmployee,
           })}
         />,

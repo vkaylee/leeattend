@@ -48,8 +48,6 @@ export default function EmployeesPage() {
     <div className="space-y-6 pb-20 animate-in fade-in duration-700">
       <EmployeesPageHeader
         openModal={page.openModal}
-        setIsImportDialogOpen={page.setIsImportDialogOpen}
-        setIsTerminationImportOpen={page.setIsTerminationImportOpen}
       />
 
       <ContractExpirationAlerts employees={employees} />

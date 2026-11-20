@@ -66,6 +66,10 @@ export default function EmployeeDetailPage() {
     queryFn: () => fetchEmployee(employeeId),
   });
 
+  const refreshEmployee = () => {
+    void refetch();
+  };
+
   const {
     activeEmployment,
     linkedUser,
@@ -331,11 +335,11 @@ export default function EmployeeDetailPage() {
       formatDate={formatDate}
       handleDrawerClose={() => undefined}
       openModal={modals.openModal}
-      prefillEnrollmentId={modals.prefillEnrollmentId}
       selectedDeptId={modals.selectedDeptId}
       selectedEmployee={null}
       setSelectedDeptId={modals.setSelectedDeptId}
-      setSelectedEmployee={() => { void refetch(); }}  />
+      setSelectedEmployee={() => { void refetch(); }}
+      onEmployeeRefresh={refreshEmployee}  />
     </div>
   );
 }
