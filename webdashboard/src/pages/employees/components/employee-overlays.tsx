@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Employee, Department } from "../../../lib/api/types";
+import type { Department } from "../../../lib/api/types";
 import type { EmployeeModalState } from "../types/employee-modals";
 // Lazy-loaded overlays — only loaded when user triggers the action.
 // This keeps the employees.lazy chunk under the 300 kB budget.
@@ -17,11 +17,11 @@ const OverlayFallback = () => null;
 interface EmployeeOverlaysProps {
   activeModal: EmployeeModalState;
   closeModal: () => void;
-  departments: Department[] | undefined;
   activeEmploymentId?: string | null;
+  departments: Department[] | undefined;
+  onEmployeeRefresh?: () => void;
   selectedDeptId: string;
   setSelectedDeptId: (id: string) => void;
-  onEmployeeRefresh?: () => void;
 }
 export function EmployeeOverlays(props: EmployeeOverlaysProps) {
   const { t } = useTranslation();
@@ -30,7 +30,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
     closeModal,
     departments,
     activeEmploymentId,
-    selectedDeptId = "",
+    selectedDeptId,
     setSelectedDeptId,
     onEmployeeRefresh,
   } = props;
