@@ -41,6 +41,7 @@ WITH days AS (
 			FROM work_segments ws
 			WHERE ws.schedule_revision_id = cd.revision_id
 		), '[]'::jsonb) AS segments,
+			COALESCE((SELECT jsonb_agg(jsonb_build_object('id', o.id, 'segment_id', o.work_segment_id, 'start', o.start_at, 'end', o.end_at, 'minutes', o.minutes, 'status', o.status) ORDER BY o.start_at, o.id) FROM schedule_day_overrides o WHERE o.employment_id = cd.employment_id AND o.business_date = cd.business_date AND o.override_type = 'break_worked' AND o.status = 'approved'), '[]'::jsonb) AS break_worked_overrides,
 		COALESCE((
 			SELECT to_jsonb(s)
 			FROM attendance_daily_summaries s
@@ -76,7 +77,8 @@ WITH days AS (
 			'source', source,
 			'timezone', timezone,
 			'source_snapshot', source_snapshot,
-			'segments', segments
+			'segments', segments,
+				'break_worked_overrides', break_worked_overrides
 		) AS schedule_snapshot,
 		attendance AS attendance_snapshot,
 		jsonb_build_object(

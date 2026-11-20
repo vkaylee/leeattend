@@ -170,12 +170,18 @@ type resolvedScheduleDay struct {
 	date                  string
 	shiftIDs              []*uuid.UUID
 	pinnedShiftVersionIDs []*uuid.UUID
+	breakWorkedOverrides  []api.ScheduleBreakWorkedOverride
 	source                string
 	traces                []api.ScheduleTrace
 	isHoliday             bool
 	holidayPaid           bool
 	holidayName           *string
 	timezone              string
+}
+
+type scheduleDayKey struct {
+	employmentID uuid.UUID
+	date         string
 }
 
 type resolvedEmployeeSchedule struct {
@@ -291,6 +297,22 @@ func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate,
 	}
 	if err := rows.Err(); err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
+	}
+	if len(result) > 0 {
+		ids := make([]uuid.UUID, 0, len(result))
+		for _, employee := range result {
+			ids = append(ids, employee.EmploymentID)
+		}
+		overrides, err := loadBreakWorkedOverrides(ctx, db, ids, start, end)
+		if err != nil {
+			return api.PaginatedEmployeeSchedules{}, err
+		}
+		for i := range result {
+			for j := range result[i].Schedules {
+				key := scheduleDayKey{employmentID: result[i].EmploymentID, date: result[i].Schedules[j].Date}
+				result[i].Schedules[j].BreakWorkedOverrides = overrides[key]
+			}
+		}
 	}
 	return api.PaginatedEmployeeSchedules{Data: result, Total: total, Page: page, Limit: limit}, nil
 }
@@ -415,7 +437,7 @@ func (r ScheduleRepository) GetOrganizationSchedules(ctx context.Context, startD
 					status = "work"
 				}
 				zone := day.timezone
-				effective := api.EffectiveSchedule{Date: day.date, Source: day.source, ScheduleStatus: status, Provisional: true, Timezone: &zone, ShiftID: shiftID, Traces: day.traces, IsHoliday: day.isHoliday, IsHolidayPaid: day.holidayPaid, HolidayName: day.holidayName}
+				effective := api.EffectiveSchedule{Date: day.date, Source: day.source, ScheduleStatus: status, Provisional: true, Timezone: &zone, ShiftID: shiftID, BreakWorkedOverrides: day.breakWorkedOverrides, Traces: day.traces, IsHoliday: day.isHoliday, IsHolidayPaid: day.holidayPaid, HolidayName: day.holidayName}
 				if shiftID != nil {
 					if meta, ok := resolution.shifts[*shiftID]; ok {
 						effective.ShiftName = &meta.name
@@ -528,6 +550,10 @@ func resolveScheduleData(ctx context.Context, db DBTX, startDate, endDate time.T
 	if err != nil {
 		return scheduleResolution{}, 0, err
 	}
+	overrides, err := loadBreakWorkedOverrides(ctx, db, employmentIDsForLoad, startStr, endStr)
+	if err != nil {
+		return scheduleResolution{}, 0, err
+	}
 	result := scheduleResolution{employees: make([]resolvedEmployeeSchedule, 0, len(empRows)), shifts: shifts}
 	for _, employee := range empRows {
 		schedStart, schedEnd := startDate, endDate
@@ -566,7 +592,7 @@ func resolveScheduleData(ctx context.Context, db DBTX, startDate, endDate time.T
 					return []*uuid.UUID{assignment.shiftVersionID}
 				}
 				return nil
-			}(), source: source, traces: traces, isHoliday: isHoliday, holidayPaid: holiday.isPaid, holidayName: stringPtr(holiday.name), timezone: resolvedTimezone(locationID, locationTimezones)})
+			}(), breakWorkedOverrides: overrides[scheduleDayKey{employmentID: employee.employmentID, date: dateStr}], source: source, traces: traces, isHoliday: isHoliday, holidayPaid: holiday.isPaid, holidayName: stringPtr(holiday.name), timezone: resolvedTimezone(locationID, locationTimezones)})
 		}
 		result.employees = append(result.employees, resolved)
 	}
@@ -902,6 +928,26 @@ func loadAssignments(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr,
 		res[empID] = append(res[empID], assignmentEntry{hostLocationID: hostID, startDate: s, endDate: e})
 	}
 	return res, rows.Err()
+}
+
+func loadBreakWorkedOverrides(ctx context.Context, db DBTX, employmentIDs []uuid.UUID, startStr, endStr string) (map[scheduleDayKey][]api.ScheduleBreakWorkedOverride, error) {
+	rows, err := db.Query(ctx, `SELECT id, employment_id, business_date::text, work_segment_id, start_at, end_at, minutes, status FROM schedule_day_overrides WHERE employment_id = ANY($1) AND business_date BETWEEN $2::date AND $3::date AND override_type = 'break_worked' AND status = 'approved' ORDER BY employment_id, business_date, start_at, id`, employmentIDs, startStr, endStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[scheduleDayKey][]api.ScheduleBreakWorkedOverride)
+	for rows.Next() {
+		var item api.ScheduleBreakWorkedOverride
+		var employmentID uuid.UUID
+		var date string
+		if err := rows.Scan(&item.ID, &employmentID, &date, &item.SegmentID, &item.Start, &item.End, &item.Minutes, &item.Status); err != nil {
+			return nil, err
+		}
+		key := scheduleDayKey{employmentID: employmentID, date: date}
+		result[key] = append(result[key], item)
+	}
+	return result, rows.Err()
 }
 
 func loadHolidays(ctx context.Context, db DBTX, startStr, endStr string) (map[string]holidayEntry, error) {

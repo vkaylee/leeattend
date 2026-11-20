@@ -145,6 +145,28 @@ func TestResolveEffectiveShift_NullRosterAndPatternAreExplicitOff(t *testing.T) 
 	}
 }
 
+func TestLoadBreakWorkedOverridesUsesApprovedRows(t *testing.T) {
+	queries := make([]string, 0, 1)
+	employmentID, segmentID, overrideID := uuid.New(), uuid.New(), uuid.New()
+	start := time.Date(2026, 11, 20, 12, 15, 0, 0, time.UTC)
+	end := time.Date(2026, 11, 20, 12, 45, 0, 0, time.UTC)
+	db := &fakeDBTX{queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
+		queries = append(queries, query)
+		return &fakeRows{rows: [][]any{{overrideID, employmentID, "2026-11-20", segmentID, start, end, 30, "approved"}}}, nil
+	}}
+	overrides, err := loadBreakWorkedOverrides(context.Background(), db, []uuid.UUID{employmentID}, "2026-11-20", "2026-11-20")
+	if err != nil {
+		t.Fatalf("load break worked overrides: %v", err)
+	}
+	items := overrides[scheduleDayKey{employmentID: employmentID, date: "2026-11-20"}]
+	if len(items) != 1 || items[0].ID != overrideID || items[0].SegmentID != segmentID || items[0].Minutes != 30 || items[0].Status != "approved" {
+		t.Fatalf("unexpected overrides: %+v", overrides)
+	}
+	if len(queries) != 1 || !strings.Contains(queries[0], "status = 'approved'") || !strings.Contains(queries[0], "override_type = 'break_worked'") {
+		t.Fatalf("query missing approved typed filter: %v", queries)
+	}
+}
+
 func TestSelectEffectiveShiftVersion(t *testing.T) {
 	templateID, firstVersion, secondVersion := uuid.New(), uuid.New(), uuid.New()
 	firstFrom := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)

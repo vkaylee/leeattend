@@ -193,31 +193,41 @@ type ScheduleTrace struct {
 	Reason   *string    `json:"reason"`
 }
 
+type ScheduleBreakWorkedOverride struct {
+	ID        uuid.UUID `json:"id"`
+	SegmentID uuid.UUID `json:"segment_id"`
+	Start     time.Time `json:"start"`
+	End       time.Time `json:"end"`
+	Minutes   int       `json:"minutes"`
+	Status    string    `json:"status"`
+}
+
 type EffectiveSchedule struct {
-	Date                 string            `json:"date"`
-	RevisionID           *uuid.UUID        `json:"revision_id,omitempty"`
-	ScheduleStatus       string            `json:"schedule_status"`
-	Provisional          bool              `json:"provisional"`
-	Timezone             *string           `json:"timezone,omitempty"`
-	PublishedAt          *time.Time        `json:"published_at,omitempty"`
-	Intervals            []json.RawMessage `json:"intervals,omitempty"`
-	ShiftID              *uuid.UUID        `json:"shift_id"`
-	Source               string            `json:"source"`
-	ShiftName            *string           `json:"shift_name"`
-	ShiftSymbol          *string           `json:"shift_symbol"`
-	StartTime            *string           `json:"start_time"`
-	EndTime              *string           `json:"end_time"`
-	BreakDurationMinutes *int              `json:"break_duration_minutes"`
-	BreakStart           *string           `json:"break_start"`
-	BreakEnd             *string           `json:"break_end"`
-	IsBreakAutoDeduct    *bool             `json:"is_break_auto_deduct"`
-	BreakIsOvertime      *bool             `json:"break_is_overtime"`
-	BreakPunchMode       *string           `json:"break_punch_mode"`
-	BreakCreditMode      *string           `json:"break_credit_mode"`
-	Traces               []ScheduleTrace   `json:"traces"`
-	IsHoliday            bool              `json:"is_holiday"`
-	IsHolidayPaid        bool              `json:"is_holiday_paid"`
-	HolidayName          *string           `json:"holiday_name"`
+	Date                  string                         `json:"date"`
+	RevisionID            *uuid.UUID                     `json:"revision_id,omitempty"`
+	ScheduleStatus        string                         `json:"schedule_status"`
+	Provisional            bool                           `json:"provisional"`
+	Timezone              *string                         `json:"timezone,omitempty"`
+	PublishedAt           *time.Time                      `json:"published_at,omitempty"`
+	Intervals             []json.RawMessage              `json:"intervals,omitempty"`
+	BreakWorkedOverrides  []ScheduleBreakWorkedOverride `json:"break_worked_overrides,omitempty"`
+	ShiftID               *uuid.UUID                     `json:"shift_id"`
+	Source                string                         `json:"source"`
+	ShiftName             *string                        `json:"shift_name"`
+	ShiftSymbol           *string                        `json:"shift_symbol"`
+	StartTime             *string                        `json:"start_time"`
+	EndTime               *string                        `json:"end_time"`
+	BreakDurationMinutes  *int                            `json:"break_duration_minutes"`
+	BreakStart            *string                        `json:"break_start"`
+	BreakEnd              *string                        `json:"break_end"`
+	IsBreakAutoDeduct     *bool                           `json:"is_break_auto_deduct"`
+	BreakIsOvertime       *bool                           `json:"break_is_overtime"`
+	BreakPunchMode        *string                         `json:"break_punch_mode"`
+	BreakCreditMode       *string                         `json:"break_credit_mode"`
+	Traces                []ScheduleTrace                 `json:"traces"`
+	IsHoliday             bool                             `json:"is_holiday"`
+	IsHolidayPaid         bool                             `json:"is_holiday_paid"`
+	HolidayName           *string                          `json:"holiday_name"`
 }
 
 type ScheduleCoverage struct {
