@@ -1572,6 +1572,43 @@ func TestPayrollBatchRejectsDuplicateEmploymentIDs(t *testing.T) {
 	}
 }
 
+func TestPayrollImpactBatchRequiresSensitiveRead(t *testing.T) {
+	employmentID := uuid.New()
+	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{}}}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/impact/batch", bytes.NewBufferString(`{"employment_ids":["`+employmentID.String()+`"],"year":2026,"month":6,"before_run_id":"`+uuid.NewString()+`","after_run_id":"`+uuid.NewString()+`"}`))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.ComparePayrollImpactBatch(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("aggregate impact without sensitive-read permission = %d, want 403", rec.Code)
+	}
+}
+
+func TestPayrollImpactBatchRejectsMoreThanMaximumEmploymentIDs(t *testing.T) {
+	employmentIDs := make([]string, 101)
+	for index := range employmentIDs {
+		employmentIDs[index] = uuid.NewString()
+	}
+	body, err := json.Marshal(map[string]any{
+		"employment_ids": employmentIDs,
+		"year":           2026,
+		"month":          6,
+		"before_run_id":  uuid.NewString(),
+		"after_run_id":   uuid.NewString(),
+	})
+	if err != nil {
+		t.Fatalf("marshal oversized impact request: %v", err)
+	}
+	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:sensitive:read": true}}}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/impact/batch", bytes.NewReader(body))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.ComparePayrollImpactBatch(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("aggregate impact with 101 employment IDs = %d, want 400", rec.Code)
+	}
+}
+
 func TestPayrollCalculationEndpoints(t *testing.T) {
 	calcAuthorizer := payrollAuthorizer{
 		isMember:     true,
