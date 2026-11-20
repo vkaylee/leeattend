@@ -55,7 +55,7 @@ vi.mock("@/components/features/employees/rehire-employee-modal", () => ({
     props.isOpen ? (
       <div data-testid="rehire-employee-modal">
         Rehire
-        <Button data-testid="rehire-success" onClick={() => props.onSuccess?.({} as never)} type="button" variant="ghost">Success</Button>
+        <Button data-testid="rehire-success" onClick={() => props.onSuccess?.(mockEmployee)} type="button" variant="ghost">Success</Button>
       </div>
     ) : null,
 }));
