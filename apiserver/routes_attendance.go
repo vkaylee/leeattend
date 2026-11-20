@@ -16,7 +16,6 @@ func registerAttendanceRoutes(router chi.Router, attendance *api.AttendanceHandl
 	registerRoute(router, "GET /api/v1/attendance/summaries", attendance.Summaries)
 	registerRoute(router, "POST /api/v1/attendance/reprocess-all", attendance.ReprocessAll)
 	registerRoute(router, "POST /api/v1/attendance/reprocess/{employee_id}", attendance.ReprocessEmployee)
-	registerRoute(router, "POST /api/v1/attendance/adjustments/{id}/approve", attendance.ApproveAdjustment)
 	registerRoute(router, "PUT /api/v1/time/entries/{id}", attendance.UpdateTimeEntry)
 	registerRoute(router, "DELETE /api/v1/time/entries/{id}", attendance.DeleteTimeEntry)
 	registerRoute(router, "POST /api/v1/attendance/upload", logs.Upload)

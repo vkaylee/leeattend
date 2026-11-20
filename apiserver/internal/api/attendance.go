@@ -23,6 +23,13 @@ var ErrAttendanceInvalidTransition = errors.New("attendance: invalid transition"
 var ErrAttendanceBreakNotRequired = errors.New("attendance: break not required")
 var ErrAttendanceBreakNotOpen = errors.New("attendance: break not open")
 var ErrAttendanceIdempotencyConflict = errors.New("attendance: idempotency conflict")
+var ErrInvalidAttendanceAdjustment = errors.New("attendance: invalid adjustment")
+
+const (
+	AttendanceAdjustmentBreakWorked          = "break_worked"
+	AttendanceAdjustmentMissingPunch         = "missing_punch"
+	AttendanceAdjustmentAttendanceCorrection = "attendance_correction"
+)
 
 const (
 	AttendanceActionWorkIn     = "work_in"
@@ -74,11 +81,18 @@ type TimeHistoryQuery struct {
 	End   time.Time
 }
 
-// AdjustmentRequest models an employee manual-adjustment submission.
+// AdjustmentRequest models a typed employee manual-adjustment submission.
 type AdjustmentRequest struct {
 	EmploymentID       uuid.UUID   `json:"employment_id"`
+	Type               string      `json:"type,omitempty"`
 	TimeEntryID        *uuid.UUID  `json:"time_entry_id,omitempty"`
-	RequestedPunchTime string      `json:"requested_punch_time"`
+	SegmentID          *uuid.UUID  `json:"segment_id,omitempty"`
+	RequestedPunchTime string      `json:"requested_punch_time,omitempty"`
+	Direction          string      `json:"direction,omitempty"`
+	Start              string      `json:"start,omitempty"`
+	End                string      `json:"end,omitempty"`
+	CorrectedPunchIn   string      `json:"corrected_punch_in,omitempty"`
+	CorrectedPunchOut  string      `json:"corrected_punch_out,omitempty"`
 	Reason             *string     `json:"reason,omitempty"`
 	AttachmentFileIDs  []uuid.UUID `json:"attachment_file_ids,omitempty"`
 }
@@ -87,8 +101,15 @@ type AdjustmentRequest struct {
 type AdjustmentRecord struct {
 	ID                 uuid.UUID   `json:"id"`
 	EmploymentID       uuid.UUID   `json:"employment_id"`
+	Type               string      `json:"type"`
 	TimeEntryID        *uuid.UUID  `json:"time_entry_id"`
+	SegmentID          *uuid.UUID  `json:"segment_id,omitempty"`
 	RequestedPunchTime string      `json:"requested_punch_time"`
+	Direction          *string     `json:"direction,omitempty"`
+	Start              *string     `json:"start,omitempty"`
+	End                *string     `json:"end,omitempty"`
+	CorrectedPunchIn   *string     `json:"corrected_punch_in,omitempty"`
+	CorrectedPunchOut  *string     `json:"corrected_punch_out,omitempty"`
 	Reason             *string     `json:"reason"`
 	Status             string      `json:"status"`
 	RequestedByUserID  *uuid.UUID  `json:"requested_by_user_id"`
@@ -180,6 +201,18 @@ type PaginatedSummaries struct {
 }
 
 // AttendanceRepository executes data operations for attendance and punch tracking.
+type ReprocessResponse struct {
+	EmploymentID *uuid.UUID `json:"employment_id,omitempty"`
+	StartDate    string     `json:"start_date"`
+	EndDate      string     `json:"end_date"`
+	Days         int        `json:"days"`
+	Recalculated int        `json:"recalculated"`
+}
+
+type AttendanceReprocessRepository interface {
+	ReprocessAttendance(ctx context.Context, startDate, endDate string, employeeID *uuid.UUID) (ReprocessResponse, error)
+}
+
 type AttendanceRepository interface {
 	PunchIn(ctx context.Context, employmentID uuid.UUID, segmentID *uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (TimeEntryRecord, error)
 	PunchOut(ctx context.Context, employeeID uuid.UUID, note *string, punchTime time.Time) (TimeEntryRecord, error)
@@ -309,8 +342,12 @@ func (h *AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	req, err := DecodeJSON[AdjustmentRequest](r, 1<<20)
-	if err != nil || req.EmploymentID == uuid.Nil || req.RequestedPunchTime == "" {
+	if err != nil || req.EmploymentID == uuid.Nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if err := validateAdjustmentRequest(req); err != nil {
+		h.writeError(w, r, err)
 		return
 	}
 	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
@@ -324,6 +361,32 @@ func (h *AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	apperror.WriteJSON(w, http.StatusCreated, record)
+}
+
+func validateAdjustmentRequest(req AdjustmentRequest) error {
+	if req.Type == "" {
+		if req.RequestedPunchTime == "" {
+			return ErrInvalidAttendanceAdjustment
+		}
+		return nil
+	}
+	switch req.Type {
+	case AttendanceAdjustmentBreakWorked:
+		if req.SegmentID == nil || req.Start == "" || req.End == "" || req.Reason == nil || strings.TrimSpace(*req.Reason) == "" {
+			return ErrInvalidAttendanceAdjustment
+		}
+	case AttendanceAdjustmentMissingPunch:
+		if req.RequestedPunchTime == "" || (req.Direction != "in" && req.Direction != "out") || req.Reason == nil || strings.TrimSpace(*req.Reason) == "" {
+			return ErrInvalidAttendanceAdjustment
+		}
+	case AttendanceAdjustmentAttendanceCorrection:
+		if req.TimeEntryID == nil || (req.CorrectedPunchIn == "" && req.CorrectedPunchOut == "") || req.Reason == nil || strings.TrimSpace(*req.Reason) == "" {
+			return ErrInvalidAttendanceAdjustment
+		}
+	default:
+		return ErrInvalidAttendanceAdjustment
+	}
+	return nil
 }
 
 // ListAdjustments handles GET /api/v1/attendance/adjustments.
@@ -491,7 +554,17 @@ func (h *AttendanceHandler) ReprocessAll(w http.ResponseWriter, r *http.Request)
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
+	reprocessor, ok := h.Repository.(AttendanceReprocessRepository)
+	if !ok {
+		apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
+		return
+	}
+	result, err := reprocessor.ReprocessAttendance(r.Context(), startDateStr, endDateStr, nil)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
 // ReprocessEmployee handles POST /api/v1/attendance/reprocess/{employee_id}.
@@ -518,8 +591,17 @@ func (h *AttendanceHandler) ReprocessEmployee(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	_ = employeeID
-	apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
+	reprocessor, ok := h.Repository.(AttendanceReprocessRepository)
+	if !ok {
+		apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
+		return
+	}
+	result, err := reprocessor.ReprocessAttendance(r.Context(), startDateStr, endDateStr, &employeeID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
 // UpdateTimeEntry handles PUT /api/v1/time/entries/{id}.
@@ -575,6 +657,10 @@ func (h *AttendanceHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AttendanceHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, ErrInvalidAttendanceAdjustment) {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
 	if errors.Is(err, ErrEmploymentInactive) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return

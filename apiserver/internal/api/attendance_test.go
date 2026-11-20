@@ -361,6 +361,32 @@ func TestCreateAdjustment_Success(t *testing.T) {
 	}
 }
 
+func TestCreateAdjustment_RejectsIncompleteTypedBreakWorked(t *testing.T) {
+	handler := AttendanceHandler{Repository: &mockAttendanceRepo{}, Authorizer: mockAttendanceAuthorizer{allowed: true}}
+	body, _ := json.Marshal(AdjustmentRequest{EmploymentID: uuid.New(), Type: AttendanceAdjustmentBreakWorked, Reason: func() *string { value := "worked through break"; return &value }()})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/attendance/adjustments", bytes.NewReader(body))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.CreateAdjustment(rec, req)
+	if rec.Code != http.StatusBadRequest && rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 400/422, got %d", rec.Code)
+	}
+}
+
+func TestCreateAdjustment_AcceptsTypedMissingPunch(t *testing.T) {
+	repo := &mockAttendanceRepo{}
+	handler := AttendanceHandler{Repository: repo, Authorizer: mockAttendanceAuthorizer{allowed: true}}
+	reason := "forgot clock-in"
+	body, _ := json.Marshal(AdjustmentRequest{EmploymentID: uuid.New(), Type: AttendanceAdjustmentMissingPunch, RequestedPunchTime: "2026-10-19T08:00:00Z", Direction: "in", Reason: &reason})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/attendance/adjustments", bytes.NewReader(body))
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.CreateAdjustment(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestCreateAdjustment_PermissionDenied(t *testing.T) {
 	userID := uuid.New()
 	empID := uuid.New()

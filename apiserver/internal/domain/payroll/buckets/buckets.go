@@ -49,15 +49,23 @@ type BreakPair struct {
 	End   time.Time
 }
 
+type BreakWorkedInterval struct {
+	BreakPair
+	Status string
+}
+
 type AttendanceCalculationInput struct {
-	PunchIn                   time.Time
-	PunchOut                  time.Time
-	BreakPunchMode            BreakPunchMode
-	BreakCreditMode           BreakCreditMode
-	ScheduledBreakMinutes     int32
-	ActualBreaks              []BreakPair
-	PlannedBreakWorkedMinutes int32
-	ApprovedOvertimeMinutes   int32
+	PunchIn                      time.Time
+	PunchOut                     time.Time
+	BreakPunchMode               BreakPunchMode
+	BreakCreditMode              BreakCreditMode
+	ScheduledBreakMinutes        int32
+	ScheduledBreakStart          *time.Time
+	ScheduledBreakEnd            *time.Time
+	ActualBreaks                 []BreakPair
+	PlannedBreakWorkedMinutes    int32
+	ApprovedBreakWorkedIntervals []BreakWorkedInterval
+	ApprovedOvertimeMinutes      int32
 }
 
 type AttendanceCalculationResult struct {
@@ -119,6 +127,26 @@ func CalculateAttendance(input AttendanceCalculationInput) (AttendanceCalculatio
 	if input.BreakPunchMode == BreakPunchModeNone && input.BreakCreditMode == BreakCreditModeActual {
 		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
 	}
+	if (input.ScheduledBreakStart == nil) != (input.ScheduledBreakEnd == nil) {
+		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+	}
+	if input.ScheduledBreakStart != nil && (!input.ScheduledBreakEnd.After(*input.ScheduledBreakStart) || input.ScheduledBreakStart.Before(input.PunchIn) || input.ScheduledBreakEnd.After(input.PunchOut)) {
+		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+	}
+	approvedIntervals := make([]BreakWorkedInterval, 0, len(input.ApprovedBreakWorkedIntervals))
+	for _, interval := range input.ApprovedBreakWorkedIntervals {
+		switch interval.Status {
+		case "approved":
+			approvedIntervals = append(approvedIntervals, interval)
+		case "pending", "rejected":
+			continue
+		default:
+			return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+		}
+	}
+	if len(approvedIntervals) > 0 && (input.BreakPunchMode != BreakPunchModeNone || input.BreakCreditMode != BreakCreditModeScheduled || input.ScheduledBreakStart == nil) {
+		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+	}
 
 	grossMinutes := int32(input.PunchOut.Sub(input.PunchIn) / time.Minute)
 	if input.ScheduledBreakMinutes > grossMinutes {
@@ -136,6 +164,19 @@ func CalculateAttendance(input AttendanceCalculationInput) (AttendanceCalculatio
 		}
 		result.ActualBreakMinutes += int32(pair.End.Sub(pair.Start) / time.Minute)
 	}
+	approvedBreakWorkedMinutes := int32(0)
+	sort.Slice(approvedIntervals, func(i, j int) bool { return approvedIntervals[i].Start.Before(approvedIntervals[j].Start) })
+	for i, interval := range approvedIntervals {
+		if interval.Start.Before(*input.ScheduledBreakStart) || interval.End.After(*input.ScheduledBreakEnd) || !interval.End.After(interval.Start) || (i > 0 && interval.Start.Before(approvedIntervals[i-1].End)) {
+			return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+		}
+		for _, actual := range pairs {
+			if interval.Start.Before(actual.End) && actual.Start.Before(interval.End) {
+				return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+			}
+		}
+		approvedBreakWorkedMinutes += int32(interval.End.Sub(interval.Start) / time.Minute)
+	}
 
 	switch input.BreakPunchMode {
 	case BreakPunchModeRequired:
@@ -150,11 +191,11 @@ func CalculateAttendance(input AttendanceCalculationInput) (AttendanceCalculatio
 			result.ScheduledUnpaidBreakMinutes = input.ScheduledBreakMinutes
 		}
 	}
-	if input.PlannedBreakWorkedMinutes > result.ScheduledUnpaidBreakMinutes {
+	if input.PlannedBreakWorkedMinutes+approvedBreakWorkedMinutes > result.ScheduledUnpaidBreakMinutes {
 		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
 	}
-	result.ScheduledUnpaidBreakMinutes -= input.PlannedBreakWorkedMinutes
-	result.PaidBreakWorkMinutes = input.PlannedBreakWorkedMinutes
+	result.ScheduledUnpaidBreakMinutes -= input.PlannedBreakWorkedMinutes + approvedBreakWorkedMinutes
+	result.PaidBreakWorkMinutes = input.PlannedBreakWorkedMinutes + approvedBreakWorkedMinutes
 	actualDeduction := int32(0)
 	if input.BreakPunchMode == BreakPunchModeRequired {
 		actualDeduction = result.ActualBreakMinutes

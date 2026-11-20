@@ -166,6 +166,109 @@ func TestCalculateAttendance_PlannedBreakWorkedRemovesScheduledDeduction(t *test
 	}
 }
 
+func TestCalculateAttendance_ApprovedBreakWorkedPartiallyOffsetsScheduledDeduction(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	breakStart := date.Add(12 * time.Hour)
+	breakEnd := date.Add(13 * time.Hour)
+	result, err := CalculateAttendance(AttendanceCalculationInput{
+		PunchIn: date.Add(8 * time.Hour), PunchOut: date.Add(17 * time.Hour),
+		BreakPunchMode: BreakPunchModeNone, BreakCreditMode: BreakCreditModeScheduled,
+		ScheduledBreakMinutes: 60, ScheduledBreakStart: &breakStart, ScheduledBreakEnd: &breakEnd,
+		ApprovedBreakWorkedIntervals: []BreakWorkedInterval{{BreakPair: BreakPair{Start: date.Add(12*time.Hour + 15*time.Minute), End: date.Add(12*time.Hour + 45*time.Minute)}, Status: "approved"}},
+	})
+	if err != nil {
+		t.Fatalf("calculate partial break worked: %v", err)
+	}
+	if result.ScheduledUnpaidBreakMinutes != 30 || result.PaidBreakWorkMinutes != 30 || result.PayableMinutes != 510 {
+		t.Fatalf("unexpected partial break-worked result: %+v", result)
+	}
+}
+
+func TestCalculateAttendance_ApprovedBreakWorkedOvernightUsesAbsoluteWindow(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	breakStart := date.Add(26 * time.Hour)
+	breakEnd := date.Add(27 * time.Hour)
+	result, err := CalculateAttendance(AttendanceCalculationInput{
+		PunchIn: date.Add(22 * time.Hour), PunchOut: date.Add(30 * time.Hour),
+		BreakPunchMode: BreakPunchModeNone, BreakCreditMode: BreakCreditModeScheduled,
+		ScheduledBreakMinutes: 60, ScheduledBreakStart: &breakStart, ScheduledBreakEnd: &breakEnd,
+		ApprovedBreakWorkedIntervals: []BreakWorkedInterval{{BreakPair: BreakPair{Start: date.Add(26*time.Hour + 15*time.Minute), End: date.Add(26*time.Hour + 45*time.Minute)}, Status: "approved"}},
+	})
+	if err != nil {
+		t.Fatalf("calculate overnight break worked: %v", err)
+	}
+	if result.ScheduledUnpaidBreakMinutes != 30 || result.PaidBreakWorkMinutes != 30 || result.PayableMinutes != 450 {
+		t.Fatalf("unexpected overnight break-worked result: %+v", result)
+	}
+}
+
+func TestCalculateAttendance_ApprovedBreakWorkedRejectsOverlap(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	breakStart := date.Add(12 * time.Hour)
+	breakEnd := date.Add(13 * time.Hour)
+	_, err := CalculateAttendance(AttendanceCalculationInput{
+		PunchIn: date.Add(8 * time.Hour), PunchOut: date.Add(17 * time.Hour),
+		BreakPunchMode: BreakPunchModeNone, BreakCreditMode: BreakCreditModeScheduled,
+		ScheduledBreakMinutes: 60, ScheduledBreakStart: &breakStart, ScheduledBreakEnd: &breakEnd,
+		ApprovedBreakWorkedIntervals: []BreakWorkedInterval{
+			{BreakPair: BreakPair{Start: date.Add(12 * time.Hour), End: date.Add(12*time.Hour + 30*time.Minute)}, Status: "approved"},
+			{BreakPair: BreakPair{Start: date.Add(12*time.Hour + 20*time.Minute), End: date.Add(12*time.Hour + 40*time.Minute)}, Status: "approved"},
+		},
+	})
+	if !errors.Is(err, ErrInvalidAttendanceCalculation) {
+		t.Fatalf("expected overlapping approved override rejection, got %v", err)
+	}
+}
+
+func TestCalculateAttendance_ApprovedBreakWorkedCannotOverlapActualBreak(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	breakStart := date.Add(12 * time.Hour)
+	breakEnd := date.Add(13 * time.Hour)
+	_, err := CalculateAttendance(AttendanceCalculationInput{
+		PunchIn: date.Add(8 * time.Hour), PunchOut: date.Add(17 * time.Hour),
+		BreakPunchMode: BreakPunchModeNone, BreakCreditMode: BreakCreditModeScheduled,
+		ScheduledBreakMinutes: 60, ScheduledBreakStart: &breakStart, ScheduledBreakEnd: &breakEnd,
+		ActualBreaks: []BreakPair{{Start: date.Add(12 * time.Hour), End: date.Add(12 * time.Hour + 30*time.Minute)}},
+		ApprovedBreakWorkedIntervals: []BreakWorkedInterval{{BreakPair: BreakPair{Start: date.Add(12*time.Hour + 15*time.Minute), End: date.Add(12*time.Hour + 45*time.Minute)}, Status: "approved"}},
+	})
+	if !errors.Is(err, ErrInvalidAttendanceCalculation) {
+		t.Fatalf("expected overlapping break evidence rejection, got %v", err)
+	}
+}
+
+func TestCalculateAttendance_NonApprovedBreakWorkedIsIgnored(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	breakStart := date.Add(12 * time.Hour)
+	breakEnd := date.Add(13 * time.Hour)
+	for _, status := range []string{"pending", "rejected"} {
+		result, err := CalculateAttendance(AttendanceCalculationInput{
+			PunchIn: date.Add(8 * time.Hour), PunchOut: date.Add(17 * time.Hour),
+			BreakPunchMode: BreakPunchModeNone, BreakCreditMode: BreakCreditModeScheduled,
+			ScheduledBreakMinutes: 60, ScheduledBreakStart: &breakStart, ScheduledBreakEnd: &breakEnd,
+			ApprovedBreakWorkedIntervals: []BreakWorkedInterval{{BreakPair: BreakPair{Start: date.Add(12 * time.Hour), End: date.Add(13 * time.Hour)}, Status: status}},
+		})
+		if err != nil {
+			t.Fatalf("calculate %s break worked: %v", status, err)
+		}
+		if result.ScheduledUnpaidBreakMinutes != 60 || result.PaidBreakWorkMinutes != 0 || result.PayableMinutes != 480 {
+			t.Fatalf("%s override must be ignored: %+v", status, result)
+		}
+	}
+}
+
+func TestCalculateAttendance_ApprovedBreakWorkedRequiresScheduledWindow(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	_, err := CalculateAttendance(AttendanceCalculationInput{
+		PunchIn: date.Add(8 * time.Hour), PunchOut: date.Add(17 * time.Hour),
+		BreakPunchMode: BreakPunchModeNone, BreakCreditMode: BreakCreditModeScheduled,
+		ScheduledBreakMinutes: 60,
+		ApprovedBreakWorkedIntervals: []BreakWorkedInterval{{BreakPair: BreakPair{Start: date.Add(12 * time.Hour), End: date.Add(12 * time.Hour + 30*time.Minute)}, Status: "approved"}},
+	})
+	if !errors.Is(err, ErrInvalidAttendanceCalculation) {
+		t.Fatalf("expected scheduled break window validation, got %v", err)
+	}
+}
+
 func TestCalculateAttendance_OvernightBreakUsesAbsoluteOrdering(t *testing.T) {
 	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
 	result, err := CalculateAttendance(AttendanceCalculationInput{

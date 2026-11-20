@@ -101,6 +101,10 @@ DROP TABLE IF EXISTS public.attendance_closures CASCADE;
 
 DROP TABLE IF EXISTS public.attendance_closure_days CASCADE;
 
+DROP INDEX IF EXISTS public.attendance_adjustment_evidence_scope_idx;
+DROP INDEX IF EXISTS public.attendance_adjustment_evidence_request_idx;
+DROP TABLE IF EXISTS public.attendance_adjustment_evidence CASCADE;
+DROP INDEX IF EXISTS public.attendance_adjustment_requests_type_idx;
 DROP TABLE IF EXISTS public.attendance_adjustment_requests CASCADE;
 
 DROP TABLE IF EXISTS public.assignment_rules CASCADE;

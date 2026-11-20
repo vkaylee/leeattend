@@ -446,8 +446,11 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: shift policy snapshot migration marker is missing';
     END IF;
 
-    IF to_regclass('public.schedule_day_overrides') IS NULL THEN
-        RAISE EXCEPTION 'schema check failed: schedule day override table is missing';
+    IF to_regclass('public.schedule_day_overrides') IS NULL
+       OR to_regclass('public.attendance_adjustment_evidence') IS NULL
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'attendance_adjustment_requests' AND column_name = 'adjustment_type')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'attendance_adjustment_requests' AND column_name = 'details') THEN
+        RAISE EXCEPTION 'schema check failed: schedule override or typed attendance adjustment tables are missing';
     END IF;
 
     IF NOT EXISTS (

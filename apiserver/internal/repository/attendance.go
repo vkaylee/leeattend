@@ -464,7 +464,25 @@ func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.Adju
 	if !exists {
 		return api.AdjustmentRecord{}, pgx.ErrNoRows
 	}
-	requestedTime, err := time.Parse(time.RFC3339, req.RequestedPunchTime)
+	requestedTime := time.Time{}
+	requestedValue := req.RequestedPunchTime
+	if requestedValue == "" && req.Type == api.AttendanceAdjustmentBreakWorked {
+		requestedValue = req.Start
+	}
+	if requestedValue != "" {
+		requestedTime, err = time.Parse(time.RFC3339, requestedValue)
+		if err != nil {
+			return api.AdjustmentRecord{}, api.ErrInvalidAttendanceAdjustment
+		}
+	}
+	adjustmentType := req.Type
+	if adjustmentType == "" {
+		adjustmentType = api.AttendanceAdjustmentAttendanceCorrection
+	}
+	details, err := json.Marshal(map[string]any{
+		"segment_id": req.SegmentID, "direction": req.Direction, "start": req.Start, "end": req.End,
+		"corrected_punch_in": req.CorrectedPunchIn, "corrected_punch_out": req.CorrectedPunchOut,
+	})
 	if err != nil {
 		return api.AdjustmentRecord{}, err
 	}
@@ -472,7 +490,7 @@ func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.Adju
 	var record api.AdjustmentRecord
 	var reqPunchTime, createdAt, updatedAt time.Time
 	var fileIDs []uuid.UUID
-	err = db.QueryRow(ctx, `INSERT INTO attendance_adjustment_requests (id, employment_id, time_entry_id, requested_punch_time, reason, status, requested_by_user_id, attachment_file_ids, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, time_entry_id, requested_punch_time, reason, status, requested_by_user_id, approved_by_user_id, attachment_file_ids, created_at, updated_at`, adjID, req.EmploymentID, req.TimeEntryID, requestedTime, req.Reason, requestedByUserID.UUID(), req.AttachmentFileIDs).Scan(&record.ID, &record.EmploymentID, &record.TimeEntryID, &reqPunchTime, &record.Reason, &record.Status, &record.RequestedByUserID, &record.ApprovedByUserID, &fileIDs, &createdAt, &updatedAt)
+	err = db.QueryRow(ctx, `INSERT INTO attendance_adjustment_requests (id, employment_id, time_entry_id, requested_punch_time, reason, status, requested_by_user_id, attachment_file_ids, adjustment_type, details, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, time_entry_id, requested_punch_time, reason, status, requested_by_user_id, approved_by_user_id, attachment_file_ids, adjustment_type, details, created_at, updated_at`, adjID, req.EmploymentID, req.TimeEntryID, requestedTime, req.Reason, requestedByUserID.UUID(), req.AttachmentFileIDs, adjustmentType, details).Scan(&record.ID, &record.EmploymentID, &record.TimeEntryID, &reqPunchTime, &record.Reason, &record.Status, &record.RequestedByUserID, &record.ApprovedByUserID, &fileIDs, &record.Type, &details, &createdAt, &updatedAt)
 	if err != nil {
 		return api.AdjustmentRecord{}, err
 	}
@@ -493,7 +511,7 @@ func (r AttendanceRepository) ListAdjustments(ctx context.Context, status *strin
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE ($1::text IS NULL OR a.status::text = $1) AND ($2::uuid IS NULL OR em.employee_id = $2)`, status, employeeID).Scan(&total); err != nil {
 		return api.PaginatedAdjustments{}, err
 	}
-	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE ($1::text IS NULL OR a.status::text = $1) AND ($2::uuid IS NULL OR em.employee_id = $2) ORDER BY a.created_at DESC LIMIT $3 OFFSET $4`, status, employeeID, limit, offset)
+	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.adjustment_type, a.details, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE ($1::text IS NULL OR a.status::text = $1) AND ($2::uuid IS NULL OR em.employee_id = $2) ORDER BY a.created_at DESC LIMIT $3 OFFSET $4`, status, employeeID, limit, offset)
 	if err != nil {
 		return api.PaginatedAdjustments{}, err
 	}
@@ -517,7 +535,7 @@ func (r AttendanceRepository) ListEmployeeAdjustments(ctx context.Context, emplo
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE em.employee_id = $1 ORDER BY a.created_at DESC`, employeeID)
+	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.adjustment_type, a.details, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE em.employee_id = $1 ORDER BY a.created_at DESC`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -541,9 +559,14 @@ func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, adjustmentI
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var employmentID uuid.UUID
 		var requestedPunchTime time.Time
-		row := db.QueryRow(ctx, `SELECT employment_id, requested_punch_time FROM attendance_adjustment_requests WHERE id = $1 FOR UPDATE`, adjustmentID)
-		if err := row.Scan(&employmentID, &requestedPunchTime); err != nil {
+		var currentStatus, adjustmentType string
+		var details []byte
+		row := db.QueryRow(ctx, `SELECT employment_id, requested_punch_time, status::text, adjustment_type, details FROM attendance_adjustment_requests WHERE id = $1 FOR UPDATE`, adjustmentID)
+		if err := row.Scan(&employmentID, &requestedPunchTime, &currentStatus, &adjustmentType, &details); err != nil {
 			return err
+		}
+		if currentStatus != "pending" {
+			return api.ErrAttendanceIdempotencyConflict
 		}
 		if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{requestedPunchTime.UTC().Format("2006-01-02")}); err != nil {
 			return err
@@ -558,6 +581,12 @@ func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, adjustmentI
 		if status != "approved" {
 			return nil
 		}
+		if _, err = db.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at) VALUES ($1, $2, 'attendance.adjustment.approved', jsonb_build_object('employment_id', $3, 'adjustment_type', $4, 'details', $5), 'human', CURRENT_TIMESTAMP)`, approverID, adjustmentID, employmentID, adjustmentType, details); err != nil {
+			return err
+		}
+		if adjustmentType == api.AttendanceAdjustmentBreakWorked {
+			return nil
+		}
 		_, err = db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', NULL, 0, 0, CURRENT_TIMESTAMP)`, uuid.New(), employmentID, requestedPunchTime)
 		return err
 	})
@@ -566,8 +595,24 @@ func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, adjustmentI
 
 func scanAdjustment(row pgx.Row, record *api.AdjustmentRecord) error {
 	var requestedPunchTime, createdAt, updatedAt time.Time
-	if err := row.Scan(&record.ID, &record.EmploymentID, &record.TimeEntryID, &requestedPunchTime, &record.Reason, &record.Status, &record.RequestedByUserID, &record.ApprovedByUserID, &record.AttachmentFileIDs, &createdAt, &updatedAt); err != nil {
+	var details []byte
+	if err := row.Scan(&record.ID, &record.EmploymentID, &record.TimeEntryID, &requestedPunchTime, &record.Reason, &record.Status, &record.RequestedByUserID, &record.ApprovedByUserID, &record.AttachmentFileIDs, &record.Type, &details, &createdAt, &updatedAt); err != nil {
 		return err
+	}
+	if record.Type == "" {
+		record.Type = api.AttendanceAdjustmentAttendanceCorrection
+	}
+	var typed struct {
+		SegmentID         *uuid.UUID `json:"segment_id"`
+		Direction         *string    `json:"direction"`
+		Start             *string    `json:"start"`
+		End               *string    `json:"end"`
+		CorrectedPunchIn  *string    `json:"corrected_punch_in"`
+		CorrectedPunchOut *string    `json:"corrected_punch_out"`
+	}
+	if len(details) > 0 && json.Unmarshal(details, &typed) == nil {
+		record.SegmentID, record.Direction, record.Start, record.End = typed.SegmentID, typed.Direction, typed.Start, typed.End
+		record.CorrectedPunchIn, record.CorrectedPunchOut = typed.CorrectedPunchIn, typed.CorrectedPunchOut
 	}
 	record.RequestedPunchTime = requestedPunchTime.UTC().Format(time.RFC3339)
 	record.CreatedAt = createdAt.UTC().Format(time.RFC3339)
