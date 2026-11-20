@@ -542,28 +542,6 @@ paths:
         required: true
         schema:
           type: string
-    post:
-      operationId: post_api_v1_attendance_adjustments_id_approve
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
     put:
       operationId: put_api_v1_attendance_adjustments_id_approve
       tags: [runtime]
@@ -9780,6 +9758,40 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  "/api/v1/schedules/{employment_id}/{business_date}/break-worked":
+    parameters:
+      - name: employment_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: business_date
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: post_api_v1_schedules_employment_id_business_date_break_worked
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
   "/api/v1/schedules/{employment_id}/{business_date}/replan":
     parameters:
       - name: employment_id
@@ -10791,10 +10803,22 @@ components:
           type: array
           items:
             type: string
+        corrected_punch_in:
+          type: string
+          nullable: true
+        corrected_punch_out:
+          type: string
+          nullable: true
         created_at:
           type: string
+        direction:
+          type: string
+          nullable: true
         employment_id:
           type: string
+        end:
+          type: string
+          nullable: true
         id:
           type: string
         reason:
@@ -10805,11 +10829,19 @@ components:
           nullable: true
         requested_punch_time:
           type: string
+        segment_id:
+          type: string
+          nullable: true
+        start:
+          type: string
+          nullable: true
         status:
           type: string
         time_entry_id:
           type: string
           nullable: true
+        type:
+          type: string
         updated_at:
           type: string
       required:
@@ -10819,6 +10851,7 @@ components:
         - id
         - requested_punch_time
         - status
+        - type
         - updated_at
     AdjustmentRequest:
       properties:
@@ -10826,16 +10859,31 @@ components:
           type: array
           items:
             type: string
+        corrected_punch_in:
+          type: string
+        corrected_punch_out:
+          type: string
+        direction:
+          type: string
         employment_id:
+          type: string
+        end:
           type: string
         reason:
           type: string
           nullable: true
         requested_punch_time:
           type: string
+        segment_id:
+          type: string
+          nullable: true
+        start:
+          type: string
         time_entry_id:
           type: string
           nullable: true
+        type:
+          type: string
     ApprovalActionLog:
       properties:
         acted_at:
@@ -11377,6 +11425,9 @@ components:
           type: string
         scheduled_break_minutes:
           type: number
+        shift_version_id:
+          type: string
+          nullable: true
         standard_credits:
           type: number
         standard_minutes:
@@ -12776,6 +12827,9 @@ components:
         shift_id:
           type: string
           nullable: true
+        shift_version_id:
+          type: string
+          nullable: true
     CreateSalaryComponentRequest:
       properties:
         code:
@@ -12840,6 +12894,9 @@ components:
           $ref: '#/components/schemas/FileRecord'
         upload_url:
           type: string
+      required:
+        - file
+        - upload_url
     CreateWorkPolicyGroupRequest:
       properties:
         attendance_policy_id:
@@ -13819,6 +13876,10 @@ components:
         break_start:
           type: string
           nullable: true
+        break_worked_overrides:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleBreakWorkedOverride'
         date:
           type: string
         end_time:
@@ -13870,6 +13931,7 @@ components:
           items:
             $ref: '#/components/schemas/ScheduleTrace'
       required:
+        - break_worked_overrides
         - date
         - intervals
         - is_holiday
@@ -15865,6 +15927,43 @@ components:
       properties:
         version:
           type: number
+    MarkBreakWorkedRequest:
+      properties:
+        end:
+          type: string
+        reason:
+          type: string
+        segment_id:
+          type: string
+        start:
+          type: string
+    MarkBreakWorkedResponse:
+      properties:
+        business_date:
+          type: string
+        employment_id:
+          type: string
+        end:
+          type: string
+        id:
+          type: string
+        minutes:
+          type: number
+        segment_id:
+          type: string
+        start:
+          type: string
+        status:
+          type: string
+      required:
+        - business_date
+        - employment_id
+        - end
+        - id
+        - minutes
+        - segment_id
+        - start
+        - status
     MemberDetail:
       properties:
         avatar_url:
@@ -17513,6 +17612,8 @@ components:
           nullable: true
         employment_id:
           type: string
+        input_fingerprint:
+          type: string
         reason:
           type: string
         stale:
@@ -17524,6 +17625,7 @@ components:
       required:
         - computed
         - employment_id
+        - input_fingerprint
         - reason
         - stale
         - stale_reasons
@@ -17588,6 +17690,8 @@ components:
           type: string
         expires_at:
           type: string
+        input_fingerprint:
+          type: string
         net_pay_delta:
           type: string
         overtime_pay_delta:
@@ -17619,6 +17723,7 @@ components:
         - employment_id
         - evaluated_at
         - expires_at
+        - input_fingerprint
         - net_pay_delta
         - overtime_pay_delta
         - overtime_units_delta
@@ -18497,6 +18602,24 @@ components:
           type: string
         version:
           type: number
+    ReprocessResponse:
+      properties:
+        days:
+          type: number
+        employment_id:
+          type: string
+          nullable: true
+        end_date:
+          type: string
+        recalculated:
+          type: number
+        start_date:
+          type: string
+      required:
+        - days
+        - end_date
+        - recalculated
+        - start_date
     ResolveStagingRequest:
       properties:
         employee_id:
@@ -18575,6 +18698,9 @@ components:
           type: string
           nullable: true
         shift_id:
+          type: string
+          nullable: true
+        shift_version_id:
           type: string
           nullable: true
       required:
@@ -18750,6 +18876,27 @@ components:
         - open_mismatch_count
         - ready
         - required_office_days
+    ScheduleBreakWorkedOverride:
+      properties:
+        end:
+          type: string
+        id:
+          type: string
+        minutes:
+          type: number
+        segment_id:
+          type: string
+        start:
+          type: string
+        status:
+          type: string
+      required:
+        - end
+        - id
+        - minutes
+        - segment_id
+        - start
+        - status
     ScheduleCoverage:
       properties:
         complete:
@@ -19570,6 +19717,9 @@ components:
         shift_id:
           type: string
           nullable: true
+        shift_version_id:
+          type: string
+          nullable: true
         status:
           type: string
         updated_at:
@@ -19952,6 +20102,16 @@ components:
         - $ref: '#/components/schemas/TerminationImportPreviewResponse'
     TimeEntry:
       properties:
+        breaks_snapshot:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: object
+              additionalProperties: true
+            - type: array
+              items: {}
+          nullable: true
         created_at:
           type: string
         duration_minutes:
@@ -19987,6 +20147,9 @@ components:
           type: string
           nullable: true
         shift_id:
+          type: string
+          nullable: true
+        shift_version_id:
           type: string
           nullable: true
         updated_at:
@@ -20001,6 +20164,16 @@ components:
         - updated_at
     TimeEntryRecord:
       properties:
+        breaks_snapshot:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: object
+              additionalProperties: true
+            - type: array
+              items: {}
+          nullable: true
         created_at:
           type: string
         duration_minutes:
@@ -20036,6 +20209,9 @@ components:
           type: string
           nullable: true
         shift_id:
+          type: string
+          nullable: true
+        shift_version_id:
           type: string
           nullable: true
         updated_at:

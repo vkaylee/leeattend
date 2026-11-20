@@ -4,12 +4,9 @@ import { useTranslation } from 'react-i18next';
 
 import type { FileRecord } from '@/lib/api/types';
 
-import { client, fetch } from '@/lib/api/client';
+import { client } from '@/lib/api/client';
 import { components } from '@/types/api-generated';
-import { maybeNull } from '@/types/api-overrides';
 import { computeSHA256 } from '@/utils/hash';
-
-interface PresignedUploadResponse { file: FileRecord; upload_url: string }
 
 export interface UseFileUploadOptions {
   category: string;
@@ -59,27 +56,25 @@ export function useFileUpload({
           throw new Error(message);
         }
       } else {
-        // Presigned URL upload. The OpenAPI schema documents this endpoint's
-        // 200 response with `content?: never`, but the backend returns the
-        // `{ file, upload_url }` payload below (backend-schema drift).
-        let presignedData: PresignedUploadResponse;
+        // Presigned URL upload uses typed backend request and response contracts.
+        let presignedData: components["schemas"]["CreateUploadUrlResponse"];
         try {
-          const { data } = await fetch<PresignedUploadResponse>("POST", "/api/v1/files/presigned", {
-            body: {
-              category: category as components["schemas"]["FileCategory"],
-              content_hash: contentHash,
-              file_name: file.name,
-              file_size: file.size,
-              mime_type: file.type || "application/octet-stream",
-              owner_id: ownerId,
-              owner_type: ownerType as components["schemas"]["FileOwnerType"],
+          const { data } = await client.POST<components["schemas"]["CreateUploadUrlResponse"]>(
+            "/api/v1/files/presigned",
+            {
+              body: {
+                category: category as components["schemas"]["FileCategory"],
+                file_name: file.name,
+                file_size: file.size,
+                mime_type: file.type || "application/octet-stream",
+                owner_id: ownerId,
+                owner_type: ownerType as components["schemas"]["FileOwnerType"],
+              } satisfies components["schemas"]["CreateUploadUrlRequest"],
             },
-          });
-          const fetchedData = maybeNull(data as PresignedUploadResponse | null | undefined);
-          if (!fetchedData) throw new Error(t("errors.presigned_url_failed"));
-          presignedData = fetchedData;
+          );
+          if (!data?.file || !data.upload_url) throw new Error(t("errors.presigned_url_failed"));
+          presignedData = data;
         } catch (err) {
-          // TODO(blocking: backend-schema): presigned-error shape differs from generated.
           const uploadErr: { message?: string } | null | undefined = err as { message?: string } | null | undefined;
           throw new Error(uploadErr?.message ?? t("errors.presigned_url_failed"));
         }

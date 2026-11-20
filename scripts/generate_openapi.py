@@ -43,6 +43,11 @@ FORBIDDEN_SCHEMA = re.compile(
 )
 
 
+REQUIRED_SCHEMA_FIELDS = {
+    "CreateUploadUrlResponse": ("file", "upload_url"),
+}
+
+
 SCHEMA_ALIASES = {
     "Employee": "EmployeeRecord",
     "Department": "DepartmentRecord",
@@ -317,8 +322,9 @@ def generate() -> str:
             lines.extend(schema_lines(prop, go_type, known))
             if is_required:
                 required.append(prop)
-        if required and not (name.endswith("Request") or name.startswith(("Create", "Update", "Assign", "Bulk"))):
-            lines.extend(["      required:"] + [f"        - {prop}" for prop in required])
+        required.extend(REQUIRED_SCHEMA_FIELDS.get(name, ()))
+        if required and (not name.endswith("Request") and not name.startswith(("Create", "Update", "Assign", "Bulk")) or name in REQUIRED_SCHEMA_FIELDS):
+            lines.extend(["      required:"] + [f"        - {prop}" for prop in sorted(set(required))])
     return "\n".join(lines) + "\n"
 
 
