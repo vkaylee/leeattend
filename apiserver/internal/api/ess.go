@@ -364,7 +364,9 @@ func (h *ESSHandler) AttendanceAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	status := http.StatusOK
-	if !response.Deduplicated { status = http.StatusCreated }
+	if !response.Deduplicated {
+		status = http.StatusCreated
+	}
 	apperror.WriteJSON(w, status, response)
 }
 

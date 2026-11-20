@@ -100,14 +100,20 @@ type mockESSAttendanceRepo struct {
 
 func (m *mockESSAttendanceRepo) ESSAttendanceAction(_ context.Context, empID uuid.UUID, action string, note *string, _ string, actionTime time.Time) (AttendanceActionResponse, error) {
 	m.lastEmployeeID = empID
-	if m.punchErr != nil { return AttendanceActionResponse{}, m.punchErr }
-	if m.actionResponse.State != "" { return m.actionResponse, nil }
+	if m.punchErr != nil {
+		return AttendanceActionResponse{}, m.punchErr
+	}
+	if m.actionResponse.State != "" {
+		return m.actionResponse, nil
+	}
 	return AttendanceActionResponse{State: action, NextAllowedActions: []string{AttendanceActionWorkIn}, Entry: &TimeEntryRecord{ID: uuid.New(), EmploymentID: empID, PunchInTime: actionTime.Format(time.RFC3339), EntryType: "work", Note: note}}, nil
 }
 
 func (m *mockESSAttendanceRepo) GetESSAttendanceState(_ context.Context, employeeID uuid.UUID) (AttendanceActionResponse, error) {
 	m.lastEmployeeID = employeeID
-	if m.punchErr != nil { return AttendanceActionResponse{}, m.punchErr }
+	if m.punchErr != nil {
+		return AttendanceActionResponse{}, m.punchErr
+	}
 	return m.actionResponse, nil
 }
 
@@ -431,8 +437,12 @@ func TestESSAttendanceAction(t *testing.T) {
 	req.Header.Set("Idempotency-Key", uuid.NewString())
 	rec := httptest.NewRecorder()
 	handler.AttendanceAction(rec, req)
-	if rec.Code != http.StatusCreated { t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String()) }
-	if attendance.lastEmployeeID != empID { t.Fatalf("expected action for employee %s, got %s", empID, attendance.lastEmployeeID) }
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if attendance.lastEmployeeID != empID {
+		t.Fatalf("expected action for employee %s, got %s", empID, attendance.lastEmployeeID)
+	}
 }
 
 func TestESSAttendanceActionNoActiveEmployment(t *testing.T) {
@@ -444,7 +454,9 @@ func TestESSAttendanceActionNoActiveEmployment(t *testing.T) {
 	req.Header.Set("Idempotency-Key", uuid.NewString())
 	rec := httptest.NewRecorder()
 	handler.AttendanceAction(rec, req)
-	if rec.Code != http.StatusBadRequest { t.Fatalf("expected 400 for no active employment, got %d", rec.Code) }
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for no active employment, got %d", rec.Code)
+	}
 }
 
 func TestESSGetTimeEntriesSuccess(t *testing.T) {
