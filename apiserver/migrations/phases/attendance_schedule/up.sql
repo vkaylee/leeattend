@@ -121,10 +121,11 @@ CREATE TABLE public.attendance_closure_days (
     time_entry_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
 
     raw_attendance_log_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
+    time_entry_snapshot jsonb NOT NULL DEFAULT '[]'::jsonb,
 
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
-    CONSTRAINT attendance_closure_days_values_check CHECK ((((schedule_state)::text = ANY ((ARRAY['published'::character varying, 'explicit_off'::character varying])::text[])) AND (schedule_revision_id IS NOT NULL) AND (jsonb_typeof(schedule_snapshot) = 'object'::text) AND (jsonb_typeof(attendance_snapshot) = 'object'::text) AND (jsonb_typeof(calculation_snapshot) = 'object'::text)))
+    CONSTRAINT attendance_closure_days_values_check CHECK ((((schedule_state)::text = ANY ((ARRAY['published'::character varying, 'explicit_off'::character varying])::text[])) AND (schedule_revision_id IS NOT NULL) AND (jsonb_typeof(schedule_snapshot) = 'object'::text) AND (jsonb_typeof(attendance_snapshot) = 'object'::text) AND (jsonb_typeof(calculation_snapshot) = 'object'::text) AND (jsonb_typeof(time_entry_snapshot) = 'array'::text)))
 
 );
 
@@ -233,9 +234,23 @@ CREATE TABLE public.attendance_daily_summaries (
     work_policy_version_id uuid,
     shift_version_id uuid,
 
+    scheduled_break_minutes integer NOT NULL DEFAULT 0,
+    actual_break_minutes integer NOT NULL DEFAULT 0,
+    deducted_break_minutes integer NOT NULL DEFAULT 0,
+    net_work_minutes integer NOT NULL DEFAULT 0,
+    net_paid_minutes integer NOT NULL DEFAULT 0,
+    break_provisional boolean NOT NULL DEFAULT false,
+    break_exception_code text,
+
     CONSTRAINT attendance_daily_summaries_minutes_nonnegative CHECK (
         actual_work_minutes >= 0 AND standard_minutes >= 0 AND system_detected_ot_minutes >= 0
         AND early_ot_minutes >= 0 AND late_ot_minutes >= 0 AND break_ot_minutes >= 0
+        AND scheduled_break_minutes >= 0 AND actual_break_minutes >= 0
+        AND deducted_break_minutes >= 0 AND net_work_minutes >= 0 AND net_paid_minutes >= 0
+    ),
+    CONSTRAINT attendance_daily_summaries_break_exception_check CHECK (
+        (break_provisional AND break_exception_code IS NOT NULL)
+        OR (NOT break_provisional)
     )
 
 );
@@ -1518,6 +1533,9 @@ CREATE TABLE public.shift_default_intervals (
 
     break_is_overtime boolean DEFAULT false NOT NULL,
 
+    break_punch_mode text NOT NULL DEFAULT 'none',
+    break_credit_mode text NOT NULL DEFAULT 'scheduled',
+
     created_at timestamp with time zone DEFAULT now() NOT NULL,
 
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -1543,6 +1561,10 @@ CREATE TABLE public.shift_default_intervals (
     end_utc_offset_minutes integer,
 
     CONSTRAINT shift_default_intervals_day_offsets_check CHECK (((start_day_offset >= 0) AND (end_day_offset >= start_day_offset))),
+
+    CONSTRAINT shift_default_intervals_break_punch_mode_check CHECK (break_punch_mode IN ('none', 'required')),
+    CONSTRAINT shift_default_intervals_break_credit_mode_check CHECK (break_credit_mode IN ('scheduled', 'actual', 'none')),
+    CONSTRAINT shift_default_intervals_break_policy_check CHECK (NOT (break_punch_mode = 'required' AND break_credit_mode = 'scheduled')),
 
     CONSTRAINT shift_default_intervals_sort_order_check CHECK ((sort_order >= 0)),
 

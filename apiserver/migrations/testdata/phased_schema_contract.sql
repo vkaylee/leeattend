@@ -63,7 +63,10 @@ BEGIN
        OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'time_entries' AND column_name = 'shift_version_id' AND is_nullable = 'YES')
        OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'time_entries' AND column_name = 'breaks_snapshot' AND is_nullable = 'YES')
        OR NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'shift_rosters_shift_version_id_fkey')
-       OR NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'time_entries_shift_version_id_fkey') THEN
+       OR NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'time_entries_shift_version_id_fkey')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'attendance_closure_days' AND column_name = 'time_entry_snapshot' AND is_nullable = 'NO')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'shift_default_intervals' AND column_name = 'break_punch_mode')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'attendance_daily_summaries' AND column_name = 'scheduled_break_minutes') THEN
         RAISE EXCEPTION 'phased schema check failed: shift policy snapshot columns or foreign keys missing';
     END IF;
 

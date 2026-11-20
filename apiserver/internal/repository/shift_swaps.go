@@ -243,10 +243,18 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 				return err
 			}
 			note := fmt.Sprintf("Shift swap #%s", requestID)
-			if _, err := db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, template_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4::date, 'active', $5, $6, $6) ON CONFLICT (employment_id, date) DO UPDATE SET template_id = EXCLUDED.template_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`, uuid.New(), reqEmp, tgtShift, swapDate, note, now); err != nil {
+			targetVersion, err := resolveRosterShiftVersion(ctx, db, tgtShift, nil, swapDate)
+			if err != nil {
+				return api.ErrShiftSwapConflict
+			}
+			requesterVersion, err := resolveRosterShiftVersion(ctx, db, reqShift, nil, swapDate)
+			if err != nil {
+				return api.ErrShiftSwapConflict
+			}
+			if _, err := db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, template_id, shift_version_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::date, 'active', $6, $7, $7) ON CONFLICT (employment_id, date) DO UPDATE SET template_id = EXCLUDED.template_id, shift_version_id = EXCLUDED.shift_version_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`, uuid.New(), reqEmp, tgtShift, targetVersion, swapDate, note, now); err != nil {
 				return err
 			}
-			if _, err := db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, template_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4::date, 'active', $5, $6, $6) ON CONFLICT (employment_id, date) DO UPDATE SET template_id = EXCLUDED.template_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`, uuid.New(), tgtEmp, reqShift, swapDate, note, now); err != nil {
+			if _, err := db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, template_id, shift_version_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::date, 'active', $6, $7, $7) ON CONFLICT (employment_id, date) DO UPDATE SET template_id = EXCLUDED.template_id, shift_version_id = EXCLUDED.shift_version_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`, uuid.New(), tgtEmp, reqShift, requesterVersion, swapDate, note, now); err != nil {
 				return err
 			}
 			if err := EnqueueRosterCacheInvalidation(ctx, db); err != nil {

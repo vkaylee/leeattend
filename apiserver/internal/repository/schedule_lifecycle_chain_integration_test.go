@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 func TestIntegrationFullScheduleLifecycleChain(t *testing.T) {
@@ -26,7 +27,7 @@ func TestIntegrationFullScheduleLifecycleChain(t *testing.T) {
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	mustExec(`INSERT INTO payroll_periods (id, employer_id, period_year, period_month, status, version) VALUES ($1, $2, 2026, 11, 'open', 1)`, uuid.New(), employerID)
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'full-lifecycle-template')`, templateID)
-	mustExec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, 'full-lifecycle-version', DATE '2026-01-01', 'create', $3)`, versionID, templateID, actorID)
+	mustExec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, 'full-lifecycle-version', DATE '2026-01-01', 'create', $3)`, versionID, templateID, ids.UserID(actorID))
 	mustExec(`INSERT INTO shift_default_intervals (id, version_id, sort_order, start_time, end_time) VALUES (gen_random_uuid(), $1, 0, '08:00', '17:00')`, versionID)
 	mustExec(`INSERT INTO employee_shifts (id, employment_id, template_id, start_date, end_date) VALUES ($1, $2, $3, DATE '2026-11-20', DATE '2026-11-20')`, uuid.New(), employmentID, templateID)
 
@@ -107,15 +108,15 @@ func TestIntegrationFullScheduleLifecycleChain(t *testing.T) {
 	newRevisionID := replanned.ReplacementRevisionID
 
 	attendanceRepo := AttendanceRepository{DB: pool}
-	closed, err := attendanceRepo.CloseAttendancePeriod(ctx, employerID, 2026, 11, 1, "close after replan", actorID)
+	closed, err := attendanceRepo.CloseAttendancePeriod(ctx, employerID, 2026, 11, 1, "close after replan", ids.UserID(actorID))
 	if err != nil || closed.Status != "closed" || closed.Version != 2 {
 		t.Fatalf("close response=%+v err=%v", closed, err)
 	}
-	reopened, err := attendanceRepo.ReopenAttendancePeriod(ctx, employerID, 2026, 11, closed.Version, "reopen for correction", actorID)
+	reopened, err := attendanceRepo.ReopenAttendancePeriod(ctx, employerID, 2026, 11, closed.Version, "reopen for correction", ids.UserID(actorID))
 	if err != nil || reopened.Status != "reopened" || reopened.Version != 3 {
 		t.Fatalf("reopen response=%+v err=%v", reopened, err)
 	}
-	reclosed, err := attendanceRepo.CloseAttendancePeriod(ctx, employerID, 2026, 11, reopened.Version, "reclose corrected period", actorID)
+	reclosed, err := attendanceRepo.CloseAttendancePeriod(ctx, employerID, 2026, 11, reopened.Version, "reclose corrected period", ids.UserID(actorID))
 	if err != nil || reclosed.Status != "closed" || reclosed.Version != 4 || reclosed.ClosureNumber != 2 {
 		t.Fatalf("reclose response=%+v err=%v", reclosed, err)
 	}

@@ -43,6 +43,10 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUI
 		if !active {
 			return api.ErrEmploymentInactive
 		}
+		resolvedSegmentID, err := resolvePunchSegment(ctx, tx, employmentID, segmentID, punchTime)
+		if err != nil {
+			return err
+		}
 		rawData, err := json.Marshal(struct {
 			Punch  int     `json:"punch"`
 			Status int     `json:"status"`
@@ -59,7 +63,7 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUI
 		if cmd.RowsAffected() == 0 {
 			return scanLatestTimeEntry(ctx, tx, employmentID, &record)
 		}
-		row := tx.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, segment_id, template_id, shift_version_id, breaks_snapshot, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $7, (SELECT template_id FROM work_segments WHERE id = $7 AND employment_id = $2), (SELECT selected_shift_version_id FROM work_segments WHERE id = $7 AND employment_id = $2), (SELECT breaks_snapshot FROM work_segments WHERE id = $7 AND employment_id = $2), $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, punchTime, entryType, note, isBreakOvertime, segmentID)
+		row := tx.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, segment_id, template_id, shift_version_id, breaks_snapshot, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $7, (SELECT template_id FROM work_segments WHERE id = $7), (SELECT selected_shift_version_id FROM work_segments WHERE id = $7), (SELECT breaks_snapshot FROM work_segments WHERE id = $7), $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, punchTime, entryType, note, isBreakOvertime, resolvedSegmentID)
 		return scanTimeEntry(row, &record)
 	})
 	if err != nil {
@@ -160,7 +164,11 @@ func (r AttendanceRepository) ESSAttendanceAction(ctx context.Context, employeeI
 			if err := insertAttendanceRawLog(ctx, db, employmentID, actionTime, 0, action, note); err != nil {
 				return err
 			}
-			if err := scanTimeEntry(db.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $3, 'work', $4, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, actionTime, note), &entry); err != nil {
+			segmentID, err := resolvePunchSegment(ctx, db, employmentID, nil, actionTime)
+			if err != nil {
+				return err
+			}
+			if err := scanTimeEntry(db.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, segment_id, template_id, shift_version_id, breaks_snapshot, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $3, (SELECT template_id FROM work_segments WHERE id = $3), (SELECT selected_shift_version_id FROM work_segments WHERE id = $3), (SELECT breaks_snapshot FROM work_segments WHERE id = $3), $4, 'work', $5, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, segmentID, actionTime, note), &entry); err != nil {
 				return err
 			}
 			response = api.AttendanceActionResponse{State: "working", NextAllowedActions: []string{api.AttendanceActionBreakStart, api.AttendanceActionWorkOut}, Entry: &entry}
@@ -271,6 +279,48 @@ func insertAttendanceRawLog(ctx context.Context, db DBTX, employmentID uuid.UUID
 	}
 	_, err = db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, $5, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), employmentID, punchTime, data, punch)
 	return err
+}
+
+// resolvePunchSegment accepts an explicit segment only when it owns the employment
+// and contains the punch timestamp. Without an explicit segment, it pins only a
+// unique matching materialized segment; ambiguous or legacy rows stay unresolved.
+func resolvePunchSegment(ctx context.Context, db DBTX, employmentID uuid.UUID, requestedID *uuid.UUID, punchTime time.Time) (*uuid.UUID, error) {
+	const match = `scheduled_start_at IS NOT NULL
+		AND scheduled_end_at IS NOT NULL
+		AND scheduled_start_at <= $2
+		AND scheduled_end_at >= $2`
+	if requestedID != nil {
+		var segmentID uuid.UUID
+		err := db.QueryRow(ctx, `SELECT id FROM work_segments WHERE id = $1 AND employment_id = $3 AND `+match, *requestedID, punchTime, employmentID).Scan(&segmentID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, api.ErrWorkSegmentNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		return &segmentID, nil
+	}
+
+	rows, err := db.Query(ctx, `SELECT id FROM work_segments WHERE employment_id = $1 AND `+match+` ORDER BY scheduled_start_at, id LIMIT 2`, employmentID, punchTime)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var matches []uuid.UUID
+	for rows.Next() {
+		var segmentID uuid.UUID
+		if err := rows.Scan(&segmentID); err != nil {
+			return nil, err
+		}
+		matches = append(matches, segmentID)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(matches) != 1 {
+		return nil, nil
+	}
+	return &matches[0], nil
 }
 
 func (r AttendanceRepository) GetESSAttendanceState(ctx context.Context, employeeID uuid.UUID) (api.AttendanceActionResponse, error) {

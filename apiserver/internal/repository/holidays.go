@@ -309,6 +309,9 @@ func (r HolidayRepository) ProcessHolidayLeave(ctx context.Context, holidayID uu
 			if _, err := db.Exec(ctx, `INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, reason, status, duration_type, created_at, updated_at) VALUES ($1, $2, $3, $4::date, $4::date, $5, 'approved', 'full_day', NOW(), NOW())`, requestID, employmentID, *leaveTypeID, holidayDate, reason); err != nil {
 				return err
 			}
+			if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{holidayDate}); err != nil {
+				return err
+			}
 			if _, err := db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3::date, 'on_leave', $4, NOW(), NOW()) ON CONFLICT (employment_id, date) DO UPDATE SET status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = NOW()`, uuid.New(), employmentID, holidayDate, reason); err != nil {
 				return err
 			}

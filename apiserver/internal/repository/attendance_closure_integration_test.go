@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
 func TestIntegrationAttendanceClosureCloseReopenReclosePreservesEvidence(t *testing.T) {
@@ -24,7 +25,7 @@ func TestIntegrationAttendanceClosureCloseReopenReclosePreservesEvidence(t *test
 	fixture := createAttendanceClosureFixture(t, ctx, tx, false)
 	repo := AttendanceRepository{DB: tx, BeginTx: func(context.Context) (TxBeginner, error) { return tx, nil }}
 
-	first, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, 1, "first close", fixture.actorID)
+	first, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, 1, "first close", ids.UserID(fixture.actorID))
 	if err != nil {
 		t.Fatalf("close attendance period: %v", err)
 	}
@@ -36,7 +37,7 @@ func TestIntegrationAttendanceClosureCloseReopenReclosePreservesEvidence(t *test
 		t.Fatalf("read first closure: %v", err)
 	}
 
-	reopened, err := repo.ReopenAttendancePeriod(ctx, fixture.employerID, 2026, 11, first.Version, "correct attendance", fixture.actorID)
+	reopened, err := repo.ReopenAttendancePeriod(ctx, fixture.employerID, 2026, 11, first.Version, "correct attendance", ids.UserID(fixture.actorID))
 	if err != nil {
 		t.Fatalf("reopen attendance period: %v", err)
 	}
@@ -44,7 +45,7 @@ func TestIntegrationAttendanceClosureCloseReopenReclosePreservesEvidence(t *test
 		t.Fatalf("unexpected reopen response: %+v", reopened)
 	}
 
-	second, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, reopened.Version, "reclose after correction", fixture.actorID)
+	second, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, reopened.Version, "reclose after correction", ids.UserID(fixture.actorID))
 	if err != nil {
 		t.Fatalf("reclose attendance period: %v", err)
 	}
@@ -80,7 +81,7 @@ func TestIntegrationAttendanceClosureRejectsStaleVersionAndLockedPayroll(t *test
 
 	fixture := createAttendanceClosureFixture(t, ctx, tx, true)
 	repo := AttendanceRepository{DB: tx, BeginTx: func(context.Context) (TxBeginner, error) { return tx, nil }}
-	if _, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, 1, "locked close", fixture.actorID); !errors.Is(err, api.ErrAttendanceLockedPeriod) {
+	if _, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, 1, "locked close", ids.UserID(fixture.actorID)); !errors.Is(err, api.ErrAttendanceLockedPeriod) {
 		t.Fatalf("locked payroll close error = %v, want locked period", err)
 	}
 }
@@ -95,10 +96,10 @@ func TestIntegrationAttendanceClosureRejectsStaleVersion(t *testing.T) {
 
 	fixture := createAttendanceClosureFixture(t, ctx, tx, false)
 	repo := AttendanceRepository{DB: tx, BeginTx: func(context.Context) (TxBeginner, error) { return tx, nil }}
-	if _, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, 1, "close once", fixture.actorID); err != nil {
+	if _, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, 1, "close once", ids.UserID(fixture.actorID)); err != nil {
 		t.Fatalf("first close: %v", err)
 	}
-	if _, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, 1, "stale close", fixture.actorID); !errors.Is(err, api.ErrAttendancePeriodConflict) {
+	if _, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, 1, "stale close", ids.UserID(fixture.actorID)); !errors.Is(err, api.ErrAttendancePeriodConflict) {
 		t.Fatalf("stale close error = %v, want period conflict", err)
 	}
 }
@@ -113,7 +114,7 @@ func TestIntegrationAttendanceClosureEvidenceIsImmutable(t *testing.T) {
 
 	fixture := createAttendanceClosureFixture(t, ctx, tx, false)
 	repo := AttendanceRepository{DB: tx, BeginTx: func(context.Context) (TxBeginner, error) { return tx, nil }}
-	closed, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, 1, "immutable evidence", fixture.actorID)
+	closed, err := repo.CloseAttendancePeriod(ctx, fixture.employerID, 2026, 11, 1, "immutable evidence", ids.UserID(fixture.actorID))
 	if err != nil {
 		t.Fatalf("close attendance period: %v", err)
 	}

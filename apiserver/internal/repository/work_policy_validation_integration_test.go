@@ -121,7 +121,7 @@ func TestIntegrationCreateWorkPolicyGroupVersionRollsBackDefinitionsOnVersionCon
 	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, 'existing-pay', 'monthly', 'fixed', 26, $2)`, uuid.New(), userID); err != nil {
 		t.Fatalf("insert existing pay policy: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, created_by) SELECT $1, $2, wc.id, pb.id, $3, DATE '2026-01-01', $4 FROM work_credit_policies wc CROSS JOIN pay_basis_policies pb WHERE wc.name = 'existing-credit' AND pb.name = 'existing-pay'`, uuid.New(), groupID, overtimeID, userID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, effective_to, created_by) SELECT $1, $2, wc.id, pb.id, $3, DATE '2026-01-01', DATE '2026-01-31', $4 FROM work_credit_policies wc CROSS JOIN pay_basis_policies pb WHERE wc.name = 'existing-credit' AND pb.name = 'existing-pay'`, uuid.New(), groupID, overtimeID, userID); err != nil {
 		t.Fatalf("insert existing version: %v", err)
 	}
 
@@ -132,7 +132,8 @@ func TestIntegrationCreateWorkPolicyGroupVersionRollsBackDefinitionsOnVersionCon
 		MinutesPerCredit:   450,
 		AttendancePolicyID: ids.AttendancePolicyID(attendanceID),
 		WorkingPatternID:   ids.WorkingPatternID(patternID),
-		PayMethod:          workpolicy.PayMethodHourly,
+		OTAggregationMode:  "aggregate",
+		PayMethod:          workpolicy.PayMethodMonthly,
 		OvertimePolicyID:   ids.OvertimePolicyID(overtimeID),
 		EffectiveFrom:      "2026-01-01",
 	}, ids.UserID(userID))
@@ -160,7 +161,8 @@ func TestIntegrationCreateWorkPolicyGroupVersionRollsBackDefinitionsOnVersionCon
 		MinutesPerCredit:   450,
 		AttendancePolicyID: ids.AttendancePolicyID(attendanceID),
 		WorkingPatternID:   ids.WorkingPatternID(patternID),
-		PayMethod:          workpolicy.PayMethodHourly,
+		OTAggregationMode:  "aggregate",
+		PayMethod:          workpolicy.PayMethodMonthly,
 		OvertimePolicyID:   ids.OvertimePolicyID(overtimeID),
 		EffectiveFrom:      "2026-02-01",
 	}, ids.UserID(userID))

@@ -33,7 +33,7 @@ func TestIntegrationOfficialScheduleCoverageFiltersBeforePagination(t *testing.T
 	mustExec(`INSERT INTO work_segments (employment_id, date, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, source, source_detail, generation_metadata, template_id, schedule_revision_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot) VALUES ($1, DATE '2026-11-16', 0, '08:00', '17:00', 'work', 'scheduled', 1, 'unpaid', 0, 'manual', '{}'::jsonb, '{}'::jsonb, $2, $3, $4, TIMESTAMPTZ '2026-11-16 08:00:00+00', TIMESTAMPTZ '2026-11-16 17:00:00+00', '[]'::jsonb)`, employmentComplete, templateID, revisionID, versionID)
 	mustExec(`UPDATE schedule_day_revisions SET state = 'published', published_at = CURRENT_TIMESTAMP WHERE id = $1`, revisionID)
 
-	result, err := (ScheduleRepository{DB: pool}).GetOfficialSchedulesWithCoverage(ctx, time.Date(2026, 11, 16, 0, 0, 0, 0, time.UTC), time.Date(2026, 11, 17, 0, 0, 0, 0, time.UTC), nil, 1, 1, "missing")
+	result, err := (ScheduleRepository{DB: pool}).GetOfficialSchedulesWithCoverage(ctx, time.Date(2026, 11, 16, 0, 0, 0, 0, time.UTC), time.Date(2026, 11, 17, 0, 0, 0, 0, time.UTC), []uuid.UUID{employmentMissing, employmentComplete}, 1, 1, "missing")
 	if err != nil {
 		t.Fatalf("coverage query: %v", err)
 	}

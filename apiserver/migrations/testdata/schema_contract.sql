@@ -438,6 +438,26 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: official shift swap migration marker is missing';
     END IF;
 
+    SELECT count(*) INTO v_marker_count
+    FROM public.schema_migrations
+    WHERE version = '20261120000000_shift_policy_snapshots';
+
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: shift policy snapshot migration marker is missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'attendance_closure_days'
+          AND column_name = 'time_entry_snapshot' AND is_nullable = 'NO'
+    ) OR NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'shift_default_intervals'
+          AND column_name = 'break_punch_mode'
+    ) THEN
+        RAISE EXCEPTION 'schema check failed: attendance policy snapshot columns missing';
+    END IF;
+
     RAISE NOTICE 'schema contract check: PASS';
 END;
 $$;
