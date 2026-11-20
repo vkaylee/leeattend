@@ -1578,7 +1578,10 @@ CREATE TABLE public.shift_rosters (
 
     employment_id uuid NOT NULL,
 
-    template_id uuid
+    template_id uuid,
+
+    -- NULL means legacy, ambiguous, or not-yet-materialized roster policy.
+    shift_version_id uuid
 
 );
 
@@ -1774,7 +1777,12 @@ CREATE TABLE public.time_entries (
 
     segment_id uuid,
 
-    template_id uuid
+    template_id uuid,
+
+    -- NULL preserves historical entries without a materialized policy snapshot.
+    shift_version_id uuid,
+
+    breaks_snapshot jsonb
 
 );
 
@@ -4031,6 +4039,8 @@ CREATE INDEX idx_shift_audit_log_version ON public.shift_audit_log USING btree (
 
 
 CREATE INDEX idx_shift_rosters_employment_id ON public.shift_rosters USING btree (employment_id);
+
+CREATE INDEX idx_shift_rosters_version_lookup ON public.shift_rosters USING btree (employment_id, date, shift_version_id);
 
 
 
@@ -6402,6 +6412,14 @@ ALTER TABLE ONLY public.shift_rosters
 
 
 
+-- Name: shift_rosters shift_rosters_shift_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+
+ALTER TABLE ONLY public.shift_rosters
+
+    ADD CONSTRAINT shift_rosters_shift_version_id_fkey FOREIGN KEY (shift_version_id) REFERENCES public.shift_versions(id) ON DELETE RESTRICT;
+
+
+
 
 
 --
@@ -6575,6 +6593,14 @@ ALTER TABLE ONLY public.time_entries
 ALTER TABLE ONLY public.time_entries
 
     ADD CONSTRAINT time_entries_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.shift_templates(id) ON DELETE SET NULL;
+
+
+
+-- Name: time_entries time_entries_shift_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+
+ALTER TABLE ONLY public.time_entries
+
+    ADD CONSTRAINT time_entries_shift_version_id_fkey FOREIGN KEY (shift_version_id) REFERENCES public.shift_versions(id) ON DELETE RESTRICT;
 
 
 

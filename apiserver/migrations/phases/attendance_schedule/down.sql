@@ -1,6 +1,7 @@
 BEGIN;
 
 -- Fresh-install-only rollback for attendance_schedule; run phases in reverse order.
+-- Snapshot columns are dropped with their owning tables below; no historical evidence is retained in fresh-install rollback.
 
 -- This is destructive and must not run against production data.
 

@@ -29,7 +29,7 @@ type TxBeginner interface {
 }
 
 // PunchIn writes the raw attendance log and opens a time entry.
-func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (api.TimeEntryRecord, error) {
+func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUID, segmentID *uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (api.TimeEntryRecord, error) {
 	tx, err := r.begin(ctx)
 	if err != nil {
 		return api.TimeEntryRecord{}, err
@@ -59,7 +59,7 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUI
 		if cmd.RowsAffected() == 0 {
 			return scanLatestTimeEntry(ctx, tx, employmentID, &record)
 		}
-		row := tx.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, punchTime, entryType, note, isBreakOvertime)
+		row := tx.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, segment_id, template_id, shift_version_id, breaks_snapshot, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $7, (SELECT template_id FROM work_segments WHERE id = $7 AND employment_id = $2), (SELECT selected_shift_version_id FROM work_segments WHERE id = $7 AND employment_id = $2), (SELECT breaks_snapshot FROM work_segments WHERE id = $7 AND employment_id = $2), $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, punchTime, entryType, note, isBreakOvertime, segmentID)
 		return scanTimeEntry(row, &record)
 	})
 	if err != nil {
@@ -157,11 +157,17 @@ func (r AttendanceRepository) ESSAttendanceAction(ctx context.Context, employeeI
 			if hasOpenEntry {
 				return api.ErrAttendanceAlreadyWorking
 			}
-			if err := insertAttendanceRawLog(ctx, db, employmentID, actionTime, 0, action, note); err != nil { return err }
-			if err := scanTimeEntry(db.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $3, 'work', $4, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, actionTime, note), &entry); err != nil { return err }
+			if err := insertAttendanceRawLog(ctx, db, employmentID, actionTime, 0, action, note); err != nil {
+				return err
+			}
+			if err := scanTimeEntry(db.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $3, 'work', $4, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, actionTime, note), &entry); err != nil {
+				return err
+			}
 			response = api.AttendanceActionResponse{State: "working", NextAllowedActions: []string{api.AttendanceActionBreakStart, api.AttendanceActionWorkOut}, Entry: &entry}
 		case api.AttendanceActionWorkOut:
-			if !hasOpenEntry { return api.ErrAttendanceNotWorking }
+			if !hasOpenEntry {
+				return api.ErrAttendanceNotWorking
+			}
 			var impliedBreak *api.AttendanceBreakRecord
 			var missingBreakEnd string
 			var openBreakID uuid.UUID
@@ -179,28 +185,55 @@ func (r AttendanceRepository) ESSAttendanceAction(ctx context.Context, employeeI
 			} else if !errors.Is(breakErr, pgx.ErrNoRows) {
 				return breakErr
 			}
-			if err := insertAttendanceRawLog(ctx, db, employmentID, actionTime, 1, action, note); err != nil { return err }
-			if _, err := db.Exec(ctx, `UPDATE time_entries SET punch_out_time = $1, duration_minutes = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM ($1 - punch_in_time)) / 60)::integer), note = COALESCE($2, note), updated_at = CURRENT_TIMESTAMP WHERE id = $3`, actionTime, note, entryID); err != nil { return err }
-			if err := scanTimeEntry(db.QueryRow(ctx, `SELECT id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE id = $1`, entryID), &entry); err != nil { return err }
+			if err := insertAttendanceRawLog(ctx, db, employmentID, actionTime, 1, action, note); err != nil {
+				return err
+			}
+			if _, err := db.Exec(ctx, `UPDATE time_entries SET punch_out_time = $1, duration_minutes = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM ($1 - punch_in_time)) / 60)::integer), note = COALESCE($2, note), updated_at = CURRENT_TIMESTAMP WHERE id = $3`, actionTime, note, entryID); err != nil {
+				return err
+			}
+			if err := scanTimeEntry(db.QueryRow(ctx, `SELECT id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE id = $1`, entryID), &entry); err != nil {
+				return err
+			}
 			response = api.AttendanceActionResponse{State: "completed", NextAllowedActions: []string{api.AttendanceActionWorkIn}, Entry: &entry, Break: impliedBreak}
-			if missingBreakEnd != "" { response.State = "exception"; response.ExceptionCode = &missingBreakEnd }
+			if missingBreakEnd != "" {
+				response.State = "exception"
+				response.ExceptionCode = &missingBreakEnd
+			}
 		case api.AttendanceActionBreakStart, api.AttendanceActionBreakEnd:
-			if !hasOpenEntry { return api.ErrAttendanceNotWorking }
+			if !hasOpenEntry {
+				return api.ErrAttendanceNotWorking
+			}
 			if action == api.AttendanceActionBreakStart {
 				var required bool
-				if err := db.QueryRow(ctx, `SELECT COALESCE(jsonb_path_exists(ws.breaks_snapshot, '$[*] ? (@.break_punch_mode == "required")'), false) FROM time_entries te LEFT JOIN work_segments ws ON ws.id = te.segment_id WHERE te.id = $1`, entryID).Scan(&required); err != nil { return err }
-				if !required { return api.ErrAttendanceBreakNotRequired }
+				if err := db.QueryRow(ctx, `SELECT COALESCE(jsonb_path_exists(ws.breaks_snapshot, '$[*] ? (@.break_punch_mode == "required")'), false) FROM time_entries te LEFT JOIN work_segments ws ON ws.id = te.segment_id WHERE te.id = $1`, entryID).Scan(&required); err != nil {
+					return err
+				}
+				if !required {
+					return api.ErrAttendanceBreakNotRequired
+				}
 				var breakID uuid.UUID
-				if err := db.QueryRow(ctx, `SELECT id FROM time_entry_breaks WHERE time_entry_id = $1 AND break_end_at IS NULL FOR UPDATE`, entryID).Scan(&breakID); err == nil { return api.ErrAttendanceInvalidTransition } else if !errors.Is(err, pgx.ErrNoRows) { return err }
-				if err := insertAttendanceRawLog(ctx, db, employmentID, actionTime, 0, action, note); err != nil { return err }
+				if err := db.QueryRow(ctx, `SELECT id FROM time_entry_breaks WHERE time_entry_id = $1 AND break_end_at IS NULL FOR UPDATE`, entryID).Scan(&breakID); err == nil {
+					return api.ErrAttendanceInvalidTransition
+				} else if !errors.Is(err, pgx.ErrNoRows) {
+					return err
+				}
+				if err := insertAttendanceRawLog(ctx, db, employmentID, actionTime, 0, action, note); err != nil {
+					return err
+				}
 				var breakRecord api.AttendanceBreakRecord
-				if err := db.QueryRow(ctx, `INSERT INTO time_entry_breaks (id, time_entry_id, shift_interval_id, break_start_at, source) SELECT $1, $2, ws.interval_id, $3, 'punch' FROM time_entries te LEFT JOIN work_segments ws ON ws.id = te.segment_id WHERE te.id = $2 RETURNING id, time_entry_id, break_start_at, break_end_at, source, close_reason`, uuid.New(), entryID, actionTime).Scan(&breakRecord.ID, &breakRecord.TimeEntryID, &breakRecord.StartAt, &breakRecord.EndAt, &breakRecord.Source, &breakRecord.CloseReason); err != nil { return err }
+				if err := db.QueryRow(ctx, `INSERT INTO time_entry_breaks (id, time_entry_id, shift_interval_id, break_start_at, source) SELECT $1, $2, ws.interval_id, $3, 'punch' FROM time_entries te LEFT JOIN work_segments ws ON ws.id = te.segment_id WHERE te.id = $2 RETURNING id, time_entry_id, break_start_at, break_end_at, source, close_reason`, uuid.New(), entryID, actionTime).Scan(&breakRecord.ID, &breakRecord.TimeEntryID, &breakRecord.StartAt, &breakRecord.EndAt, &breakRecord.Source, &breakRecord.CloseReason); err != nil {
+					return err
+				}
 				response = api.AttendanceActionResponse{State: "on_break", NextAllowedActions: []string{api.AttendanceActionBreakEnd, api.AttendanceActionWorkOut}, Break: &breakRecord}
 			} else {
-				if err := insertAttendanceRawLog(ctx, db, employmentID, actionTime, 1, action, note); err != nil { return err }
+				if err := insertAttendanceRawLog(ctx, db, employmentID, actionTime, 1, action, note); err != nil {
+					return err
+				}
 				var breakRecord api.AttendanceBreakRecord
 				if err := db.QueryRow(ctx, `UPDATE time_entry_breaks SET break_end_at = $1, close_reason = 'punch', updated_at = CURRENT_TIMESTAMP WHERE time_entry_id = $2 AND break_end_at IS NULL RETURNING id, time_entry_id, break_start_at, break_end_at, source, close_reason`, actionTime, entryID).Scan(&breakRecord.ID, &breakRecord.TimeEntryID, &breakRecord.StartAt, &breakRecord.EndAt, &breakRecord.Source, &breakRecord.CloseReason); err != nil {
-					if errors.Is(err, pgx.ErrNoRows) { return api.ErrAttendanceBreakNotOpen }
+					if errors.Is(err, pgx.ErrNoRows) {
+						return api.ErrAttendanceBreakNotOpen
+					}
 					return err
 				}
 				response = api.AttendanceActionResponse{State: "working", NextAllowedActions: []string{api.AttendanceActionBreakStart, api.AttendanceActionWorkOut}, Break: &breakRecord}
@@ -208,41 +241,64 @@ func (r AttendanceRepository) ESSAttendanceAction(ctx context.Context, employeeI
 		}
 		response.Deduplicated = false
 		encoded, err := json.Marshal(response)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		_, err = db.Exec(ctx, `INSERT INTO attendance_action_idempotency (employment_id, idempotency_key, action, request_hash, response_snapshot) VALUES ($1, $2, $3, $4, $5)`, employmentID, idempotencyKey, action, requestHash, encoded)
 		return err
 	})
-	if err != nil { return api.AttendanceActionResponse{}, err }
+	if err != nil {
+		return api.AttendanceActionResponse{}, err
+	}
 	return response, nil
 }
 
 func hashAttendanceAction(action string, note *string) (string, error) {
-	payload, err := json.Marshal(struct { Action string `json:"action"`; Note *string `json:"note,omitempty"` }{action, note})
-	if err != nil { return "", err }
+	payload, err := json.Marshal(struct {
+		Action string  `json:"action"`
+		Note   *string `json:"note,omitempty"`
+	}{action, note})
+	if err != nil {
+		return "", err
+	}
 	return fmt.Sprintf("%x", sha256.Sum256(payload)), nil
 }
 
 func insertAttendanceRawLog(ctx context.Context, db DBTX, employmentID uuid.UUID, punchTime time.Time, punch int, action string, note *string) error {
 	data, err := json.Marshal(map[string]any{"action": action, "note": note, "source": "ess"})
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	_, err = db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, $5, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), employmentID, punchTime, data, punch)
 	return err
 }
 
 func (r AttendanceRepository) GetESSAttendanceState(ctx context.Context, employeeID uuid.UUID) (api.AttendanceActionResponse, error) {
 	db, err := r.db(ctx)
-	if err != nil { return api.AttendanceActionResponse{}, err }
+	if err != nil {
+		return api.AttendanceActionResponse{}, err
+	}
 	employmentID, err := resolveActiveEmployment(ctx, db, employeeID)
-	if err != nil { return api.AttendanceActionResponse{}, err }
+	if err != nil {
+		return api.AttendanceActionResponse{}, err
+	}
 	var entryID uuid.UUID
 	err = db.QueryRow(ctx, `SELECT id FROM time_entries WHERE employment_id = $1 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1`, employmentID).Scan(&entryID)
-	if errors.Is(err, pgx.ErrNoRows) { return api.AttendanceActionResponse{State: "off", NextAllowedActions: []string{api.AttendanceActionWorkIn}}, nil }
-	if err != nil { return api.AttendanceActionResponse{}, err }
+	if errors.Is(err, pgx.ErrNoRows) {
+		return api.AttendanceActionResponse{State: "off", NextAllowedActions: []string{api.AttendanceActionWorkIn}}, nil
+	}
+	if err != nil {
+		return api.AttendanceActionResponse{}, err
+	}
 	var entry api.TimeEntryRecord
-	if err := scanTimeEntry(db.QueryRow(ctx, `SELECT id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE id = $1`, entryID), &entry); err != nil { return api.AttendanceActionResponse{}, err }
+	if err := scanTimeEntry(db.QueryRow(ctx, `SELECT id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE id = $1`, entryID), &entry); err != nil {
+		return api.AttendanceActionResponse{}, err
+	}
 	var breakRecord api.AttendanceBreakRecord
 	breakErr := db.QueryRow(ctx, `SELECT id, time_entry_id, break_start_at, break_end_at, source, close_reason FROM time_entry_breaks WHERE time_entry_id = $1 ORDER BY break_start_at DESC LIMIT 1`, entryID).Scan(&breakRecord.ID, &breakRecord.TimeEntryID, &breakRecord.StartAt, &breakRecord.EndAt, &breakRecord.Source, &breakRecord.CloseReason)
-	if breakErr == nil && breakRecord.EndAt == nil { return api.AttendanceActionResponse{State: "on_break", NextAllowedActions: []string{api.AttendanceActionBreakEnd, api.AttendanceActionWorkOut}, Entry: &entry, Break: &breakRecord}, nil }
+	if breakErr == nil && breakRecord.EndAt == nil {
+		return api.AttendanceActionResponse{State: "on_break", NextAllowedActions: []string{api.AttendanceActionBreakEnd, api.AttendanceActionWorkOut}, Entry: &entry, Break: &breakRecord}, nil
+	}
 	return api.AttendanceActionResponse{State: "working", NextAllowedActions: []string{api.AttendanceActionBreakStart, api.AttendanceActionWorkOut}, Entry: &entry}, nil
 }
 
@@ -274,7 +330,7 @@ func resolveActiveEmployment(ctx context.Context, db DBTX, employeeID uuid.UUID)
 }
 
 func scanLatestTimeEntry(ctx context.Context, db DBTX, employmentID uuid.UUID, record *api.TimeEntryRecord) error {
-	row := db.QueryRow(ctx, `SELECT id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE employment_id = $1 ORDER BY punch_in_time DESC LIMIT 1`, employmentID)
+	row := db.QueryRow(ctx, `SELECT id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE employment_id = $1 ORDER BY punch_in_time DESC LIMIT 1`, employmentID)
 	return scanTimeEntry(row, record)
 }
 
@@ -288,7 +344,7 @@ func (r AttendanceRepository) ListTimeHistory(ctx context.Context, employeeID uu
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, employment_id, template_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE employment_id = $1 AND punch_in_time >= $2 AND punch_in_time <= $3 ORDER BY punch_in_time DESC`, employmentID, start, end)
+	rows, err := db.Query(ctx, `SELECT id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE employment_id = $1 AND punch_in_time >= $2 AND punch_in_time <= $3 ORDER BY punch_in_time DESC`, employmentID, start, end)
 	if err != nil {
 		return nil, err
 	}
@@ -458,7 +514,7 @@ func scanTimeEntry(row pgx.Row, record *api.TimeEntryRecord) error {
 	var punchIn, createdAt, updatedAt time.Time
 	var punchOut *time.Time
 	var metadata []byte
-	if err := row.Scan(&record.ID, &record.EmploymentID, &record.ShiftID, &record.SegmentID, &punchIn, &punchOut, &record.DurationMinutes, &record.IsBreakOvertime, &record.EntryType, &record.Note, &metadata, &createdAt, &updatedAt); err != nil {
+	if err := row.Scan(&record.ID, &record.EmploymentID, &record.ShiftID, &record.SegmentID, &record.ShiftVersionID, &record.BreaksSnapshot, &punchIn, &punchOut, &record.DurationMinutes, &record.IsBreakOvertime, &record.EntryType, &record.Note, &metadata, &createdAt, &updatedAt); err != nil {
 		return err
 	}
 	record.PunchInTime = punchIn.UTC().Format(time.RFC3339)
@@ -580,7 +636,7 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.
 		return api.TimeEntryRecord{}, err
 	}
 	var record api.TimeEntryRecord
-	row := db.QueryRow(ctx, `SELECT id, employment_id, shift_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE id = $1`, entryID)
+	row := db.QueryRow(ctx, `SELECT id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at FROM time_entries WHERE id = $1`, entryID)
 	if err := scanTimeEntry(row, &record); err != nil {
 		return api.TimeEntryRecord{}, err
 	}
@@ -635,7 +691,7 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.
 		return api.TimeEntryRecord{}, finishLifecycleMutationDB(ctx, db, err)
 	}
 
-	updateRow := db.QueryRow(ctx, `UPDATE time_entries SET punch_in_time = $1, punch_out_time = $2, duration_minutes = $3, entry_type = $4, note = $5, segment_id = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING id, employment_id, shift_id, segment_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, pIn, pOut, durationMinutes, entryType, note, segmentID, entryID)
+	updateRow := db.QueryRow(ctx, `UPDATE time_entries SET punch_in_time = $1, punch_out_time = $2, duration_minutes = $3, entry_type = $4, note = $5, segment_id = $6, template_id = (SELECT template_id FROM work_segments WHERE id = $6), shift_version_id = (SELECT selected_shift_version_id FROM work_segments WHERE id = $6), breaks_snapshot = (SELECT breaks_snapshot FROM work_segments WHERE id = $6), updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, pIn, pOut, durationMinutes, entryType, note, segmentID, entryID)
 	var updatedRecord api.TimeEntryRecord
 	if err := scanTimeEntry(updateRow, &updatedRecord); err != nil {
 		return api.TimeEntryRecord{}, err

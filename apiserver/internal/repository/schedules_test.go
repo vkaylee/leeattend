@@ -66,7 +66,7 @@ func TestLoadDeptHistory_UsesEmploymentSegments(t *testing.T) {
 func TestResolveEffectiveShift_RosterOverridesPatternAndFixed(t *testing.T) {
 	employmentID, employeeID, rosterShift, fixedShift := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	date := time.Date(2026, time.October, 20, 0, 0, 0, 0, time.UTC)
-	rosters := map[string]*uuid.UUID{employmentID.String() + ":2026-10-20": new(rosterShift)}
+	rosters := map[string]rosterAssignment{employmentID.String() + ":2026-10-20": {shiftID: new(rosterShift)}}
 	patterns := []patternEntry{{patternID: uuid.New(), startDate: date.AddDate(0, 0, -1), scheduleDay: int(date.Weekday()), templateID: new(uuid.UUID)}}
 	fixed := []fixedShiftEntry{{templateID: fixedShift, startDate: date.AddDate(0, 0, -1)}}
 
@@ -128,7 +128,7 @@ func TestResolveEffectiveShift_NullRosterAndPatternAreExplicitOff(t *testing.T) 
 	date := time.Date(2026, time.October, 20, 0, 0, 0, 0, time.UTC)
 	key := employmentID.String() + ":" + date.Format("2006-01-02")
 
-	shifts, source, _ := resolveEffectiveShift(employmentID, employeeID, "E-1", nil, date, int(date.Weekday()), nil, nil, map[string]*uuid.UUID{key: nil}, nil, nil, nil, nil)
+	shifts, source, _ := resolveEffectiveShift(employmentID, employeeID, "E-1", nil, date, int(date.Weekday()), nil, nil, map[string]rosterAssignment{key: {shiftID: nil}}, nil, nil, nil, nil)
 	if source != "roster" || len(shifts) != 1 || shifts[0] != nil {
 		t.Fatalf("expected explicit off roster, got source=%q shifts=%v", source, shifts)
 	}

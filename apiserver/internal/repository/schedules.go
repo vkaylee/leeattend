@@ -167,14 +167,15 @@ type assignmentRuleWithDetails struct {
 }
 
 type resolvedScheduleDay struct {
-	date        string
-	shiftIDs    []*uuid.UUID
-	source      string
-	traces      []api.ScheduleTrace
-	isHoliday   bool
-	holidayPaid bool
-	holidayName *string
-	timezone    string
+	date                  string
+	shiftIDs              []*uuid.UUID
+	pinnedShiftVersionIDs []*uuid.UUID
+	source                string
+	traces                []api.ScheduleTrace
+	isHoliday             bool
+	holidayPaid           bool
+	holidayName           *string
+	timezone              string
 }
 
 type resolvedEmployeeSchedule struct {
@@ -424,7 +425,7 @@ func (r ScheduleRepository) GetOrganizationSchedules(ctx context.Context, startD
 								effective.StartTime, effective.EndTime = interval.startTime, interval.endTime
 								effective.BreakDurationMinutes, effective.BreakStart, effective.BreakEnd = interval.breakDurationMinutes, interval.breakStart, interval.breakEnd
 								effective.IsBreakAutoDeduct, effective.BreakIsOvertime = interval.isBreakAutoDeduct, interval.breakIsOvertime
-	effective.BreakPunchMode, effective.BreakCreditMode = interval.breakPunchMode, interval.breakCreditMode
+								effective.BreakPunchMode, effective.BreakCreditMode = interval.breakPunchMode, interval.breakCreditMode
 							}
 						}
 					}
@@ -560,7 +561,12 @@ func resolveScheduleData(ctx context.Context, db DBTX, startDate, endDate time.T
 			}
 			holiday, isHoliday := holidays[dateStr]
 			shiftIDs, source, traces := resolveEffectiveShift(employee.employmentID, employee.employeeID, employee.employeeIDNumber, employee.tags, current, int(current.Weekday()), locationID, employerID, rosters, patterns[employee.employmentID], rules, fixed[employee.employmentID], deptHistory[employee.employeeID])
-			resolved.days = append(resolved.days, resolvedScheduleDay{date: dateStr, shiftIDs: shiftIDs, source: source, traces: traces, isHoliday: isHoliday, holidayPaid: holiday.isPaid, holidayName: stringPtr(holiday.name), timezone: resolvedTimezone(locationID, locationTimezones)})
+			resolved.days = append(resolved.days, resolvedScheduleDay{date: dateStr, shiftIDs: shiftIDs, pinnedShiftVersionIDs: func() []*uuid.UUID {
+				if assignment, ok := rosters[employee.employmentID.String()+":"+dateStr]; ok {
+					return []*uuid.UUID{assignment.shiftVersionID}
+				}
+				return nil
+			}(), source: source, traces: traces, isHoliday: isHoliday, holidayPaid: holiday.isPaid, holidayName: stringPtr(holiday.name), timezone: resolvedTimezone(locationID, locationTimezones)})
 		}
 		result.employees = append(result.employees, resolved)
 	}
@@ -621,7 +627,7 @@ func resolveEffectiveShift(
 	date time.Time,
 	dow int,
 	activeLocID, activeEmployerID *uuid.UUID,
-	rosters map[string]*uuid.UUID,
+	rosters map[string]rosterAssignment,
 	patterns []patternEntry,
 	rules []assignmentRuleWithDetails,
 	fixed []fixedShiftEntry,
@@ -630,14 +636,14 @@ func resolveEffectiveShift(
 	dateStr := date.Format("2006-01-02")
 	key := employmentID.String() + ":" + dateStr
 
-	if sid, exists := rosters[key]; exists {
+	if assignment, exists := rosters[key]; exists {
 		traces := []api.ScheduleTrace{{
 			RuleName: "Manual Roster",
 			Priority: 100,
 			Status:   "applied",
 			Reason:   new("Directly assigned via roster"),
 		}}
-		return []*uuid.UUID{sid}, "roster", traces
+		return []*uuid.UUID{assignment.shiftID}, "roster", traces
 	}
 
 	matchedPatternShifts := make([]*uuid.UUID, 0)
@@ -916,21 +922,26 @@ func loadHolidays(ctx context.Context, db DBTX, startStr, endStr string) (map[st
 	return res, rows.Err()
 }
 
-func loadShiftRosters(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr, endStr string) (map[string]*uuid.UUID, error) {
-	rows, err := db.Query(ctx, `SELECT employment_id, template_id, date::text FROM shift_rosters WHERE employment_id = ANY($1) AND date >= $2::date AND date <= $3::date`, empIDs, startStr, endStr)
+type rosterAssignment struct {
+	shiftID        *uuid.UUID
+	shiftVersionID *uuid.UUID
+}
+
+func loadShiftRosters(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr, endStr string) (map[string]rosterAssignment, error) {
+	rows, err := db.Query(ctx, `SELECT employment_id, template_id, shift_version_id, date::text FROM shift_rosters WHERE employment_id = ANY($1) AND date >= $2::date AND date <= $3::date`, empIDs, startStr, endStr)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	res := make(map[string]*uuid.UUID)
+	res := make(map[string]rosterAssignment)
 	for rows.Next() {
 		var empID uuid.UUID
-		var tid *uuid.UUID
+		var assignment rosterAssignment
 		var dateStr string
-		if err := rows.Scan(&empID, &tid, &dateStr); err != nil {
+		if err := rows.Scan(&empID, &assignment.shiftID, &assignment.shiftVersionID, &dateStr); err != nil {
 			return nil, err
 		}
-		res[empID.String()+":"+dateStr] = tid
+		res[empID.String()+":"+dateStr] = assignment
 	}
 	return res, rows.Err()
 }

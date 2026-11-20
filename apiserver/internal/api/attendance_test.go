@@ -49,7 +49,7 @@ type mockAttendanceRepo struct {
 	err               error
 }
 
-func (m *mockAttendanceRepo) PunchIn(_ context.Context, empID uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (TimeEntryRecord, error) {
+func (m *mockAttendanceRepo) PunchIn(_ context.Context, empID uuid.UUID, _ *uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (TimeEntryRecord, error) {
 	m.lastEmploymentID = empID
 	m.lastEntryType = entryType
 	m.lastBreakOvertime = isBreakOvertime
@@ -115,12 +115,16 @@ func (m *mockAttendanceRepo) ApproveAdjustment(_ context.Context, _, _ uuid.UUID
 }
 
 func (m *mockAttendanceRepo) ESSAttendanceAction(_ context.Context, empID uuid.UUID, action string, note *string, _ string, actionTime time.Time) (AttendanceActionResponse, error) {
-	if m.err != nil { return AttendanceActionResponse{}, m.err }
+	if m.err != nil {
+		return AttendanceActionResponse{}, m.err
+	}
 	return AttendanceActionResponse{State: action, Entry: &TimeEntryRecord{ID: uuid.New(), EmploymentID: empID, PunchInTime: actionTime.Format(time.RFC3339), EntryType: "work", Note: note}}, nil
 }
 
 func (m *mockAttendanceRepo) GetESSAttendanceState(_ context.Context, _ uuid.UUID) (AttendanceActionResponse, error) {
-	if m.err != nil { return AttendanceActionResponse{}, m.err }
+	if m.err != nil {
+		return AttendanceActionResponse{}, m.err
+	}
 	return AttendanceActionResponse{State: "off", NextAllowedActions: []string{AttendanceActionWorkIn}}, nil
 }
 

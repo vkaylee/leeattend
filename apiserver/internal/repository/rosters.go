@@ -39,7 +39,7 @@ func (r RosterRepository) begin(ctx context.Context) (TxBeginner, error) {
 	return beginner, nil
 }
 
-const rosterSelect = `SELECT id, employment_id, template_id, date::text, status, notes, created_at, updated_at FROM shift_rosters`
+const rosterSelect = `SELECT id, employment_id, template_id, shift_version_id, date::text, status, notes, created_at, updated_at FROM shift_rosters`
 
 func (r RosterRepository) ResolveActiveEmployment(ctx context.Context, employeeID uuid.UUID) (uuid.UUID, error) {
 	db, err := r.db(ctx)
@@ -93,7 +93,11 @@ func (r RosterRepository) UpsertRoster(ctx context.Context, req api.CreateRoster
 		if err := validateRosterReferences(ctx, db, req.EmploymentID, req.ShiftID); err != nil {
 			return err
 		}
-		_, err := db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, template_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4::date, 'confirmed', $5, $6, $6) ON CONFLICT (employment_id, date) DO UPDATE SET template_id = EXCLUDED.template_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`, id, req.EmploymentID, req.ShiftID, req.Date, req.Notes, now)
+		shiftVersionID, err := resolveRosterShiftVersion(ctx, db, req.ShiftID, req.ShiftVersionID, req.Date)
+		if err != nil {
+			return err
+		}
+		_, err = db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, template_id, shift_version_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::date, 'confirmed', $6, $7, $7) ON CONFLICT (employment_id, date) DO UPDATE SET template_id = EXCLUDED.template_id, shift_version_id = EXCLUDED.shift_version_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`, id, req.EmploymentID, req.ShiftID, shiftVersionID, req.Date, req.Notes, now)
 		if err != nil {
 			return mapRosterDBError(err)
 		}
@@ -127,10 +131,14 @@ func (r RosterRepository) BulkUpsertRoster(ctx context.Context, employmentID uui
 			return err
 		}
 		for _, item := range items {
+			shiftVersionID, err := resolveRosterShiftVersion(ctx, db, item.ShiftID, item.ShiftVersionID, item.Date)
+			if err != nil {
+				return err
+			}
 			if err := validateRosterReferences(ctx, db, employmentID, item.ShiftID); err != nil {
 				return err
 			}
-			if _, err := db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, template_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4::date, 'confirmed', $5, $6, $6) ON CONFLICT (employment_id, date) DO UPDATE SET template_id = EXCLUDED.template_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`, uuid.New(), employmentID, item.ShiftID, item.Date, item.Notes, now); err != nil {
+			if _, err := db.Exec(ctx, `INSERT INTO shift_rosters (id, employment_id, template_id, shift_version_id, date, status, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::date, 'confirmed', $6, $7, $7) ON CONFLICT (employment_id, date) DO UPDATE SET template_id = EXCLUDED.template_id, shift_version_id = EXCLUDED.shift_version_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at`, uuid.New(), employmentID, item.ShiftID, shiftVersionID, item.Date, item.Notes, now); err != nil {
 				return mapRosterDBError(err)
 			}
 		}
@@ -171,7 +179,7 @@ func (r RosterRepository) getRoster(ctx context.Context, employmentID uuid.UUID,
 func scanRoster(row pgx.Row) (api.ShiftRoster, error) {
 	var roster api.ShiftRoster
 	var createdAt, updatedAt *time.Time
-	if err := row.Scan(&roster.ID, &roster.EmploymentID, &roster.ShiftID, &roster.Date, &roster.Status, &roster.Notes, &createdAt, &updatedAt); err != nil {
+	if err := row.Scan(&roster.ID, &roster.EmploymentID, &roster.ShiftID, &roster.ShiftVersionID, &roster.Date, &roster.Status, &roster.Notes, &createdAt, &updatedAt); err != nil {
 		return api.ShiftRoster{}, err
 	}
 	if createdAt != nil {
@@ -198,6 +206,42 @@ func validateRosterReferences(ctx context.Context, db DBTX, employmentID uuid.UU
 		return api.ErrShiftNotFound
 	}
 	return nil
+}
+
+func resolveRosterShiftVersion(ctx context.Context, db DBTX, templateID, requestedVersionID *uuid.UUID, date string) (*uuid.UUID, error) {
+	if templateID == nil {
+		return nil, nil
+	}
+	if requestedVersionID != nil {
+		var valid bool
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_versions WHERE id = $1 AND template_id = $2 AND effective_from <= $3::date AND (effective_to IS NULL OR effective_to >= $3::date))`, *requestedVersionID, *templateID, date).Scan(&valid); err != nil {
+			return nil, err
+		}
+		if !valid {
+			return nil, api.ErrRosterVersionConflict
+		}
+		return requestedVersionID, nil
+	}
+	rows, err := db.Query(ctx, `SELECT id FROM shift_versions WHERE template_id = $1 AND effective_from <= $2::date AND (effective_to IS NULL OR effective_to >= $2::date) ORDER BY effective_from DESC, id LIMIT 2`, *templateID, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var versions []uuid.UUID
+	for rows.Next() {
+		var versionID uuid.UUID
+		if err := rows.Scan(&versionID); err != nil {
+			return nil, err
+		}
+		versions = append(versions, versionID)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(versions) != 1 {
+		return nil, api.ErrRosterVersionConflict
+	}
+	return &versions[0], nil
 }
 
 func validateRosterEmployment(ctx context.Context, db DBTX, employmentID uuid.UUID) error {

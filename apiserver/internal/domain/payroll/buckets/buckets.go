@@ -1,6 +1,8 @@
 package buckets
 
 import (
+	"errors"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +25,51 @@ const (
 )
 
 type WorkBuckets struct{ StandardMinutes, EarlyOTMinutes, LateOTMinutes, BreakOTMinutes int32 }
+
+type BreakPunchMode string
+type BreakCreditMode string
+
+type AttendanceExceptionCode string
+
+const (
+	BreakPunchModeNone       BreakPunchMode  = "none"
+	BreakPunchModeRequired   BreakPunchMode  = "required"
+	BreakCreditModeNone      BreakCreditMode = "none"
+	BreakCreditModeScheduled BreakCreditMode = "scheduled"
+	BreakCreditModeActual    BreakCreditMode = "actual"
+
+	AttendanceExceptionMissingBreakPair     AttendanceExceptionCode = "missing_break_pair"
+	AttendanceExceptionUnexpectedBreakPunch AttendanceExceptionCode = "unexpected_break_punch"
+)
+
+var ErrInvalidAttendanceCalculation = errors.New("attendance: invalid calculation input")
+
+type BreakPair struct {
+	Start time.Time
+	End   time.Time
+}
+
+type AttendanceCalculationInput struct {
+	PunchIn                   time.Time
+	PunchOut                  time.Time
+	BreakPunchMode            BreakPunchMode
+	BreakCreditMode           BreakCreditMode
+	ScheduledBreakMinutes     int32
+	ActualBreaks              []BreakPair
+	PlannedBreakWorkedMinutes int32
+	ApprovedOvertimeMinutes   int32
+}
+
+type AttendanceCalculationResult struct {
+	GrossMinutes                int32
+	ActualBreakMinutes          int32
+	ScheduledUnpaidBreakMinutes int32
+	PaidBreakWorkMinutes        int32
+	ApprovedOvertimeMinutes     int32
+	PayableMinutes              int32
+	ExceptionCode               AttendanceExceptionCode
+}
+
 type BreakDeductionInput struct {
 	ActualBreakMinutes, ScheduledBreakMinutes int32
 	IsBreakAutoDeduct, IsBreakOvertime        bool
@@ -55,6 +102,69 @@ type SegmentCalcResult struct {
 }
 
 func TruncateToMinute(value time.Time) time.Time { return value.Truncate(time.Minute) }
+
+func CalculateAttendance(input AttendanceCalculationInput) (AttendanceCalculationResult, error) {
+	if input.PunchIn.IsZero() || input.PunchOut.IsZero() || !input.PunchOut.After(input.PunchIn) || input.ScheduledBreakMinutes < 0 || input.PlannedBreakWorkedMinutes < 0 || input.ApprovedOvertimeMinutes < 0 {
+		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+	}
+	if input.BreakPunchMode != BreakPunchModeNone && input.BreakPunchMode != BreakPunchModeRequired {
+		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+	}
+	if input.BreakCreditMode != BreakCreditModeNone && input.BreakCreditMode != BreakCreditModeScheduled && input.BreakCreditMode != BreakCreditModeActual {
+		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+	}
+	if input.BreakPunchMode == BreakPunchModeRequired && input.BreakCreditMode != BreakCreditModeActual {
+		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+	}
+	if input.BreakPunchMode == BreakPunchModeNone && input.BreakCreditMode == BreakCreditModeActual {
+		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+	}
+
+	grossMinutes := int32(input.PunchOut.Sub(input.PunchIn) / time.Minute)
+	if input.ScheduledBreakMinutes > grossMinutes {
+		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+	}
+	result := AttendanceCalculationResult{
+		GrossMinutes:            grossMinutes,
+		ApprovedOvertimeMinutes: input.ApprovedOvertimeMinutes,
+	}
+	pairs := append([]BreakPair(nil), input.ActualBreaks...)
+	sort.Slice(pairs, func(i, j int) bool { return pairs[i].Start.Before(pairs[j].Start) })
+	for i, pair := range pairs {
+		if pair.Start.Before(input.PunchIn) || pair.End.After(input.PunchOut) || !pair.End.After(pair.Start) || (i > 0 && pair.Start.Before(pairs[i-1].End)) {
+			return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+		}
+		result.ActualBreakMinutes += int32(pair.End.Sub(pair.Start) / time.Minute)
+	}
+
+	switch input.BreakPunchMode {
+	case BreakPunchModeRequired:
+		if len(pairs) == 0 {
+			result.ExceptionCode = AttendanceExceptionMissingBreakPair
+		}
+	case BreakPunchModeNone:
+		if len(pairs) > 0 {
+			result.ExceptionCode = AttendanceExceptionUnexpectedBreakPunch
+		}
+		if input.BreakCreditMode == BreakCreditModeScheduled {
+			result.ScheduledUnpaidBreakMinutes = input.ScheduledBreakMinutes
+		}
+	}
+	if input.PlannedBreakWorkedMinutes > result.ScheduledUnpaidBreakMinutes {
+		return AttendanceCalculationResult{}, ErrInvalidAttendanceCalculation
+	}
+	result.ScheduledUnpaidBreakMinutes -= input.PlannedBreakWorkedMinutes
+	result.PaidBreakWorkMinutes = input.PlannedBreakWorkedMinutes
+	actualDeduction := int32(0)
+	if input.BreakPunchMode == BreakPunchModeRequired {
+		actualDeduction = result.ActualBreakMinutes
+	}
+	result.PayableMinutes = result.GrossMinutes - actualDeduction - result.ScheduledUnpaidBreakMinutes
+	if result.PayableMinutes < 0 {
+		result.PayableMinutes = 0
+	}
+	return result, nil
+}
 
 func CalculateBreakDeduction(input BreakDeductionInput) int32 {
 	if input.IsBreakOvertime || !input.IsBreakAutoDeduct {

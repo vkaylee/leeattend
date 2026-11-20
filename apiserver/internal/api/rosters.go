@@ -12,19 +12,21 @@ import (
 )
 
 type ShiftRoster struct {
-	ID           uuid.UUID  `json:"id"`
-	EmploymentID uuid.UUID  `json:"employment_id"`
-	ShiftID      *uuid.UUID `json:"shift_id"`
-	Date         string     `json:"date"`
-	Status       string     `json:"status"`
-	Notes        *string    `json:"notes"`
-	CreatedAt    string     `json:"created_at"`
-	UpdatedAt    string     `json:"updated_at"`
+	ID             uuid.UUID  `json:"id"`
+	EmploymentID   uuid.UUID  `json:"employment_id"`
+	ShiftID        *uuid.UUID `json:"shift_id"`
+	ShiftVersionID *uuid.UUID `json:"shift_version_id,omitempty"`
+	Date           string     `json:"date"`
+	Status         string     `json:"status"`
+	Notes          *string    `json:"notes"`
+	CreatedAt      string     `json:"created_at"`
+	UpdatedAt      string     `json:"updated_at"`
 }
 
 type CreateRosterRequest struct {
 	EmploymentID   uuid.UUID  `json:"employment_id"`
 	ShiftID        *uuid.UUID `json:"shift_id"`
+	ShiftVersionID *uuid.UUID `json:"shift_version_id,omitempty"`
 	Date           string     `json:"date"`
 	Notes          *string    `json:"notes"`
 	AllowWarnings  bool       `json:"allow_warnings"`
@@ -32,9 +34,10 @@ type CreateRosterRequest struct {
 }
 
 type RosterItem struct {
-	Date    string     `json:"date"`
-	ShiftID *uuid.UUID `json:"shift_id"`
-	Notes   *string    `json:"notes"`
+	Date           string     `json:"date"`
+	ShiftID        *uuid.UUID `json:"shift_id"`
+	ShiftVersionID *uuid.UUID `json:"shift_version_id,omitempty"`
+	Notes          *string    `json:"notes"`
 }
 
 type BulkRosterRequest struct {
@@ -215,7 +218,7 @@ func (h *RosterHandler) writeError(w http.ResponseWriter, r *http.Request, err e
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if errors.Is(err, ErrShiftNotFound) || errors.Is(err, ErrRosterConflict) {
+	if errors.Is(err, ErrShiftNotFound) || errors.Is(err, ErrRosterConflict) || errors.Is(err, ErrRosterVersionConflict) {
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}
@@ -223,6 +226,7 @@ func (h *RosterHandler) writeError(w http.ResponseWriter, r *http.Request, err e
 }
 
 var (
-	ErrRosterNotFound = errors.New("roster: not found")
-	ErrRosterConflict = errors.New("roster: conflict")
+	ErrRosterNotFound        = errors.New("roster: not found")
+	ErrRosterConflict        = errors.New("roster: conflict")
+	ErrRosterVersionConflict = errors.New("roster: shift version conflict")
 )

@@ -421,7 +421,18 @@ func sanitizedPreviewDay(day resolvedScheduleDay, shifts map[uuid.UUID]shiftTemp
 		result["warnings"] = []string{"multiple_selected_shifts"}
 		return result, nil
 	}
-	version, selected, conflict := selectEffectiveShiftVersion(shifts, *day.shiftIDs[0], parseScheduleDate(day.date))
+	version := shiftVersionInfo{}
+	selected, conflict := false, false
+	if len(day.pinnedShiftVersionIDs) == 1 && day.pinnedShiftVersionIDs[0] != nil {
+		for _, candidate := range shifts[*day.shiftIDs[0]].versions {
+			if candidate.id == *day.pinnedShiftVersionIDs[0] {
+				version, selected = candidate, true
+				break
+			}
+		}
+	} else {
+		version, selected, conflict = selectEffectiveShiftVersion(shifts, *day.shiftIDs[0], parseScheduleDate(day.date))
+	}
 	if conflict {
 		result["status"] = "conflict"
 		result["warnings"] = []string{"overlapping_shift_versions"}
@@ -1583,15 +1594,15 @@ func dayIntervals(day map[string]any, timezone string, businessDate string) ([]n
 		return nil, err
 	}
 	var intervals []struct {
-		SortOrder      int              `json:"sort_order"`
-		Start          string           `json:"start"`
-		End            string           `json:"end"`
-		StartAt        time.Time        `json:"start_at"`
-		EndAt          time.Time        `json:"end_at"`
-		ShiftVersionID string           `json:"shift_version_id"`
-		Breaks         []map[string]any `json:"breaks"`
-			BreakPunchMode  string           `json:"break_punch_mode"`
-			BreakCreditMode string           `json:"break_credit_mode"`
+		SortOrder       int              `json:"sort_order"`
+		Start           string           `json:"start"`
+		End             string           `json:"end"`
+		StartAt         time.Time        `json:"start_at"`
+		EndAt           time.Time        `json:"end_at"`
+		ShiftVersionID  string           `json:"shift_version_id"`
+		Breaks          []map[string]any `json:"breaks"`
+		BreakPunchMode  string           `json:"break_punch_mode"`
+		BreakCreditMode string           `json:"break_credit_mode"`
 	}
 	if err := json.Unmarshal(encoded, &intervals); err != nil {
 		return nil, err

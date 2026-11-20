@@ -69,6 +69,12 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: baseline migration marker is missing';
     END IF;
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'shift_rosters' AND column_name = 'shift_version_id' AND is_nullable = 'YES')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'time_entries' AND column_name = 'shift_version_id' AND is_nullable = 'YES')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'time_entries' AND column_name = 'breaks_snapshot' AND is_nullable = 'YES') THEN
+        RAISE EXCEPTION 'baseline schema check failed: shift policy snapshot columns missing';
+    END IF;
+
     IF to_regclass('public.config_entries') IS NULL THEN
         RAISE EXCEPTION 'schema check failed: config_entries table is missing';
     END IF;

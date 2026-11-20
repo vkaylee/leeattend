@@ -37,12 +37,12 @@ type AttendanceActionRequest struct {
 }
 
 type AttendanceBreakRecord struct {
-	ID         uuid.UUID `json:"id"`
+	ID          uuid.UUID `json:"id"`
 	TimeEntryID uuid.UUID `json:"time_entry_id"`
-	StartAt    string    `json:"start_at"`
-	EndAt      *string   `json:"end_at,omitempty"`
-	Source     string    `json:"source"`
-	CloseReason *string  `json:"close_reason,omitempty"`
+	StartAt     string    `json:"start_at"`
+	EndAt       *string   `json:"end_at,omitempty"`
+	Source      string    `json:"source"`
+	CloseReason *string   `json:"close_reason,omitempty"`
 }
 
 type AttendanceActionResponse struct {
@@ -117,6 +117,8 @@ type TimeEntryRecord struct {
 	EmploymentID       uuid.UUID       `json:"employment_id"`
 	ShiftID            *uuid.UUID      `json:"shift_id"`
 	SegmentID          *uuid.UUID      `json:"segment_id"`
+	ShiftVersionID     *uuid.UUID      `json:"shift_version_id,omitempty"`
+	BreaksSnapshot     json.RawMessage `json:"breaks_snapshot,omitempty"`
 	PunchInTime        string          `json:"punch_in_time"`
 	PunchOutTime       *string         `json:"punch_out_time"`
 	DurationMinutes    *int            `json:"duration_minutes"`
@@ -179,7 +181,7 @@ type PaginatedSummaries struct {
 
 // AttendanceRepository executes data operations for attendance and punch tracking.
 type AttendanceRepository interface {
-	PunchIn(ctx context.Context, employmentID uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (TimeEntryRecord, error)
+	PunchIn(ctx context.Context, employmentID uuid.UUID, segmentID *uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (TimeEntryRecord, error)
 	PunchOut(ctx context.Context, employeeID uuid.UUID, note *string, punchTime time.Time) (TimeEntryRecord, error)
 	ListTimeHistory(ctx context.Context, employeeID uuid.UUID, start, end time.Time) ([]TimeEntryRecord, error)
 	CreateAdjustment(ctx context.Context, req AdjustmentRequest, requestedByUserID ids.UserID) (AdjustmentRecord, error)
@@ -216,7 +218,7 @@ func (h *AttendanceHandler) PunchIn(w http.ResponseWriter, r *http.Request) {
 	if entryType == "" {
 		entryType = "work"
 	}
-	entry, err := h.Repository.PunchIn(r.Context(), request.EmploymentID, entryType, request.Note, request.IsBreakOvertime != nil && *request.IsBreakOvertime, time.Now().UTC())
+	entry, err := h.Repository.PunchIn(r.Context(), request.EmploymentID, request.SegmentID, entryType, request.Note, request.IsBreakOvertime != nil && *request.IsBreakOvertime, time.Now().UTC())
 	if err != nil {
 		h.writeError(w, r, err)
 		return
