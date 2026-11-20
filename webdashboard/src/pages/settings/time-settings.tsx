@@ -18,11 +18,8 @@ import { PageHeader, TabContent } from "./time-settings/components";
 import { useTimeSettingsRules, useBulkReprocess } from "./time-settings/hooks";
 import { ReprocessModal } from "./time-settings/reprocess-modal";
 
-
-  // eslint-disable-next-line complexity
 export default function TimeSettings() {
   const { t } = useTranslation();
-
 
   const { data: rules, isLoading: isLoadingRules, isError: isErrorRules, error: errorRules } = useQuery({
     queryKey: createQueryKey("attendance-rules"),
@@ -153,27 +150,29 @@ function TimeSettingsContent({
         t={t}
       />
       <div className="animate-in slide-in-from-bottom-4 duration-500">
-        <TabContent earlyArrivalStrategy={earlyArrivalStrategy}
-        gracePeriodMinutes={gracePeriodMinutes}
-        handleSaveNewVersion={handleSaveNewVersion}
-        isPending={isPending}
-        newValidFrom={newValidFrom}
-        reprocessEnd={reprocessEnd}
-        reprocessEndSetter={setReprocessEnd}
-        reprocessStart={reprocessStart}
-        reprocessStartSetter={setReprocessStart}
-        roundingPolicy={roundingPolicy}
-        setEarlyArrivalStrategy={setEarlyArrivalStrategy}
-        setGracePeriodMinutes={setGracePeriodMinutes}
-        setNewValidFrom={setNewValidFrom}
-        setRoundingPolicy={setRoundingPolicy}
-        setShowCreateModal={setShowCreateModal}
-        setShowReprocessConfirm={setShowReprocessConfirm}
-        setWorkUnit={setWorkUnit}
-        showCreateModal={showCreateModal}
-        t={t}
-        versions={versions}
-        workUnit={workUnit}  />
+        <TabContent
+          earlyArrivalStrategy={earlyArrivalStrategy}
+          gracePeriodMinutes={gracePeriodMinutes}
+          handleSaveNewVersion={handleSaveNewVersion}
+          isPending={isPending}
+          newValidFrom={newValidFrom}
+          reprocessEnd={reprocessEnd}
+          reprocessEndSetter={setReprocessEnd}
+          reprocessStart={reprocessStart}
+          reprocessStartSetter={setReprocessStart}
+          roundingPolicy={roundingPolicy}
+          setEarlyArrivalStrategy={setEarlyArrivalStrategy}
+          setGracePeriodMinutes={setGracePeriodMinutes}
+          setNewValidFrom={setNewValidFrom}
+          setRoundingPolicy={setRoundingPolicy}
+          setShowCreateModal={setShowCreateModal}
+          setShowReprocessConfirm={setShowReprocessConfirm}
+          setWorkUnit={setWorkUnit}
+          showCreateModal={showCreateModal}
+          t={t}
+          versions={versions}
+          workUnit={workUnit}
+        />
       </div>
       <ReprocessModal
         isOpen={showReprocessConfirm}
