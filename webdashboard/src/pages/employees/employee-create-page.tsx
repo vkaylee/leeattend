@@ -106,15 +106,11 @@ export default function EmployeeCreatePage() {
             editingEmployee={null}
             employers={[]}
             locations={[]}
-            members={[]}
             prefillEnrollmentId={search.enrollment_id ?? ""}
             selectedEmployerId=""
             selectedLocationId=""
-            selectedUserId=""
             setSelectedEmployerId={() => undefined}
             setSelectedLocationId={() => undefined}
-            setSelectedUserId={() => undefined}
-            showUserLink={false}
             t={t}
             basicOnly
           />
@@ -130,15 +126,11 @@ export default function EmployeeCreatePage() {
             employers={employers ?? []}
             locations={locations ?? []}
             locationsUnavailable={locationsUnavailable}
-            members={[]}
             prefillEnrollmentId=""
             selectedEmployerId={selectedEmployerId}
             selectedLocationId={selectedLocationId}
-            selectedUserId=""
             setSelectedEmployerId={setSelectedEmployerId}
             setSelectedLocationId={setSelectedLocationId}
-            setSelectedUserId={() => undefined}
-            showUserLink={false}
             t={t}
             employmentOnly
           />

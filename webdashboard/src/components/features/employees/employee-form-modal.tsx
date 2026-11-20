@@ -121,15 +121,11 @@ export default function EmployeeFormModal({
           employers={employers ?? []}
           locations={locations ?? []}
           locationsUnavailable={locationsUnavailable}
-          members={[]}
           prefillEnrollmentId=""
           selectedEmployerId={defaults.selectedEmployerId}
           selectedLocationId={defaults.selectedLocationId}
-          selectedUserId=""
           setSelectedEmployerId={defaults.setSelectedEmployerId}
           setSelectedLocationId={defaults.setSelectedLocationId}
-          setSelectedUserId={() => undefined}
-          showUserLink={false}
           t={t}
         />
         <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
