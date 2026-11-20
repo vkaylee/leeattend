@@ -248,6 +248,16 @@ func (r AttendanceRepository) ESSAttendanceAction(ctx context.Context, employeeI
 			}
 		}
 		response.Deduplicated = false
+		eventEntryID := entryID
+		if response.Entry != nil {
+			eventEntryID = response.Entry.ID
+		}
+		if eventEntryID == uuid.Nil {
+			return errors.New("attendance: accepted action has no time entry")
+		}
+		if _, err := db.Exec(ctx, `INSERT INTO attendance_punch_events (id, employment_id, time_entry_id, event_type, occurred_at, idempotency_key, source) VALUES ($1, $2, $3, $4, $5, $6, 'ess')`, uuid.New(), employmentID, eventEntryID, action, actionTime, idempotencyKey); err != nil {
+			return err
+		}
 		encoded, err := json.Marshal(response)
 		if err != nil {
 			return err
