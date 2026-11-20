@@ -1334,7 +1334,8 @@ func TestPayrollInputAuditEventsAvoidSensitiveValues(t *testing.T) {
 		if event.ActorID != actorID.String() {
 			t.Fatalf("unexpected actor: %+v", event)
 		}
-		if strings.Contains(fmt.Sprint(event.Details), "950") || strings.Contains(fmt.Sprint(event.Details), "1000") || strings.Contains(fmt.Sprint(event.Details), "source correction") {
+		details := fmt.Sprint(event.Details)
+		if strings.Contains(details, "950") || strings.Contains(details, "1000") || strings.Contains(details, "source correction") {
 			t.Fatalf("sensitive input value leaked into audit details: %+v", event)
 		}
 	}

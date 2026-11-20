@@ -71,5 +71,6 @@ jobs:
             'python3 -I scripts/validate_openapi_contract.py && git diff --exit-code apiserver/openapi.yaml'
           docker run --rm -v "$PWD:/workspace" -w /workspace/webdashboard \
             node:22-bookworm bash -c \
-            'npm exec --yes --package=openapi-typescript@7.13.0 -- openapi-typescript ../apiserver/openapi.yaml -o src/types/api-generated.ts && git diff --exit-code src/types/api-generated.ts'
+            'npm exec --yes --package=openapi-typescript@7.13.0 -- openapi-typescript ../apiserver/openapi.yaml -o src/types/api-generated.ts'
+          git diff --exit-code webdashboard/src/types/api-generated.ts
           echo "OpenAPI source and generated frontend types are fresh."
