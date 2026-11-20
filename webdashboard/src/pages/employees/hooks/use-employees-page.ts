@@ -21,24 +21,15 @@ export function useEmployeesPage() {
     debouncedSearch: state.debouncedSearch,
     filterDeptIds: state.filterDeptIds,
     filterStatus: state.filterStatus,
-    selectedEmployee: modals.selectedEmployee,
-    setSelectedEmployee: modals.setSelectedEmployee,
     sortDir: state.sortDir,
     sortKey: state.sortKey,
     customFieldFilters: state.customFieldFilters,
   });
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const focusSearch = () => { setTimeout(() => { searchInputRef.current?.focus(); }, 100); };
-
-  const handleDrawerClose = () => {
-    modals.setSelectedEmployee(null);
-    focusSearch();
-  };
 
   return {
     formatDate,
-    handleDrawerClose,
     searchInputRef,
     t,
     ...state,

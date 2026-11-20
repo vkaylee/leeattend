@@ -327,19 +327,15 @@ export default function EmployeeDetailPage() {
       </div>
 
       {/* ── Unified Overlays (Modals) ──────────────────────────────── */}
-      <EmployeeOverlays activeModal={modals.activeModal}
-      closeModal={modals.closeModal}
-      departments={departments}
-      deptHistory={deptHistory}
-      activeEmploymentId={activeEmployment?.id ?? null}
-      formatDate={formatDate}
-      handleDrawerClose={() => undefined}
-      openModal={modals.openModal}
-      selectedDeptId={modals.selectedDeptId}
-      selectedEmployee={null}
-      setSelectedDeptId={modals.setSelectedDeptId}
-      setSelectedEmployee={() => { void refetch(); }}
-      onEmployeeRefresh={refreshEmployee}  />
+      <EmployeeOverlays
+        activeEmploymentId={activeEmployment?.id ?? null}
+        activeModal={modals.activeModal}
+        closeModal={modals.closeModal}
+        departments={departments}
+        onEmployeeRefresh={refreshEmployee}
+        selectedDeptId={modals.selectedDeptId}
+        setSelectedDeptId={modals.setSelectedDeptId}
+      />
     </div>
   );
 }

@@ -22,7 +22,6 @@ interface UseEmployeeColumnsProps {
   onSelectEmployee?: (emp: Employee) => void;
   onToggleSelectAll?: () => void;
   onToggleSelectRow?: (id: string) => void;
-  selectedEmployee: Employee | null;
   selectedRowIds?: string[];
   setFilterDeptIds: (ids: string[]) => void;
   setFilterStatus: (status: string) => void;
@@ -42,7 +41,6 @@ export const useEmployeeColumns = ({
   onSelectEmployee,
   onToggleSelectAll,
   onToggleSelectRow,
-  selectedEmployee,
   selectedRowIds,
   setFilterDeptIds,
   setFilterStatus,
@@ -95,7 +93,7 @@ export const useEmployeeColumns = ({
     }] : []),
     {
       render: (emp) => (
-        <EmployeeNameCell employee={emp} isSelected={selectedEmployee?.id === emp.id} />
+        <EmployeeNameCell employee={emp} />
       ),
       cellClassName: "py-6",
       header: <span className="inline-flex items-center">{t("employees.table.name")}{renderSortIcon("name")}</span>,
@@ -202,7 +200,6 @@ export const useEmployeeColumns = ({
     filterDeptIds,
     filterStatus,
     departments,
-    selectedEmployee,
     toggleSort,
     setFilterDeptIds,
     setFilterStatus,

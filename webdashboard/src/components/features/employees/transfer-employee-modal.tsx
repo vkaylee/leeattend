@@ -20,6 +20,7 @@ interface TransferEmployeeModalProps {
   employeeId: string | null;
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
   selectedDeptId: string;
   setSelectedDeptId: (id: string) => void;
 }
@@ -28,6 +29,7 @@ export default function TransferEmployeeModal({
   isOpen,
   onClose,
   employeeId,departments,
+  onSuccess,
   selectedDeptId,
   setSelectedDeptId,
 }: TransferEmployeeModalProps) {
@@ -47,6 +49,7 @@ export default function TransferEmployeeModal({
     void queryClient.invalidateQueries({ queryKey: createQueryKey("deptHistory", employeeId) });
     onClose();
     setSelectedDeptId("");
+    onSuccess?.();
     toast.success(t("common.success"));
   }, });
 

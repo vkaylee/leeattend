@@ -5,23 +5,15 @@ import { useTranslation } from "react-i18next";
 
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { FilterTrigger } from "@/components/ui/filter-trigger";
-import { cn } from "@/lib/utils";
-
 import type { Employee, Department } from "../../../lib/api/types";
 
 interface EmployeeNameCellProps {
   employee: Employee;
-  isSelected: boolean;
 }
 
-export const EmployeeNameCell = ({ employee, isSelected }: EmployeeNameCellProps) => (
+export const EmployeeNameCell = ({ employee }: EmployeeNameCellProps) => (
   <div className="flex items-center gap-5">
-    <div className={cn(
-      "w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm shadow-inner border transition-all uppercase",
-      isSelected 
-        ? "bg-primary-600 text-white border-primary-500" 
-        : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100"
-    )}>
+    <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm shadow-inner border transition-all uppercase bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100">
       {employee.full_name[0]}
     </div>
     <div>

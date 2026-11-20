@@ -15,11 +15,6 @@ vi.mock("react-i18next", () => ({
 }));
 
 // Each lazy-loaded overlay renders a test-id so we can assert it loaded.
-vi.mock("@/components/features/employees/employee-detail-drawer", () => ({
-  default: (props: { isOpen: boolean; employee: unknown; onClose: () => void }) =>
-    props.isOpen ? <div data-testid="employee-detail-drawer">Drawer</div> : null,
-}));
-
 vi.mock("@/components/features/employees/employee-form-modal", () => ({
   default: (props: { isOpen: boolean; onClose: () => void }) =>
     props.isOpen ? (
@@ -41,8 +36,13 @@ vi.mock("@/components/features/employees/employee-termination-import-dialog", ()
 }));
 
 vi.mock("@/components/features/employees/transfer-employee-modal", () => ({
-  default: (props: { isOpen: boolean }) =>
-    props.isOpen ? <div data-testid="transfer-employee-modal">Transfer</div> : null,
+  default: (props: { isOpen: boolean; onSuccess?: () => void }) =>
+    props.isOpen ? (
+      <div data-testid="transfer-employee-modal">
+        Transfer
+        <Button data-testid="transfer-success" onClick={props.onSuccess} type="button" variant="ghost">Success</Button>
+      </div>
+    ) : null,
 }));
 
 vi.mock("@/components/features/employees/terminate-employee-modal", () => ({
@@ -51,8 +51,13 @@ vi.mock("@/components/features/employees/terminate-employee-modal", () => ({
 }));
 
 vi.mock("@/components/features/employees/rehire-employee-modal", () => ({
-  default: (props: { isOpen: boolean }) =>
-    props.isOpen ? <div data-testid="rehire-employee-modal">Rehire</div> : null,
+  default: (props: { isOpen: boolean; onSuccess?: () => void }) =>
+    props.isOpen ? (
+      <div data-testid="rehire-employee-modal">
+        Rehire
+        <Button data-testid="rehire-success" onClick={() => props.onSuccess?.(mockEmployee)} type="button" variant="ghost">Success</Button>
+      </div>
+    ) : null,
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -70,17 +75,11 @@ const mockEmployee = {
 function createDefaults(overrides: Partial<Parameters<typeof EmployeeOverlays>[0]> = {}) {
   return {
     departments: [],
-    deptHistory: [],
     activeEmploymentId: null,
     activeModal: null,
     closeModal: vi.fn(),
-    formatDate: (d: string) => d,
-    handleDrawerClose: vi.fn(),
-    openModal: vi.fn(),
     selectedDeptId: "",
-    selectedEmployee: null,
     setSelectedDeptId: vi.fn(),
-    setSelectedEmployee: vi.fn(),
     ...overrides,
   };
 }
@@ -97,25 +96,6 @@ describe("EmployeeOverlays", () => {
       const { container } = render(<EmployeeOverlays {...createDefaults()} />);
       // All Suspense fallbacks are null; no overlay is open.
       expect(container.textContent).toBe("");
-    });
-  });
-
-  describe("EmployeeDetailDrawer (lazy-loaded)", () => {
-    it("renders the drawer when selectedEmployee is set", async () => {
-      render(
-        <EmployeeOverlays
-          {...createDefaults({ selectedEmployee: mockEmployee })}
-        />,
-      );
-
-      await waitFor(() => {
-        expect(screen.getByTestId("employee-detail-drawer")).toBeDefined();
-      });
-    });
-
-    it("does not render the drawer when selectedEmployee is null", () => {
-      render(<EmployeeOverlays {...createDefaults({ selectedEmployee: null })} />);
-      expect(screen.queryByTestId("employee-detail-drawer")).toBeNull();
     });
   });
 
@@ -174,6 +154,17 @@ describe("EmployeeOverlays", () => {
         expect(screen.getByTestId("transfer-employee-modal")).toBeDefined();
       });
     });
+
+    it("refreshes employee data after transfer", async () => {
+      const onEmployeeRefresh = vi.fn();
+      render(<EmployeeOverlays {...createDefaults({
+        activeModal: { type: "transfer", employee: mockEmployee },
+        onEmployeeRefresh,
+      })} />);
+
+      await userEvent.setup().click(await screen.findByTestId("transfer-success"));
+      expect(onEmployeeRefresh).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("TerminateEmployeeModal (lazy-loaded)", () => {
@@ -182,7 +173,6 @@ describe("EmployeeOverlays", () => {
         <EmployeeOverlays
           {...createDefaults({
             activeModal: { type: "terminate", employee: mockEmployee },
-            selectedEmployee: mockEmployee,
           })}
         />,
       );
@@ -203,6 +193,17 @@ describe("EmployeeOverlays", () => {
         expect(screen.getByTestId("rehire-employee-modal")).toBeDefined();
       });
     });
+
+    it("refreshes employee data after rehire", async () => {
+      const onEmployeeRefresh = vi.fn();
+      render(<EmployeeOverlays {...createDefaults({
+        activeModal: { type: "rehire", employee: mockEmployee },
+        onEmployeeRefresh,
+      })} />);
+
+      await userEvent.setup().click(await screen.findByTestId("rehire-success"));
+      expect(onEmployeeRefresh).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("EmployeeTerminationImportDialog (lazy-loaded)", () => {
@@ -219,21 +220,4 @@ describe("EmployeeOverlays", () => {
     });
   });
 
-  describe("multiple overlays", () => {
-    it("can render drawer and modal together", async () => {
-      render(
-        <EmployeeOverlays
-          {...createDefaults({
-            activeModal: { type: "edit", employee: mockEmployee },
-            selectedEmployee: mockEmployee,
-          })}
-        />,
-      );
-
-      await waitFor(() => {
-        expect(screen.getByTestId("employee-detail-drawer")).toBeDefined();
-        expect(screen.getByTestId("employee-form-modal")).toBeDefined();
-      });
-    });
-  });
 });
