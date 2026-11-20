@@ -36,8 +36,13 @@ vi.mock("@/components/features/employees/employee-termination-import-dialog", ()
 }));
 
 vi.mock("@/components/features/employees/transfer-employee-modal", () => ({
-  default: (props: { isOpen: boolean }) =>
-    props.isOpen ? <div data-testid="transfer-employee-modal">Transfer</div> : null,
+  default: (props: { isOpen: boolean; onSuccess?: () => void }) =>
+    props.isOpen ? (
+      <div data-testid="transfer-employee-modal">
+        Transfer
+        <Button data-testid="transfer-success" onClick={props.onSuccess} type="button" variant="ghost">Success</Button>
+      </div>
+    ) : null,
 }));
 
 vi.mock("@/components/features/employees/terminate-employee-modal", () => ({
@@ -46,8 +51,13 @@ vi.mock("@/components/features/employees/terminate-employee-modal", () => ({
 }));
 
 vi.mock("@/components/features/employees/rehire-employee-modal", () => ({
-  default: (props: { isOpen: boolean }) =>
-    props.isOpen ? <div data-testid="rehire-employee-modal">Rehire</div> : null,
+  default: (props: { isOpen: boolean; onSuccess?: () => void }) =>
+    props.isOpen ? (
+      <div data-testid="rehire-employee-modal">
+        Rehire
+        <Button data-testid="rehire-success" onClick={() => props.onSuccess?.({} as never)} type="button" variant="ghost">Success</Button>
+      </div>
+    ) : null,
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -144,6 +154,17 @@ describe("EmployeeOverlays", () => {
         expect(screen.getByTestId("transfer-employee-modal")).toBeDefined();
       });
     });
+
+    it("refreshes employee data after transfer", async () => {
+      const onEmployeeRefresh = vi.fn();
+      render(<EmployeeOverlays {...createDefaults({
+        activeModal: { type: "transfer", employee: mockEmployee },
+        onEmployeeRefresh,
+      })} />);
+
+      await userEvent.setup().click(await screen.findByTestId("transfer-success"));
+      expect(onEmployeeRefresh).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("TerminateEmployeeModal (lazy-loaded)", () => {
@@ -171,6 +192,17 @@ describe("EmployeeOverlays", () => {
       await waitFor(() => {
         expect(screen.getByTestId("rehire-employee-modal")).toBeDefined();
       });
+    });
+
+    it("refreshes employee data after rehire", async () => {
+      const onEmployeeRefresh = vi.fn();
+      render(<EmployeeOverlays {...createDefaults({
+        activeModal: { type: "rehire", employee: mockEmployee },
+        onEmployeeRefresh,
+      })} />);
+
+      await userEvent.setup().click(await screen.findByTestId("rehire-success"));
+      expect(onEmployeeRefresh).toHaveBeenCalledTimes(1);
     });
   });
 

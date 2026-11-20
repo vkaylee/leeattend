@@ -67,6 +67,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
         employeeId={currentTransferEmployee?.id ?? null}
         isOpen={transferOpen}
         onClose={handleClose}
+        onSuccess={onEmployeeRefresh}
         selectedDeptId={selectedDeptId}
         setSelectedDeptId={setSelectedDeptId}  />
       </Suspense>
