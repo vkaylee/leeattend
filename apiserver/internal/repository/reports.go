@@ -75,27 +75,37 @@ func (r ReportRepository) SnapshotExportRequest(ctx context.Context, req api.Exp
 }
 
 const (
-	reportPageSize       = 3000
-	maxSyncExportRows    = 100000
-	maxSyncExportBytes   = 32 << 20
+	reportPageSize     = 3000
+	maxSyncExportRows  = 100000
+	maxSyncExportBytes = 32 << 20
 )
 
 func (r ReportRepository) ExportAttendanceReport(ctx context.Context, req api.ExportReportRequest) ([]byte, string, error) {
 	pageSize := reportPageSize
 	allRows := make([]map[string]any, 0)
 	reportType := req.ReportType
-	if reportType == "detail" { reportType = "daily" }
+	if reportType == "detail" {
+		reportType = "daily"
+	}
 	for page := 1; ; page++ {
 		if err := ctx.Err(); err != nil {
 			return nil, "", err
 		}
 		pageReport, err := r.GetAttendanceReport(ctx, api.AttendanceReportFilter{StartDate: req.StartDate, EndDate: req.EndDate, ReportType: reportType, EmployeeIDs: req.EmployeeIDs, Page: page, Limit: pageSize})
-		if err != nil { return nil, "", err }
+		if err != nil {
+			return nil, "", err
+		}
 		var rows []map[string]any
-		if err := json.Unmarshal(pageReport.Data, &rows); err != nil { return nil, "", err }
+		if err := json.Unmarshal(pageReport.Data, &rows); err != nil {
+			return nil, "", err
+		}
 		allRows = append(allRows, rows...)
-		if len(allRows) > maxSyncExportRows || pageReport.Total > maxSyncExportRows { return nil, "", api.ErrReportExportTooLarge }
-		if len(rows) == 0 || int64(page*pageSize) >= pageReport.Total { break }
+		if len(allRows) > maxSyncExportRows || pageReport.Total > maxSyncExportRows {
+			return nil, "", api.ErrReportExportTooLarge
+		}
+		if len(rows) == 0 || int64(page*pageSize) >= pageReport.Total {
+			break
+		}
 	}
 	data, filename, err := encodeReportRowsSync(allRows, reportType)
 	if err != nil {
@@ -110,11 +120,26 @@ func (r ReportRepository) ExportAttendanceReport(ctx context.Context, req api.Ex
 func encodeReportRowsSync(rows []map[string]any, reportType string) ([]byte, string, error) {
 	headers := make([]string, 0)
 	seen := map[string]struct{}{}
-	for _, row := range rows { for key := range row { if _, ok := seen[key]; !ok { seen[key] = struct{}{}; headers = append(headers, key) } } }
+	for _, row := range rows {
+		for key := range row {
+			if _, ok := seen[key]; !ok {
+				seen[key] = struct{}{}
+				headers = append(headers, key)
+			}
+		}
+	}
 	sort.Strings(headers)
 	records := make([][]string, 0, len(rows)+1)
 	records = append(records, headers)
-	for _, row := range rows { record := make([]string, len(headers)); for i, header := range headers { if row[header] != nil { record[i] = fmt.Sprint(row[header]) } }; records = append(records, record) }
+	for _, row := range rows {
+		record := make([]string, len(headers))
+		for i, header := range headers {
+			if row[header] != nil {
+				record[i] = fmt.Sprint(row[header])
+			}
+		}
+		records = append(records, record)
+	}
 	return xlsxBytesSync(records), "attendance-" + reportType + ".xlsx", nil
 }
 
@@ -131,11 +156,11 @@ func xlsxBytesSync(records [][]string) []byte {
 	}
 	sheet.WriteString(`</sheetData></worksheet>`)
 	files := map[string]string{
-		"[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`,
-		"_rels/.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
+		"[Content_Types].xml":        `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`,
+		"_rels/.rels":                `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
 		"xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`,
-		"xl/workbook.xml": `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Report" sheetId="1" r:id="rId1"/></sheets></workbook>`,
-		"xl/worksheets/sheet1.xml": sheet.String(),
+		"xl/workbook.xml":            `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Report" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+		"xl/worksheets/sheet1.xml":   sheet.String(),
 	}
 	zw := zip.NewWriter(&stringWriterSync{builder: &output})
 	for name, content := range files {
@@ -318,8 +343,8 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 		for rows.Next() {
 			var row api.DailyAttendanceRow
 			var actMins, scheduledBreakMins, actualBreakMins, deductedBreakMins, netWorkMins, netPaidMins, stdMins, otMins int
-				var breakProvisional bool
-				var breakExceptionCode *string
+			var breakProvisional bool
+			var breakExceptionCode *string
 			var hoursPerDay, minutesPerCredit float64
 			var shiftName, schedStart, schedEnd, punchIn, punchOut *string
 			var otStatus string
@@ -334,13 +359,13 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 			row.ActualPunchIn = punchIn
 			row.ActualPunchOut = punchOut
 			row.ActualWorkMinutes = actMins
-				row.ScheduledBreakMinutes = scheduledBreakMins
-				row.ActualBreakMinutes = actualBreakMins
-				row.DeductedBreakMinutes = deductedBreakMins
-				row.NetWorkMinutes = netWorkMins
-				row.NetPaidMinutes = netPaidMins
-				row.BreakProvisional = breakProvisional
-				row.BreakExceptionCode = breakExceptionCode
+			row.ScheduledBreakMinutes = scheduledBreakMins
+			row.ActualBreakMinutes = actualBreakMins
+			row.DeductedBreakMinutes = deductedBreakMins
+			row.NetWorkMinutes = netWorkMins
+			row.NetPaidMinutes = netPaidMins
+			row.BreakProvisional = breakProvisional
+			row.BreakExceptionCode = breakExceptionCode
 			row.ComputedStdHours = math.Round((float64(stdMins)/60.0)*100) / 100
 			row.ComputedOTHours = math.Round((float64(otMins)/60.0)*100) / 100
 			denominator := hoursPerDay * 60
