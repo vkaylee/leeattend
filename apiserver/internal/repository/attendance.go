@@ -409,6 +409,8 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 		employmentID                           uuid.UUID
 		date                                   string
 		actual, standard, early, late, breakOT int
+		scheduledBreak, deductedBreak          int
+		netWork, netPaid                       int
 		policyID, shiftID                      *uuid.UUID
 		minutesPerCredit                       int
 	}
@@ -466,6 +468,10 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 			return &v
 		}()}
 		calculated := buckets.CalculateBuckets(input)
+		item.scheduledBreak += int(scheduledBreak)
+		item.deductedBreak += int(buckets.CalculateBreakDeduction(buckets.BreakDeductionInput{ScheduledBreakMinutes: scheduledBreak, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT, BreakStart: breakStart, BreakEnd: breakEnd, PunchIn: &punchIn, PunchOut: &punchOut}))
+		item.netWork += int(calculated.StandardMinutes)
+		item.netPaid += int(calculated.StandardMinutes + calculated.BreakOTMinutes)
 		item.standard += int(calculated.StandardMinutes)
 		item.early += int(calculated.EarlyOTMinutes)
 		item.late += int(calculated.LateOTMinutes)
@@ -477,7 +483,7 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 		return api.ReprocessResponse{}, err
 	}
 	for _, item := range results {
-		_, err := db.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, employment_id, date, actual_work_minutes, standard_minutes, system_detected_ot_minutes, early_ot_minutes, late_ot_minutes, break_ot_minutes, work_policy_version_id, shift_version_id, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, date) DO UPDATE SET actual_work_minutes = EXCLUDED.actual_work_minutes, standard_minutes = EXCLUDED.standard_minutes, system_detected_ot_minutes = EXCLUDED.system_detected_ot_minutes, early_ot_minutes = EXCLUDED.early_ot_minutes, late_ot_minutes = EXCLUDED.late_ot_minutes, break_ot_minutes = EXCLUDED.break_ot_minutes, work_policy_version_id = EXCLUDED.work_policy_version_id, shift_version_id = EXCLUDED.shift_version_id, updated_at = CURRENT_TIMESTAMP`, uuid.New(), item.employmentID, item.date, item.actual, item.standard, item.early+item.late+item.breakOT, item.early, item.late, item.breakOT, item.policyID, item.shiftID)
+		_, err := db.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, employment_id, date, actual_work_minutes, standard_minutes, system_detected_ot_minutes, early_ot_minutes, late_ot_minutes, break_ot_minutes, scheduled_break_minutes, deducted_break_minutes, net_work_minutes, net_paid_minutes, work_policy_version_id, shift_version_id, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, date) DO UPDATE SET actual_work_minutes = EXCLUDED.actual_work_minutes, standard_minutes = EXCLUDED.standard_minutes, system_detected_ot_minutes = EXCLUDED.system_detected_ot_minutes, early_ot_minutes = EXCLUDED.early_ot_minutes, late_ot_minutes = EXCLUDED.late_ot_minutes, break_ot_minutes = EXCLUDED.break_ot_minutes, scheduled_break_minutes = EXCLUDED.scheduled_break_minutes, deducted_break_minutes = EXCLUDED.deducted_break_minutes, net_work_minutes = EXCLUDED.net_work_minutes, net_paid_minutes = EXCLUDED.net_paid_minutes, work_policy_version_id = EXCLUDED.work_policy_version_id, shift_version_id = EXCLUDED.shift_version_id, updated_at = CURRENT_TIMESTAMP`, uuid.New(), item.employmentID, item.date, item.actual, item.standard, item.early+item.late+item.breakOT, item.early, item.late, item.breakOT, item.scheduledBreak, item.deductedBreak, item.netWork, item.netPaid, item.policyID, item.shiftID)
 		if err != nil {
 			return api.ReprocessResponse{}, err
 		}
