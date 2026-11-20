@@ -4,6 +4,8 @@ import React from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import Button from "@/components/ui/button";
+
 import { EmployeeOverlays } from "../employee-overlays";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
@@ -23,7 +25,7 @@ vi.mock("@/components/features/employees/employee-form-modal", () => ({
     props.isOpen ? (
       <div data-testid="employee-form-modal">
         Form
-        <button data-testid="employee-form-modal-close" onClick={props.onClose} type="button">Close</button>
+        <Button data-testid="employee-form-modal-close" onClick={props.onClose} type="button" variant="ghost">Close</Button>
       </div>
     ) : null,
 }));
