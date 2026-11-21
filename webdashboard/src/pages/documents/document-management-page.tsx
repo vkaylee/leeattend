@@ -7,8 +7,6 @@ import { FolderTree } from "@/components/documents/folder-tree";
 import { PageHeader } from "@/components/ui/page-header";
 import { useFolders } from "@/hooks/use-documents";
 
-const noop = () => undefined;
-
 export function DocumentManagementPage() {
   const { data: folders = [] } = useFolders();
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -30,12 +28,7 @@ export function DocumentManagementPage() {
           />
         </div>
         <div className="flex-1 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 overflow-y-auto shadow-sm">
-          <FileGrid
-            files={files}
-            onDeleteFile={noop}
-            onDownloadFile={noop}
-            onViewFile={noop}
-          />
+          <FileGrid files={files} />
         </div>
       </div>
     </div>
