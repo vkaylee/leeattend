@@ -49,11 +49,12 @@ export function FolderTree({
 
     // Build tree
     folders.forEach((f) => {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const node = map.get(f.id)!;
-      if (f.parent_folder_id && map.has(f.parent_folder_id)) {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        map.get(f.parent_folder_id)!.children.push(node);
+      const node = map.get(f.id);
+      if (!node) return;
+
+      const parent = f.parent_folder_id ? map.get(f.parent_folder_id) : undefined;
+      if (parent) {
+        parent.children.push(node);
       } else {
         roots.push(node);
       }
