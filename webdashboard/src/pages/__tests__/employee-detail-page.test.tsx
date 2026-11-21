@@ -54,8 +54,7 @@ vi.mock("@/pages/settings/hooks/use-locations", () => ({
   useLocations: () => ({ data: [] }),
 }));
 
-vi.mock("@/components/features/employees/employee-detail-drawer", () => ({
-  default: () => null,
+vi.mock("@/components/features/employees/employee-detail-content", () => ({
   DrawerTabContent: ({ activeDetailTab }: { activeDetailTab: string }) => (
     <div data-testid={`tab-content-${activeDetailTab}`}>Content for {activeDetailTab}</div>
   ),
