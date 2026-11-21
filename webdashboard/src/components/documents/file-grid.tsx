@@ -15,19 +15,32 @@ export interface FileGridProps {
   onViewFile?: (file: FileRecord) => void;
 }
 
-/**
- * Map MIME type to icon component. The if/else chain is inherently flat —
- * each branch is a single return. Marking complexity as acceptable.
- */
-// eslint-disable-next-line complexity
+const FILE_ICON_RULES: {
+  matches: (mimeType: string) => boolean;
+  icon: React.ReactNode;
+}[] = [
+  { matches: mimeType => mimeType.includes("pdf"), icon: <FileText className="w-8 h-8 text-red-500" /> },
+  { matches: mimeType => mimeType.includes("image"), icon: <ImageIcon className="w-8 h-8 text-blue-500" /> },
+  {
+    matches: mimeType => mimeType.includes("zip") || mimeType.includes("tar"),
+    icon: <FileArchive className="w-8 h-8 text-amber-500" />,
+  },
+  {
+    matches: mimeType => mimeType.includes("json") || mimeType.includes("javascript"),
+    icon: <FileCode className="w-8 h-8 text-slate-500" />,
+  },
+  {
+    matches: mimeType =>
+      mimeType.includes("spreadsheet") || mimeType.includes("excel") || mimeType.includes("csv"),
+    icon: <FileSpreadsheet className="w-8 h-8 text-green-500" />,
+  },
+  { matches: mimeType => mimeType.includes("word"), icon: <FileText className="w-8 h-8 text-blue-600" /> },
+];
+
 function getFileIcon(mimeType: string) {
-  if (mimeType.includes("pdf")) return <FileText className="w-8 h-8 text-red-500" />;
-  if (mimeType.includes("image")) return <ImageIcon className="w-8 h-8 text-blue-500" />;
-  if (mimeType.includes("zip") || mimeType.includes("tar")) return <FileArchive className="w-8 h-8 text-amber-500" />;
-  if (mimeType.includes("json") || mimeType.includes("javascript")) return <FileCode className="w-8 h-8 text-slate-500" />;
-  if (mimeType.includes("spreadsheet") || mimeType.includes("excel") || mimeType.includes("csv")) return <FileSpreadsheet className="w-8 h-8 text-green-500" />;
-  if (mimeType.includes("word")) return <FileText className="w-8 h-8 text-blue-600" />;
-  return <FileIcon className="w-8 h-8 text-slate-400" />;
+  return FILE_ICON_RULES.find(rule => rule.matches(mimeType))?.icon ?? (
+    <FileIcon className="w-8 h-8 text-slate-400" />
+  );
 }
 
 export function FileGrid({ files, onViewFile, onDownloadFile, onDeleteFile }: FileGridProps) {
