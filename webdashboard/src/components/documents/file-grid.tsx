@@ -6,7 +6,7 @@ import type { FileRecord } from "@/lib/api/types";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { cn } from "@/lib/utils";
+import { cn, formatBytes } from "@/lib/utils";
 
 export interface FileGridProps {
   files: FileRecord[];
@@ -28,16 +28,6 @@ function getFileIcon(mimeType: string) {
   if (mimeType.includes("spreadsheet") || mimeType.includes("excel") || mimeType.includes("csv")) return <FileSpreadsheet className="w-8 h-8 text-green-500" />;
   if (mimeType.includes("word")) return <FileText className="w-8 h-8 text-blue-600" />;
   return <FileIcon className="w-8 h-8 text-slate-400" />;
-}
-
-function formatBytes(bytes: number, decimals = 2) {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion
-  if (!+bytes) return '0 Bytes';
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
 export function FileGrid({ files, onViewFile, onDownloadFile, onDeleteFile }: FileGridProps) {

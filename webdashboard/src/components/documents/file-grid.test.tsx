@@ -34,6 +34,7 @@ describe("FileGrid", () => {
     render(<FileGrid files={[file]} />);
 
     expect(screen.getByText("policy.pdf")).toBeInTheDocument();
+    expect(screen.getByText("1 KB • 2026-11-21")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /policy\.pdf/i })).not.toBeInTheDocument();
   });
