@@ -20,7 +20,6 @@ import { WorkingPatternDesignEditor } from "@/pages/attendance/components/workin
 import { WorkingPatternSettingsSidebar } from "@/pages/attendance/components/working-pattern-settings-sidebar";
 import type { UpdateWorkingPatternRequest } from "@/lib/api/types";
 
-/* eslint-disable complexity, max-lines-per-function */
 export default function WorkingPatternsEditorPage() {
   const { t } = useTranslation();
   const { patternId } = useParams({ strict: false });
