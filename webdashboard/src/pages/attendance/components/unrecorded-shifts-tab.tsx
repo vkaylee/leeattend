@@ -11,7 +11,7 @@ import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useUnrecordedShiftsData } from "./hooks/use-unrecorded-shifts-data";
 import { NoShowTable } from "./unrecorded-shifts/no-show-table";
 import { NoShowFilterBar } from "./unrecorded-shifts/NoShowFilterBar";
-import { useNoShowExport } from "./unrecorded-shifts/useNoShowExport";
+import { useNoShowExport } from "./unrecorded-shifts/use-no-show-export";
 
 function getTodayIso(): string {
   return format(new Date(), "yyyy-MM-dd");
