@@ -32,9 +32,6 @@ export default function ImportPreviewStep({
   const total = (previewData?.valid_rows.length ?? 0) + (previewData?.invalid_rows.length ?? 0);
   const validCount = previewData?.valid_rows.length ?? 0;
   const invalidCount = previewData?.invalid_rows.length ?? 0;
-  // eslint-disable-next-line unused-imports/no-unused-vars
-  const hasPreview = previewData !== null && invalidCount > 0;
-
   return (
     <div className="space-y-6 pt-2 animate-in fade-in duration-500">
       {/* Summary cards */}

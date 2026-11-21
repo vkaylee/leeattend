@@ -19,7 +19,7 @@ import {
   EMPLOYEE_DRAWER_TAB_CONFIG,
   type DetailTabType,
 } from "@/components/features/employees/drawer-header";
-import { DrawerTabContent } from "@/components/features/employees/employee-detail-drawer";
+import { DrawerTabContent } from "@/components/features/employees/employee-detail-content";
 import { useEmployeeDetail } from "@/components/features/employees/hooks/use-employee-detail";
 import Button from "@/components/ui/button";
 import StatusBadge from "@/components/ui/status-badge";
