@@ -213,19 +213,31 @@ const TIME_PATHS: string[] = [
 const SHIFTS_PATHS: string[] = [ROUTES.SHIFTS];
 const PAYROLL_PATHS: string[] = [ROUTES.PAYROLL, ROUTES.SALARY_MANAGEMENT, ROUTES.DOCUMENTS];
 
+function matchesPathOrChild(pathname: string, path: string): boolean {
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
+const ACTIVE_NAV_GROUP_MATCHERS: readonly {
+  group: NavGroup;
+  matches: (pathname: string) => boolean;
+}[] = [
+  { group: "dashboard", matches: (pathname) => pathname === ROUTES.HOME || pathname === ROUTES.DASHBOARD },
+  { group: "org", matches: (pathname) => ORG_PATHS.some((path) => matchesPathOrChild(pathname, path)) },
+  { group: "time", matches: (pathname) => TIME_PATHS.some((path) => matchesPathOrChild(pathname, path)) },
+  { group: "shifts", matches: (pathname) => SHIFTS_PATHS.some((path) => matchesPathOrChild(pathname, path)) },
+  { group: "payroll", matches: (pathname) => PAYROLL_PATHS.some((path) => matchesPathOrChild(pathname, path)) },
+  { group: "settings", matches: (pathname) => pathname.startsWith(ROUTES.SETTINGS.ROOT) },
+  {
+    group: "system",
+    matches: (pathname) => pathname === ROUTES.AUDIT_LOGS || pathname.startsWith("/system/") || pathname.startsWith("/infra/"),
+  },
+  { group: "ess", matches: (pathname) => pathname.startsWith("/ess/") },
+];
+
 /**
  * Determines which nav group is active based on the current route path.
  * Used by IconRail to highlight the active nav group.
  */
-// eslint-disable-next-line complexity
 export function getActiveNavGroup(pathname: string): NavGroup | null {
-  if (pathname === ROUTES.HOME || pathname === ROUTES.DASHBOARD) return "dashboard";
-  if (ORG_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "org";
-  if (TIME_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "time";
-  if (SHIFTS_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "shifts";
-  if (PAYROLL_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "payroll";
-  if (pathname.startsWith(ROUTES.SETTINGS.ROOT)) return "settings";
-  if (pathname === ROUTES.AUDIT_LOGS || pathname.startsWith("/system/") || pathname.startsWith("/infra/")) return "system";
-  if (pathname.startsWith("/ess/")) return "ess";
-  return null;
+  return ACTIVE_NAV_GROUP_MATCHERS.find(({ matches }) => matches(pathname))?.group ?? null;
 }
