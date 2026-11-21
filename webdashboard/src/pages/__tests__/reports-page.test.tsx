@@ -10,6 +10,7 @@ import i18n from "../../i18n/config";
 import * as api from "../../lib/api";
 import { PaginatedResponse, AttendanceSummary, DailyAttendanceReport, Employee } from "../../lib/api/types";
 import ReportsPage from "../reports-page";
+import { filterMatrixEmployees, getActiveMonthYear } from "../reports/report-page-utils";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
@@ -54,6 +55,28 @@ vi.mock("../../lib/api", () => ({
   adminConfirmAttendance: vi.fn(),
 }));
 
+
+describe("ReportsPage helpers", () => {
+  it("uses specific month first and falls back for invalid date ranges", () => {
+    expect(getActiveMonthYear("specific_month", "invalid", { month: 2, year: 2026 })).toEqual({ month: 2, year: 2026 });
+    expect(getActiveMonthYear("last_month", "invalid", { month: 2, year: 2026 })).toEqual({ month: 2, year: 2026 });
+    expect(getActiveMonthYear("last_month", "2026-03-01", { month: 2, year: 2026 })).toEqual({ month: 3, year: 2026 });
+  });
+
+  it("filters matrix employees by shared report filters", () => {
+    const employees = [
+      { id: "active", full_name: "Active Employee", employee_id_number: "A1", department_name: "Engineering", employer_id: "employer-1", active_employment_id: "employment-1" },
+      { id: "inactive", full_name: "Inactive Employee", employee_id_number: "I1", department_name: "Engineering", employer_id: "employer-1", active_employment_id: null },
+    ] as Employee[];
+
+    expect(filterMatrixEmployees(employees, {
+      employeeStatus: "active",
+      searchQuery: "active",
+      selectedDepartmentId: "Engineering",
+      selectedEmployerId: "employer-1",
+    }).map((employee) => employee.id)).toEqual(["active"]);
+  });
+});
 
 describe("ReportsPage", () => {
   let queryClient: QueryClient;
