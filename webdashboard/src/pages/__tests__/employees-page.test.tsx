@@ -5,7 +5,6 @@ import React from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import Button from "../../components/ui/button";
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
 import { Employee, Department } from "../../lib/api/types";
