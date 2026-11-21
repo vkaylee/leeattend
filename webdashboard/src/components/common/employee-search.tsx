@@ -5,9 +5,6 @@ import { useTranslation } from 'react-i18next';
 import type { ControlSize } from "@/components/ui/control-styles";
 
 import Button from "@/components/ui/button";
-import { FilterPanel } from "@/components/ui/filter-panel";
-import { FilterTrigger } from "@/components/ui/filter-trigger";
-
 import { useMyPermissions } from '@/hooks/use-permissions';
 
 import { useDebounce } from '../../hooks/use-debounce';
@@ -15,6 +12,7 @@ import { useEmployeeSearch } from '../../hooks/use-employee-search';
 import { useEmployeeSelection } from '../../hooks/use-employee-selection';
 import { Department, Employee } from '../../lib/api/types';
 import { Combobox } from '../ui/combobox';
+import { DepartmentFilter } from "./department-filter";
 
 export interface EmployeeSearchProps {
   className?: string;
@@ -141,32 +139,58 @@ function SelectedEmployeeChips({ onRemove, selectedIds, selectedMeta }: Selected
   );
 }
 
-/**
- * EmployeeSearch — reusable employee search combobox with department filter.
- * Complexity (11) is 1 over threshold; remaining branches are JSX ternaries for
- * placeholder defaults and conditional rendering. Logic is decomposed into
- * useNormalizedIds, useEmployeeSearchOptions, and useEmployeeSelection.
- */
-// eslint-disable-next-line complexity
-export function EmployeeSearch({
+type NormalizedEmployeeSearchProps = Omit<
+  EmployeeSearchProps,
+  "departments" | "emptyQueryBehavior" | "hideChips" | "multiple" | "size"
+> & {
+  departments: Department[];
+  emptyQueryBehavior: "prompt-to-type" | "all";
+  hideChips: boolean;
+  multiple: boolean;
+  size: ControlSize;
+};
+
+function normalizeEmployeeSearchProps({
+  departments,
+  emptyQueryBehavior,
+  hideChips,
+  multiple,
+  size,
+  ...props
+}: EmployeeSearchProps): NormalizedEmployeeSearchProps {
+  return {
+    ...props,
+    departments: departments ?? [],
+    emptyQueryBehavior: emptyQueryBehavior ?? "all",
+    hideChips: hideChips ?? false,
+    multiple: multiple ?? false,
+    size: size ?? "md",
+  };
+}
+
+export function EmployeeSearch(props: EmployeeSearchProps) {
+  return <EmployeeSearchContent {...normalizeEmployeeSearchProps(props)} />;
+}
+
+function EmployeeSearchContent({
   value,
   onChange,
   placeholder,
   className,
   id,
   'data-testid': testId,
-  multiple = false,
-  hideChips = false,
+  multiple,
+  hideChips,
   keyboardShortcut,
   clearOnEscape,
   onSelectEmployee,
-  emptyQueryBehavior = 'all',
+  emptyQueryBehavior,
   permission,
   departments,
   selectedDepartmentIds,
   onDepartmentFilterChange,
-  size = "md",
-}: EmployeeSearchProps) {
+  size,
+}: NormalizedEmployeeSearchProps) {
   const { t } = useTranslation();
   const { hasPermission } = useMyPermissions();
   const [searchTerm, setSearchTerm] = useState('');
@@ -215,7 +239,15 @@ export function EmployeeSearch({
     searchTerm,
   });
 
-  const hasDepartmentFilter = Boolean(departments && departments.length > 0);
+  const departmentFilter = departments.length > 0 ? (
+    <DepartmentFilter
+      departments={departments}
+      effectiveDeptIds={effectiveDeptIds}
+      handleDeptChange={handleDeptChange}
+      size={size}
+      t={t}
+    />
+  ) : null;
 
   return (
     <div className={`space-y-2 ${className ?? ''}`}>
@@ -241,40 +273,7 @@ export function EmployeeSearch({
             value={selectedValue}
           />
         </div>
-        {hasDepartmentFilter ? (
-          (() => {
-            const deptOptions = (departments ?? []).map(d => ({ value: d.id, label: d.name }));
-            return (
-              <FilterPanel
-                className="rounded-xl"
-                container="popover"
-                mode="multi"
-                onClear={() => { handleDeptChange([]); }}
-                onToggle={(id) => {
-                  handleDeptChange(
-                    effectiveDeptIds.includes(id)
-                      ? effectiveDeptIds.filter(i => i !== id)
-                      : [...effectiveDeptIds, id]
-                  );
-                }}
-                options={deptOptions}
-                searchable
-                searchPlaceholder={t('common.search')}
-                selected={effectiveDeptIds}
-                trigger={
-                  <FilterTrigger
-                    activeCount={effectiveDeptIds.length}
-                    data-testid="employee-dept-filter"
-                    hasActive={effectiveDeptIds.length > 0}
-                    label={t('common.filter_by_department', 'Filter by department')}
-                    size={size}
-                    variant="pill-button"
-                  />
-                }
-              />
-            );
-          })()
-        ) : null}
+        {departmentFilter}
       </div>
 
       {multiple && !hideChips ? (
