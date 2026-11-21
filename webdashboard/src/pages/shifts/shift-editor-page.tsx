@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function */
 import { useQueries } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { ArrowLeft, History, Save } from "lucide-react";
