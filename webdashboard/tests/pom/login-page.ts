@@ -1,14 +1,9 @@
-/* eslint-disable @typescript-eslint/no-useless-constructor */
 import { Page, expect } from '@playwright/test';
 
 import { MOCK_USER } from '../mocks/mock-data';
 import { BasePage } from './base-page';
 
 export class LoginPage extends BasePage {
-  constructor(page: Page) {
-    super(page);
-  }
-
   async goto() {
     await super.goto('/login');
   }

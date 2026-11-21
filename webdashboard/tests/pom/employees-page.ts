@@ -1,13 +1,8 @@
-/* eslint-disable @typescript-eslint/no-useless-constructor */
 import { Page, expect } from '@playwright/test';
 
 import { BasePage } from './base-page';
 
 export class EmployeesPage extends BasePage {
-  constructor(page: Page) {
-    super(page);
-  }
-
   async goto() {
     await super.goto('/employees');
   }
