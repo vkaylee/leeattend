@@ -98,7 +98,6 @@ function DrawerMetric({ icon, isLoading, label, shortLabel, tone, value }: Drawe
     );
 }
 
-  // eslint-disable-next-line complexity
 function EmployeeDailyDrawerHeader({
     viewMode,
     setViewMode,
