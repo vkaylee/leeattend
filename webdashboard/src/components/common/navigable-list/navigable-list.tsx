@@ -9,13 +9,19 @@ import { NavigableListHeaderWrapper, SearchBarSlot } from "./navigable-list-sear
 import { NavigableListTable } from "./navigable-list-table";
 import { useNavigableListCalculations, useNavigableListInitialization } from "./use-navigable-list";
 
-/**
- * NavigableList — generic keyboard-navigable list with search and pagination.
- * Complexity (11) is 1 over threshold; remaining branches are JSX ternaries for
- * smart-header and full-page modes. Readability as a flat render is better than
- * extracting yet another wrapper.
- */
-// eslint-disable-next-line complexity
+function NavigableListSearchSlot({
+  headerSlot,
+  isFullPage,
+  searchProps,
+}: {
+  headerSlot?: React.ReactNode;
+  isFullPage: boolean;
+  searchProps: SearchProps;
+}) {
+  if (isFullPage) return null;
+  return <SearchBarSlot headerSlot={headerSlot} searchProps={searchProps} />;
+}
+
 export default function NavigableList<T>({
   columns,
   items,
@@ -83,9 +89,11 @@ export default function NavigableList<T>({
         stickySearchRef={stickySearchRef}
       />
 
-      {!isFullPage ? (
-        <SearchBarSlot headerSlot={headerSlot} searchProps={searchProps} />
-      ) : null}
+      <NavigableListSearchSlot
+        headerSlot={headerSlot}
+        isFullPage={isFullPage}
+        searchProps={searchProps}
+      />
 
       <NavigableListTable
         colSpan={colSpan}
