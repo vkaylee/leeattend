@@ -6,7 +6,6 @@ import {
   FileCode,
   FileSpreadsheet,
   FileQuestion,
-  PenSquare,
   Trash2,
   Download,
   Share2
@@ -18,7 +17,7 @@ import { format } from "date-fns";
 import type { FileRecord } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
-import SmartTable, { type EditableCellValue } from "@/components/ui/smart-table";
+import SmartTable from "@/components/ui/smart-table";
 import { formatBytes } from "@/lib/utils";
 
 // Utility to get nice icons for different mime types
@@ -36,7 +35,6 @@ interface FileListProps {
   isLoading?: boolean;
   onDelete: (fileIds: string[]) => void;
   onDownload: (file: FileRecord) => void;
-  onRename: (fileId: string, newName: string) => Promise<void>;
   onShare: (file: FileRecord) => void;
 }
 
@@ -46,8 +44,6 @@ const columns: ColumnDef<FileRecord>[] = [
     header: "Name",
     size: 350,
     meta: {
-      editable: true,
-      editType: "text",
       sticky: "left",
     },
     cell: ({ row, getValue }) => {
@@ -139,11 +135,6 @@ const getContextMenuItemsHelper = ({
     onClick: () => { onShare(row); },
   },
   {
-    label: "Rename",
-    icon: <PenSquare className="h-4 w-4" />,
-    onClick: () => undefined,
-  },
-  {
     label: "Delete",
     icon: <Trash2 className="h-4 w-4 text-rose-500" />,
     onClick: () => { onDelete([row.id]); },
@@ -155,17 +146,10 @@ export function FileList({
   files,
   isLoading,
   onDownload,
-  onRename,
   onDelete,
   onShare,
 }: FileListProps) {
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
-
-  const handleCellSave = async (rowId: string, columnId: string, value: EditableCellValue) => {
-    if (columnId === "file_name" && typeof value === "string" && value.trim()) {
-      await onRename(rowId, value.trim());
-    }
-  };
 
   const getContextMenuItems = (row: FileRecord) =>
     getContextMenuItemsHelper({ row, onDownload, onShare, onDelete });
@@ -182,7 +166,6 @@ export function FileList({
           enableDragSelect={true}
           getRowId={(row) => row.id}
           isLoading={isLoading}
-          onCellSave={handleCellSave}
           onSelectionChange={setSelectedRowIds}
           selectedRowIds={selectedRowIds}
         />

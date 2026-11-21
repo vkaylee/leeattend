@@ -65,12 +65,6 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/require-await -- async required by FileList prop signature
-  const handleRename = async (fileId: string, newName: string) => {
-    toast.success(`Renamed file to: ${newName}`);
-    // Rename endpoint is not part of current file API contract.
-  };
-
   const handleDelete = async (fileIds: string[]) => {
     // Optimistic UI update could be added here
     try {
@@ -138,7 +132,6 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
           isLoading={isLoading}
           onDelete={handleDelete}
           onDownload={handleDownload}
-          onRename={handleRename}
           onShare={handleShare}
         />
       </div>
