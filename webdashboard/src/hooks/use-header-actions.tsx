@@ -7,8 +7,7 @@ interface HeaderActionsContextValue {
 
 const HeaderActionsContext = createContext<HeaderActionsContextValue>({
   actions: null,
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  setActions: () => {},
+  setActions: () => undefined,
 });
 
 export function HeaderActionsProvider({ children }: { children: React.ReactNode }) {
