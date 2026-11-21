@@ -14,9 +14,9 @@ import ResponsiveToolbar from "@/components/ui/responsive-toolbar";
 import { ReportsHeader } from "./reports/components/reports-header";
 import { ReportsTable } from "./reports/components/reports-table";
 import { useMonthlyTimesheetData } from "./reports/hooks/use-monthly-timesheet-data";
+import { filterMatrixEmployees, getActiveMonthYear } from "./reports/report-page-utils";
 import { useReportsPage } from "./reports/hooks/use-reports-page";
 
-// eslint-disable-next-line complexity
 export default function ReportsPage() {
   const { t } = useTranslation();
   const {
@@ -58,24 +58,10 @@ export default function ReportsPage() {
 
   const matrixGridRef = useRef<TimesheetMatrixGridHandle>(null);
 
-  const startDate = dateRange.start;
-  // Active month & year for matrix should be synchronized with dateRange and specificMonth!
-  const activeMonthYear = useMemo(() => {
-    if (filterMode === "specific_month") {
-      return specificMonth;
-    }
-    if (startDate) {
-      const parts = startDate.split("-");
-      if (parts.length >= 2) {
-        const y = parseInt(parts[0], 10);
-        const m = parseInt(parts[1], 10);
-        if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
-          return { month: m, year: y };
-        }
-      }
-    }
-    return specificMonth;
-  }, [filterMode, startDate, specificMonth]);
+  const activeMonthYear = useMemo(
+    () => getActiveMonthYear(filterMode, dateRange.start, specificMonth),
+    [dateRange.start, filterMode, specificMonth],
+  );
 
   const { attendanceMap, isLoading: isLoadingAttendance } = useMonthlyTimesheetData({
     month: activeMonthYear.month,
@@ -83,38 +69,15 @@ export default function ReportsPage() {
     enabled: viewMode === "matrix",
   });
 
-  // Filter employees for TimesheetMatrixGrid using shared active filter state
-  const matrixFilteredEmployees = useMemo(() => {
-    let result = allEmployees;
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (emp) =>
-          emp.full_name.toLowerCase().includes(q) ||
-          emp.employee_id_number.toLowerCase().includes(q) ||
-          (emp.department_name ?? "").toLowerCase().includes(q) ||
-          ((emp as { employee_code?: string }).employee_code ?? "").toLowerCase().includes(q) ||
-          ((emp as { department?: string }).department ?? "").toLowerCase().includes(q)
-      );
-    }
-
-    if (selectedDepartmentId) {
-      result = result.filter((emp) => emp.department_name === selectedDepartmentId);
-    }
-
-    if (selectedEmployerId) {
-      result = result.filter((emp) => emp.employer_id === selectedEmployerId);
-    }
-
-    if (employeeStatus === "active") {
-      result = result.filter((emp) => emp.active_employment_id !== null);
-    } else if (employeeStatus === "inactive") {
-      result = result.filter((emp) => emp.active_employment_id === null);
-    }
-
-    return result;
-  }, [allEmployees, searchQuery, selectedDepartmentId, selectedEmployerId, employeeStatus]);
+  const matrixFilteredEmployees = useMemo(
+    () => filterMatrixEmployees(allEmployees, {
+      employeeStatus,
+      searchQuery,
+      selectedDepartmentId,
+      selectedEmployerId,
+    }),
+    [allEmployees, employeeStatus, searchQuery, selectedDepartmentId, selectedEmployerId],
+  );
 
   // Context-aware export trigger: CSV for Matrix, Dialog for Summary
   const handleExport = useCallback(() => {
