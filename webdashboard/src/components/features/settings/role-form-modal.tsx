@@ -30,7 +30,6 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
 
   useEffect(() => {
     if (editingRole && isOpen) {
-      // eslint-disable-next-line -- Derived state synced from props; intentional pattern
       setName(editingRole.name);
       setDescription(editingRole.description ?? "");
       setColor(editingRole.color ?? "slate");
