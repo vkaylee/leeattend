@@ -104,7 +104,6 @@ Generated from tracked Markdown/text/CSV files during documentation consolidatio
 
 ### `features`
 
-- `docs/features/TODO_reports_ui_update.md`
 - `docs/features/approval-workflow-engine.md`
 - `docs/features/bulk-ot-csv-upload.md`
 - `docs/features/bulk-ot-upload-sample.csv`
