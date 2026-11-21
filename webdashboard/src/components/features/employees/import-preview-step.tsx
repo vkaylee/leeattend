@@ -18,7 +18,6 @@ interface Props {
   previewData: TerminationPreviewResponse | null;
 }
 
-  // eslint-disable-next-line complexity
 export default function ImportPreviewStep({
   previewData,
   activeTab,
