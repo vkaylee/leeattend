@@ -132,13 +132,14 @@ export function CreateAdjustmentModal({
     ownerId,
   } = useCreateAdjustmentForm({ onClose, timezone});
 
-  const behalfOptions = behalfEmployees
-    .filter(emp => !!emp.active_employment_id)
-    .map(emp => ({
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      value: emp.active_employment_id!,
-      label: `${emp.full_name} (${emp.employee_id_number})`,
-    }));
+  const behalfOptions = behalfEmployees.flatMap((emp) =>
+    emp.active_employment_id
+      ? [{
+          value: emp.active_employment_id,
+          label: `${emp.full_name} (${emp.employee_id_number})`,
+        }]
+      : [],
+  );
 
   return (
     <Modal
