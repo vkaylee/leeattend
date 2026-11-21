@@ -184,7 +184,15 @@ function useCustomFieldSectionState(
 
 // ── Main component ────────────────────────────────────────────────────
 
-/* eslint-disable complexity -- JSX composition: loading/empty/permission/edit-mode states; logic in useCustomFieldSectionState */
+function canEditCustomFields(
+  entityType: CustomFieldSectionProps["entityType"],
+  hasPermission: (permission: string) => boolean,
+): boolean {
+  return entityType === "department"
+    ? hasPermission("departments:update")
+    : hasPermission("employees:update");
+}
+
 export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
   entityType,
   entityId,
@@ -212,10 +220,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
     cancelEditing,
   } = useCustomFieldSectionState(entityType, entityId, definitions, values);
 
-  const canEdit =
-    entityType === "department"
-      ? hasPermission("departments:update")
-      : hasPermission("employees:update");
+  const canEdit = canEditCustomFields(entityType, hasPermission);
 
   if (isLoadingDefs || isLoadingValues) {
     return (
@@ -292,4 +297,3 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
     </div>
   );
 };
-/* eslint-enable complexity */
