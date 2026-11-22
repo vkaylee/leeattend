@@ -16,7 +16,6 @@ import { CorrectionConfigCard } from "./components/correction-config-card";
 import { IntervalEditorCard } from "./components/interval-editor-card";
 import { useShiftEditor } from "./hooks/use-shift-editor";
 
-  // eslint-disable-next-line complexity
 export default function ShiftEditorPage() {
   const { t } = useTranslation();
   const { shiftId } = useParams({ strict: false });
