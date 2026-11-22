@@ -133,7 +133,6 @@ function DefaultSkeletonCard() {
 
 // ── Component ──────────────────────────────────────────────────────
 
-// eslint-disable-next-line complexity
 export default function ResponsiveTable<T>(
   props: ResponsiveTableProps<T>,
 ) {
