@@ -170,7 +170,7 @@ function BreakConfigSection({
           </div>
 
           {iv.isAutoDeduct && iv.isFixedBreak ? (
-            <BreakWindowFields interval={iv} modeId={modeId} onUpdate={update} t={t} />
+            <BreakWindowFields interval={iv} onUpdate={update} t={t} />
           ) : null}
           {iv.isAutoDeduct && !iv.isFixedBreak ? (
             <div>
@@ -211,7 +211,7 @@ function BreakConfigSection({
               </span>
             </span>
           </div>
-          {showBreakWindow ? <BreakWindowFields interval={iv} modeId={modeId} onUpdate={update} t={t} /> : null}
+          {showBreakWindow ? <BreakWindowFields interval={iv} onUpdate={update} t={t} /> : null}
           <div>
             <Button
               aria-expanded={showAdvanced}
@@ -257,12 +257,10 @@ function BreakConfigSection({
 
 function BreakWindowFields({
   interval: iv,
-  modeId,
   onUpdate,
   t,
 }: {
   interval: IntervalDraft;
-  modeId: string;
   onUpdate: (patch: Partial<IntervalDraft>) => void;
   t: TFunction;
 }) {
