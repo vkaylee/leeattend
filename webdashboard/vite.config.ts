@@ -85,7 +85,7 @@ async function findAvailablePort(
   );
 }
 
-//@ts-expect-error - legacy next.js config override during transition to vite
+// @ts-expect-error - async config callback returns a Promise<UserConfig> not covered by Vite's current overloads
 export default defineConfig(async ({ mode }: ConfigEnv) => {
   // Use process.env directly since we are in Docker and don't want to load .env files
   const viteApiUrl = process.env.VITE_API_URL;
