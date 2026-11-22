@@ -55,7 +55,7 @@ vi.mock("../hooks/use-unrecorded-shifts-data", () => ({
   getNextNoShowPageParam: vi.fn(),
 }));
 
-vi.mock("../unrecorded-shifts/useNoShowExport", () => ({
+vi.mock("../unrecorded-shifts/use-no-show-export", () => ({
   useNoShowExport: () => mockExportHook,
 }));
 

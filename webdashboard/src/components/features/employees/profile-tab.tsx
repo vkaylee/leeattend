@@ -1,4 +1,3 @@
-/* eslint-disable complexity -- multi-section profile tab with 5 defensive optional chains on API data */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import React, { useState } from "react";

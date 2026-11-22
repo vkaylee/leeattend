@@ -28,7 +28,6 @@ export interface ParsedApiError {
  * Pure function — no i18n call here so it stays import-safe from `app.tsx`
  * (which would create a circular dep with `src/i18n/config.ts`).
  */
-// eslint-disable-next-line complexity
 export function parseApiError(error: unknown): ParsedApiError {
   // 1. Structured ApiError thrown by openapi-fetch wrapper
   if (error instanceof ApiError) {

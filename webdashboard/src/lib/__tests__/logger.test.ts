@@ -60,8 +60,7 @@ describe("logError", () => {
   it("falls back to console.error in dev when Sentry is not initialized", () => {
     mockIsInitialized.mockReturnValue(false);
     vi.stubEnv("MODE", "development");
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const spy = vi.spyOn(console, "error").mockImplementation(() => { /* test spy */ });
     const error = new Error("fallback");
 
     logError(error, { component: "TestComponent" });
@@ -77,8 +76,7 @@ describe("logError", () => {
     // In vitest, import.meta.env.DEV is always true for the test runner.
     // We test the production path by checking that when context IS provided
     // and DEV is true, console.error is called only with the component prefix.
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const spy = vi.spyOn(console, "error").mockImplementation(() => { /* test spy */ });
 
     logError(new Error("silent"), { component: "SilentComponent" });
 
