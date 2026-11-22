@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -101,6 +100,162 @@ function PayrollDetailSummary({ payslips, canReadSensitive, hireDate }: { employ
   );
 }
 
+function PayrollDetailTabs({
+  activeTab,
+  setActiveTab,
+  t,
+}: {
+  activeTab: "history" | "config";
+  setActiveTab: (tab: "history" | "config") => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <nav className="px-10 py-6 bg-white dark:bg-slate-900 border-b border-slate-50 dark:border-slate-800">
+      <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
+        <Button
+          className={cn(
+            "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+            activeTab === "history"
+              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700",
+          )}
+          onClick={() => {
+            setActiveTab("history");
+          }}
+          variant="ghost"
+        >
+          <History size={14} /> {t("payroll.history_title")}
+        </Button>
+        <Button
+          className={cn(
+            "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+            activeTab === "config"
+              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700",
+          )}
+          onClick={() => {
+            setActiveTab("config");
+          }}
+          variant="ghost"
+        >
+          <Settings2 size={14} /> {t("common.payroll.employee_config.tab_title")}
+        </Button>
+      </div>
+    </nav>
+  );
+}
+
+function PayrollDetailHistory({
+  activeEmployment,
+  adjustments,
+  canReadSensitive,
+  employee,
+  hireDate,
+  isLoadingPayslips,
+  organization,
+  onResolveAdjustments,
+  payslips,
+  tracePeriod,
+}: {
+  activeEmployment: { id: string } | null | undefined;
+  adjustments: AttendanceAdjustmentRequest[];
+  canReadSensitive: boolean;
+  employee: Employee;
+  hireDate: string;
+  isLoadingPayslips: boolean;
+  organization: ReturnType<typeof useOrganization>["organization"];
+  onResolveAdjustments: () => void;
+  payslips: Payslip[];
+  tracePeriod: Date | null;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <PayrollDetailSummary
+        canReadSensitive={canReadSensitive}
+        employee={employee}
+        hireDate={hireDate}
+        payslips={payslips}
+      />
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 px-2">
+          <div className="w-1.5 h-6 bg-primary-600 rounded-full" />
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-[0.25em]">
+            {t("payroll.history_title")} Detail
+          </span>
+        </div>
+        <PayrollTable
+          adjustments={adjustments}
+          employee={employee}
+          isLoading={isLoadingPayslips}
+          onResolveAdjustments={onResolveAdjustments}
+          organization={organization}
+          payslips={payslips}
+        />
+        {activeEmployment && tracePeriod && !Number.isNaN(tracePeriod.getTime()) ? (
+          <CalculationTrace
+            employmentId={activeEmployment.id}
+            month={tracePeriod.getUTCMonth() + 1}
+            year={tracePeriod.getUTCFullYear()}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function PayrollDetailContent({
+  activeEmployment,
+  activeTab,
+  adjustments,
+  canReadSensitive,
+  employee,
+  hireDate,
+  isLoadingPayslips,
+  organization,
+  onResolveAdjustments,
+  payslips,
+  tracePeriod,
+}: {
+  activeEmployment: { id: string } | null | undefined;
+  activeTab: "history" | "config";
+  adjustments: AttendanceAdjustmentRequest[];
+  canReadSensitive: boolean;
+  employee: Employee;
+  hireDate: string;
+  isLoadingPayslips: boolean;
+  organization: ReturnType<typeof useOrganization>["organization"];
+  onResolveAdjustments: () => void;
+  payslips: Payslip[];
+  tracePeriod: Date | null;
+}) {
+  return (
+    <main className="min-h-0 flex-1 overflow-y-auto p-10 bg-white dark:bg-slate-900 custom-scrollbar scroll-smooth">
+      {activeTab === "history" ? (
+        <PayrollDetailHistory
+          activeEmployment={activeEmployment}
+          adjustments={adjustments}
+          canReadSensitive={canReadSensitive}
+          employee={employee}
+          hireDate={hireDate}
+          isLoadingPayslips={isLoadingPayslips}
+          onResolveAdjustments={onResolveAdjustments}
+          organization={organization}
+          payslips={payslips}
+          tracePeriod={tracePeriod}
+        />
+      ) : (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <EmployeeSalaryConfig
+            employeeId={employee.id}
+            employmentId={activeEmployment?.id ?? ""}
+          />
+        </div>
+      )}
+    </main>
+  );
+}
+
 export default function PayrollDetailDrawer({
   isOpen,
   onClose,
@@ -135,69 +290,24 @@ export default function PayrollDetailDrawer({
           {/* Header */}
           <PayrollDetailHeader employee={employee} />
 
-          {/* Premium Tab Switcher */}
-          <nav className="px-10 py-6 bg-white dark:bg-slate-900 border-b border-slate-50 dark:border-slate-800">
-            <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-              <Button className={cn(
-                  "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-                  activeTab === "history" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
-                )}
-                onClick={() => { setActiveTab("history"); }}
-                variant="ghost"
-              >
-                <History size={14} /> {t("payroll.history_title")}
-              </Button>
-              <Button className={cn(
-                  "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-                  activeTab === "config" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
-                )}
-                onClick={() => { setActiveTab("config"); }}
-                variant="ghost"
-              >
-                <Settings2 size={14} /> {t("common.payroll.employee_config.tab_title")}
-              </Button>
-            </div>
-          </nav>
-
-          {/* Content */}
-          <main className="min-h-0 flex-1 overflow-y-auto p-10 bg-white dark:bg-slate-900 custom-scrollbar scroll-smooth">
-            {activeTab === "history" ? (
-              <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <PayrollDetailSummary
-                  canReadSensitive={canReadSensitive}
-                  employee={employee}
-                  hireDate={hireDate}
-                  payslips={payslips}
-                />
-
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3 px-2">
-                    <div className="w-1.5 h-6 bg-primary-600 rounded-full" />
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-[0.25em]">{t("payroll.history_title")} Detail</span>
-                  </div>
-                  <PayrollTable
-                    adjustments={adjustments}
-                    employee={employee}
-                    isLoading={isLoadingPayslips}
-                    onResolveAdjustments={onResolveAdjustments}
-                    organization={organization}
-                    payslips={payslips}
-                  />
-                  {activeEmployment && tracePeriod && !Number.isNaN(tracePeriod.getTime()) ? (
-                    <CalculationTrace
-                      employmentId={activeEmployment.id}
-                      month={tracePeriod.getUTCMonth() + 1}
-                      year={tracePeriod.getUTCFullYear()}
-                    />
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <EmployeeSalaryConfig employeeId={employee.id} employmentId={activeEmployment?.id ?? ""}  />
-              </div>
-            )}
-          </main>
+          <PayrollDetailTabs
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            t={t}
+          />
+          <PayrollDetailContent
+            activeEmployment={activeEmployment}
+            activeTab={activeTab}
+            adjustments={adjustments}
+            canReadSensitive={canReadSensitive}
+            employee={employee}
+            hireDate={hireDate}
+            isLoadingPayslips={isLoadingPayslips}
+            onResolveAdjustments={onResolveAdjustments}
+            organization={organization}
+            payslips={payslips}
+            tracePeriod={tracePeriod}
+          />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
