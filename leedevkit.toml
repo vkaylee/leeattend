@@ -1,5 +1,5 @@
 [devkit]
-version = "0.11.10"
+version = "0.12.0"
 install = "global"
 source = "release"
 
