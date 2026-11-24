@@ -1,5 +1,5 @@
 [devkit]
-version = "0.12.1"
+version = "0.12.3"
 install = "global"
 source = "release"
 
@@ -16,14 +16,6 @@ ports = [3000]
 health_check = "/api/v1/health"
 go = true
 
-[services.go]
-lang = "go"
-workdir = "apiserver"
-
-[services.api]
-lang = "go"
-workdir = "apiserver"
-
 [services.webdashboard]
 dockerfile = "./webdashboard"
 lang = "typescript"
@@ -31,17 +23,14 @@ ports = [5173]
 bun = true
 
 [targets]
-api = ["api"]
+api = ["apiserver"]
 web = ["webdashboard"]
-all = ["api", "webdashboard"]
+all = ["apiserver", "webdashboard"]
 
 [test.dependencies]
 lint-api = ["apiserver"]
 unit-api = ["apiserver"]
 int-api = ["apiserver"]
-lint-go = ["apiserver"]
-unit-go = ["apiserver"]
-int-go = ["apiserver"]
 lint-web = ["bun_init", "webdashboard"]
 unit-web = ["bun_init", "webdashboard"]
 e2e-web = ["bun_init", "webdashboard"]
