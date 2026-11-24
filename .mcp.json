@@ -1,10 +1,11 @@
 {
   "mcpServers": {
-    "leedevkit-task-assessor": {
+    "leedevkit": {
+      "command": "leedevkit",
       "args": [
-        ".leedevkit/scripts/_task_assessor_mcp.py"
-      ],
-      "command": ".leedevkit/.venv/bin/python3"
+        "mcp",
+        "--stdio"
+      ]
     },
     "playwright-employee": {
       "command": "scripts/playwright-mcp-role.sh",
