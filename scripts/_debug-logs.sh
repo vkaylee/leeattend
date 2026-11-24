@@ -2,7 +2,7 @@
 
 # Internal module; source from the LeeDevKit test runner.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo "This script is an internal module. Use ./leedevkit test for project checks."
+    echo "This script is an internal module. Use leedevkit test for project checks."
     exit 1
 fi
 

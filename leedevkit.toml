@@ -1,6 +1,6 @@
 [devkit]
-version = "0.11.1"
-install = "per-project"
+version = "0.11.10"
+install = "global"
 source = "release"
 
 [project]

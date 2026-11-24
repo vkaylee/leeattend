@@ -9,7 +9,7 @@ set -euo pipefail
 # Guard: Prevent direct execution. Must be sourced or run via official entry point.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo -e "\033[0;31m❌ SECURITY VIOLATION: Direct execution of bootstrap is forbidden.\033[0m"
-    echo -e "👉 This script is an internal module. Use: \033[1m./leedevkit test\033[0m"
+    echo -e "👉 This script is an internal module. Use: \033[1mleedevkit test\033[0m"
     exit 1
 fi
 

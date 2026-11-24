@@ -107,12 +107,12 @@ To activate an agent, use the `view_file` tool to load their profile AND their d
 ## LeeDevKit base context
 
 This repository uses LeeDevKit. Before making changes, read and apply:
-`.leedevkit/templates/CLAUDE.base.md`.
+`~/.leedevkit/current/templates/CLAUDE.base.md`.
 
 Project policy lives in `.agent/`; devkit sources live at:
-- Built-in skills: `.leedevkit/.agent/skills/*/SKILL.md`
-- Community skills: `.leedevkit/skills.d/*/SKILL.md`
-- Built-in agents: `.leedevkit/.agent/agents/*.md`
+- Built-in skills: `~/.leedevkit/current/.agent/skills/*/SKILL.md`
+- Community skills: `~/.leedevkit/current/skills.d/*/SKILL.md`
+- Built-in agents: `~/.leedevkit/current/.agent/agents/*.md`
 - Project agents: `.agent/agents/*.md`
 
 Run `leedevkit --help` for available project commands.

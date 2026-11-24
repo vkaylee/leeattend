@@ -3,7 +3,7 @@
 # Guard: Prevent direct execution. Must be sourced or run via official entry point.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo -e "\033[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.\033[0m"
-    echo -e "👉 This script is an internal module. Use: \033[1m./leedevkit test\033[0m"
+    echo -e "👉 This script is an internal module. Use: \033[1mleedevkit test\033[0m"
     exit 1
 fi
 
@@ -11,7 +11,7 @@ fi
 # Guard: Prevent direct execution. Must be sourced or run via official entry point.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo -e "\033[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.\033[0m"
-    echo -e "👉 This script is an internal module. Use: \033[1m./leedevkit test\033[0m"
+    echo -e "👉 This script is an internal module. Use: \033[1mleedevkit test\033[0m"
     exit 1
 fi
 
@@ -45,7 +45,7 @@ db_backup() {
         pg_isready -h pgbouncer -p "$pooler_port" -U "$db_user" -d "$db_name" \
         </dev/null >/dev/null 2>&1; then
         echo -e "${RED}❌ Database container is not running or not ready.${NC}"
-        echo -e "${YELLOW}Start it first: ./leedevkit manage up dev${NC}"
+        echo -e "${YELLOW}Start it first: leedevkit manage up dev${NC}"
         exit 1
     fi
 
@@ -112,7 +112,7 @@ db_restore() {
         pg_isready -h pgbouncer -p "$pooler_port" -U "$db_user" -d "$db_name" \
         </dev/null >/dev/null 2>&1; then
         echo -e "${RED}❌ Database container is not running or not ready.${NC}"
-        echo -e "${YELLOW}Start it first: ./leedevkit manage up dev${NC}"
+        echo -e "${YELLOW}Start it first: leedevkit manage up dev${NC}"
         exit 1
     fi
 

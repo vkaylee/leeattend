@@ -3,7 +3,7 @@
 # Guard: Prevent direct execution. Must be sourced or run via official entry point.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo -e "\033[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.\033[0m"
-    echo -e "👉 This script is an internal module. Use: \033[1m./leedevkit test\033[0m"
+    echo -e "👉 This script is an internal module. Use: \033[1mleedevkit test\033[0m"
     exit 1
 fi
 
@@ -11,7 +11,7 @@ fi
 # Guard: Prevent direct execution. Must be sourced or run via official entry point.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo -e " [0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden. [0m"
-    echo -e "👉 This script is an internal module. Use:  [1m./leedevkit test [0m"
+    echo -e "👉 This script is an internal module. Use:  [1mleedevkit test [0m"
     exit 1
 fi
 

@@ -4,7 +4,7 @@
 
 - Runtime architecture, API, operations, development, business, audit, domain, decisions, and plans belong under `docs/`.
 - Root keeps only repository entrypoints and governance files.
-- `.agent/` contains project rules; `.leedevkit/` contains external tooling. Do not duplicate either under `docs/`.
+- `.agent/` contains project rules; LeeDevKit external tooling lives globally in `~/.leedevkit/`. Do not duplicate either under `docs/`.
 - Generated artifacts stay beside their owning source or in their existing generated location.
 
 ## Status

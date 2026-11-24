@@ -30,6 +30,6 @@ Use `leedevkit --help` for available commands. Do not invent commands from old d
 ## Context boundaries
 
 - `docs/archive/` is historical, not active instruction.
-- `.leedevkit/` is external devkit source; do not modify it for product documentation cleanup.
+- LeeDevKit is an external global tool installed at `~/.leedevkit/current/`; use global `leedevkit` CLI. Do not rely on local `.leedevkit/`.
 - `docs/dev-accounts.md` is operationally sensitive; read only for authenticated UI/API testing and never copy credentials into artifacts.
 - Do not load every plan. Choose plan by task domain and status.
