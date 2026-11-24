@@ -1,8 +1,3 @@
-[devkit]
-version = "0.12.3"
-install = "global"
-source = "release"
-
 [project]
 name = "LeeAttend"
 namespace = "leeattend"
