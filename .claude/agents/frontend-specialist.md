@@ -1,1 +1,0 @@
-../../.leedevkit/.agent/agents/frontend-specialist.md

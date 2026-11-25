@@ -1,1 +1,0 @@
-../../.leedevkit/.agent/agents/game-developer.md

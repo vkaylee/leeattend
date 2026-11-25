@@ -96,24 +96,8 @@ To prevent capability limitations, this workspace supports external AI skills:
 
 ## 🤖 Layer 5: AGENTS & SKILLS (Concurrent Pre-fetching)
 To activate an agent, use the `view_file` tool to load their profile AND their dependencies IN PARALLEL:
-- **Frontend / React / UI:** `@[.agent/agents/frontend-specialist.md]` (Dependencies: `design-rules.md`, `coding-standards.md`)
-- **Backend / Go / API:** `@[.agent/agents/backend-specialist.md]` (Dependencies: `coding-standards.md`, `database-rules.md`, `access-control.md`, `data-governance.md`)
-- **Database / Postgres:** `@[.agent/agents/database-expert.md]` (Dependencies: `database-rules.md`, `data-governance.md`, `encryption-rules.md`)
-- **DevOps / Infra:** `@[.agent/agents/devops-engineer.md]` (Dependencies: `testing-standards.md`, `observability-rules.md`, `business-continuity.md`, `supply-chain-security.md`)
-- **Security / Audit:** `@[.agent/agents/security-auditor.md]` (Dependencies: `access-control.md`, `encryption-rules.md`, `incident-response.md`, `data-governance.md`)
-
-
-<!-- leedevkit:begin -->
-## LeeDevKit base context
-
-This repository uses LeeDevKit. Before making changes, read and apply:
-`~/.leedevkit/current/templates/CLAUDE.base.md`.
-
-Project policy lives in `.agent/`; devkit sources live at:
-- Built-in skills: `~/.leedevkit/current/.agent/skills/*/SKILL.md`
-- Community skills: `~/.leedevkit/current/skills.d/*/SKILL.md`
-- Built-in agents: `~/.leedevkit/current/.agent/agents/*.md`
-- Project agents: `.agent/agents/*.md`
-
-Run `leedevkit --help` for available project commands.
-<!-- leedevkit:end -->
+- **Frontend / React / UI:** `@[~/.leedevkit/current/.agent/agents/frontend-specialist.md]` (Dependencies: `design-rules.md`, `coding-standards.md`)
+- **Backend / Go / API:** `@[~/.leedevkit/current/.agent/agents/backend-specialist.md]` (Dependencies: `coding-standards.md`, `database-rules.md`, `access-control.md`, `data-governance.md`)
+- **Database / Postgres:** `@[~/.leedevkit/current/.agent/agents/database-expert.md]` (Dependencies: `database-rules.md`, `data-governance.md`, `encryption-rules.md`)
+- **DevOps / Infra:** `@[~/.leedevkit/current/.agent/agents/devops-engineer.md]` (Dependencies: `testing-standards.md`, `observability-rules.md`, `business-continuity.md`, `supply-chain-security.md`)
+- **Security / Audit:** `@[~/.leedevkit/current/.agent/agents/security-auditor.md]` (Dependencies: `access-control.md`, `encryption-rules.md`, `incident-response.md`, `data-governance.md`)

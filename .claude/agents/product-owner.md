@@ -1,1 +1,0 @@
-../../.leedevkit/.agent/agents/product-owner.md
