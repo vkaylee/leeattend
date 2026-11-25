@@ -88,6 +88,10 @@ type DailyCalcInput struct {
 	PunchIn, PunchOut                                time.Time
 	ShiftStart, ShiftEnd                             *time.Time
 	ScheduledBreakMinutes, ActualBreakMinutes        int32
+	ApprovedBreakWorkedMinutes                       int32
+	ActualBreakCount                                 int
+	HasOpenActualBreak                               bool
+	BreakPunchMode                                   BreakPunchMode
 	BreakStart, BreakEnd                             *time.Time
 	BreakWindows                                     []BreakPair
 	WorkUnit                                         int32
@@ -101,6 +105,15 @@ type DailyCalcInput struct {
 	MaxEarlyOTMinutes                                *int32
 	SegmentID                                        *uuid.UUID
 	OTAggregationMode                                OtAggregationMode
+}
+type DayBucketResult struct {
+	Buckets              WorkBuckets
+	DeductedBreakMinutes int32
+	ActualBreakMinutes   int32
+	BreakProvisional     bool
+	BreakExceptionCode   AttendanceExceptionCode
+	StandardUnits        int32
+	OTUnits              int32
 }
 type SegmentBucket struct {
 	SegmentID *uuid.UUID
@@ -298,44 +311,116 @@ func CalculateDailyUnits(input DailyCalcInput) (int32, int32) {
 }
 
 func CalculateBuckets(input DailyCalcInput) WorkBuckets {
-	if !input.PunchOut.After(input.PunchIn) {
-		return WorkBuckets{}
+	buckets, _ := calculateSegmentBuckets(input)
+	return buckets
+}
+
+func resolveSegmentBreak(input DailyCalcInput) (int32, int32) {
+	if input.BreakPunchMode == BreakPunchModeRequired {
+		if input.ActualBreakMinutes > 0 {
+			return input.ActualBreakMinutes, 0
+		}
+		return 0, 0
 	}
-	start, end := input.PunchIn, input.PunchOut
-	standardStart, standardEnd := start, end
+	breakInput := BreakDeductionInput{ActualBreakMinutes: input.ActualBreakMinutes, ScheduledBreakMinutes: input.ScheduledBreakMinutes, IsBreakAutoDeduct: input.IsBreakAutoDeduct, IsBreakOvertime: input.IsBreakOvertime, BreakStart: input.BreakStart, BreakEnd: input.BreakEnd, BreakWindows: input.BreakWindows, PunchIn: &input.PunchIn, PunchOut: &input.PunchOut}
+	deduction := CalculateBreakDeduction(breakInput)
+	if input.ApprovedBreakWorkedMinutes > 0 {
+		deduction = max(0, deduction-input.ApprovedBreakWorkedMinutes)
+	}
+	return deduction, CalculateBreakOvertime(breakInput)
+}
+
+func calculateLateOT(input DailyCalcInput) int32 {
+	if input.ShiftEnd == nil || !input.PunchOut.After(*input.ShiftEnd) {
+		return 0
+	}
+	if input.OTCeiling != nil && input.PunchOut.After(*input.OTCeiling) {
+		return int32(input.OTCeiling.Sub(*input.ShiftEnd) / time.Minute)
+	}
+	return int32(input.PunchOut.Sub(*input.ShiftEnd) / time.Minute)
+}
+
+func calculateSegmentBuckets(input DailyCalcInput) (WorkBuckets, int32) {
+	if !input.PunchOut.After(input.PunchIn) {
+		return WorkBuckets{}, 0
+	}
+	standardStart, standardEnd := input.PunchIn, input.PunchOut
 	if input.ShiftStart != nil {
 		standardStart = maxTime(standardStart, *input.ShiftStart)
 	}
 	if input.ShiftEnd != nil {
 		standardEnd = minTime(standardEnd, *input.ShiftEnd)
 	}
-	breakInput := BreakDeductionInput{ActualBreakMinutes: input.ActualBreakMinutes, ScheduledBreakMinutes: input.ScheduledBreakMinutes, IsBreakAutoDeduct: input.IsBreakAutoDeduct, IsBreakOvertime: input.IsBreakOvertime, BreakStart: input.BreakStart, BreakEnd: input.BreakEnd, BreakWindows: input.BreakWindows, PunchIn: &input.PunchIn, PunchOut: &input.PunchOut}
-	breakDeduction := CalculateBreakDeduction(breakInput)
-	breakOvertime := CalculateBreakOvertime(breakInput)
-	standardMinutes := int32(maxDuration(standardEnd.Sub(standardStart))/time.Minute) - breakDeduction
-	if standardMinutes < 0 {
-		standardMinutes = 0
+	breakDeduction, breakOvertime := resolveSegmentBreak(input)
+	standardMinutes := max(0, int32(maxDuration(standardEnd.Sub(standardStart))/time.Minute)-breakDeduction)
+	early := applyEarlyOTRules(rawEarlyMinutes(input), input.GracePeriodMinutes, input.MaxEarlyOTMinutes)
+	late := calculateLateOT(input)
+	return WorkBuckets{StandardMinutes: standardMinutes, EarlyOTMinutes: early, LateOTMinutes: late, BreakOTMinutes: breakOvertime}, breakDeduction
+}
+
+func rawEarlyMinutes(input DailyCalcInput) int32 {
+	if !input.AllowEarlyOT || input.ShiftStart == nil || !input.PunchIn.Before(*input.ShiftStart) {
+		return 0
 	}
-	var early, late int32
-	if input.AllowEarlyOT && input.ShiftStart != nil && input.PunchIn.Before(*input.ShiftStart) {
-		early = int32((*input.ShiftStart).Sub(input.PunchIn) / time.Minute)
-		if input.GracePeriodMinutes > 0 {
-			early -= input.GracePeriodMinutes
-			if early < 0 {
-				early = 0
-			}
+	return int32((*input.ShiftStart).Sub(input.PunchIn) / time.Minute)
+}
+
+func applyEarlyOTRules(rawMinutes, graceMinutes int32, maxEarly *int32) int32 {
+	if rawMinutes <= 0 {
+		return 0
+	}
+	early := max(0, rawMinutes-max(0, graceMinutes))
+	if maxEarly != nil && early > *maxEarly {
+		early = *maxEarly
+	}
+	return early
+}
+
+func applyBreakException(result *DayBucketResult, input DailyCalcInput) {
+	if input.BreakPunchMode == BreakPunchModeRequired {
+		if input.ActualBreakCount == 0 || input.HasOpenActualBreak {
+			result.BreakProvisional = true
+			result.BreakExceptionCode = AttendanceExceptionMissingBreakPair
 		}
-		if input.MaxEarlyOTMinutes != nil && early > *input.MaxEarlyOTMinutes {
-			early = *input.MaxEarlyOTMinutes
+		return
+	}
+	if (input.ActualBreakCount > 0 || input.ActualBreakMinutes > 0) && result.BreakExceptionCode == "" {
+		result.BreakExceptionCode = AttendanceExceptionUnexpectedBreakPunch
+	}
+}
+
+func CalculateDayBuckets(inputs []DailyCalcInput, mode OtAggregationMode) DayBucketResult {
+	if len(inputs) == 0 {
+		return DayBucketResult{}
+	}
+	if mode == "" {
+		mode = OtAggregate
+	}
+	var result DayBucketResult
+	var rawEarlyTotal int32
+	for _, input := range inputs {
+		seg, deducted := calculateSegmentBuckets(input)
+		result.DeductedBreakMinutes += deducted
+		result.ActualBreakMinutes += max(0, input.ActualBreakMinutes)
+		applyBreakException(&result, input)
+		result.Buckets.StandardMinutes += seg.StandardMinutes
+		result.Buckets.LateOTMinutes += seg.LateOTMinutes
+		result.Buckets.BreakOTMinutes += seg.BreakOTMinutes
+		if mode == OtPerSegment {
+			result.Buckets.EarlyOTMinutes += seg.EarlyOTMinutes
+			result.StandardUnits += CalculateUnits(seg.StandardMinutes, input.WorkUnit, input.RoundingPolicy)
+			result.OTUnits += CalculateUnits(seg.EarlyOTMinutes+seg.LateOTMinutes+seg.BreakOTMinutes, input.WorkUnit, input.RoundingPolicy)
+		} else {
+			rawEarlyTotal += rawEarlyMinutes(input)
 		}
 	}
-	if input.ShiftEnd != nil && input.PunchOut.After(*input.ShiftEnd) {
-		late = int32(input.PunchOut.Sub(*input.ShiftEnd) / time.Minute)
-		if input.OTCeiling != nil && input.PunchOut.After(*input.OTCeiling) {
-			late = int32(input.OTCeiling.Sub(*input.ShiftEnd) / time.Minute)
-		}
+	if mode != OtPerSegment {
+		first := inputs[0]
+		result.Buckets.EarlyOTMinutes = applyEarlyOTRules(rawEarlyTotal, first.GracePeriodMinutes, first.MaxEarlyOTMinutes)
+		result.StandardUnits = CalculateUnits(result.Buckets.StandardMinutes, first.WorkUnit, first.RoundingPolicy)
+		result.OTUnits = CalculateUnits(result.Buckets.EarlyOTMinutes+result.Buckets.LateOTMinutes+result.Buckets.BreakOTMinutes, first.WorkUnit, first.RoundingPolicy)
 	}
-	return WorkBuckets{StandardMinutes: standardMinutes, EarlyOTMinutes: early, LateOTMinutes: late, BreakOTMinutes: breakOvertime}
+	return result
 }
 
 func maxTime(a, b time.Time) time.Time {

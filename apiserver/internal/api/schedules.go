@@ -77,7 +77,6 @@ type ScheduleReplanInterval struct {
 	Start                 string                `json:"start"`
 	End                   string                `json:"end"`
 	BreakPunchMode        string                `json:"break_punch_mode,omitempty"`
-	BreakCreditMode       string                `json:"break_credit_mode,omitempty"`
 	StartDayOffset        int                   `json:"start_day_offset"`
 	EndDayOffset          int                   `json:"end_day_offset"`
 	StartUTCOffsetMinutes *int                  `json:"start_utc_offset_minutes,omitempty"`
@@ -86,10 +85,9 @@ type ScheduleReplanInterval struct {
 }
 
 type ScheduleReplanBreak struct {
-	Start           string `json:"start"`
-	End             string `json:"end"`
-	BreakPunchMode  string `json:"break_punch_mode,omitempty"`
-	BreakCreditMode string `json:"break_credit_mode,omitempty"`
+	Start          string `json:"start"`
+	End            string `json:"end"`
+	BreakPunchMode string `json:"break_punch_mode,omitempty"`
 }
 
 type ScheduleReplanPreviewRequest struct {
@@ -220,10 +218,7 @@ type EffectiveSchedule struct {
 	BreakDurationMinutes *int                          `json:"break_duration_minutes"`
 	BreakStart           *string                       `json:"break_start"`
 	BreakEnd             *string                       `json:"break_end"`
-	IsBreakAutoDeduct    *bool                         `json:"is_break_auto_deduct"`
-	BreakIsOvertime      *bool                         `json:"break_is_overtime"`
 	BreakPunchMode       *string                       `json:"break_punch_mode"`
-	BreakCreditMode      *string                       `json:"break_credit_mode"`
 	Traces               []ScheduleTrace               `json:"traces"`
 	IsHoliday            bool                          `json:"is_holiday"`
 	IsHolidayPaid        bool                          `json:"is_holiday_paid"`

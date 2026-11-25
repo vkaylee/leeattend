@@ -1535,26 +1535,11 @@ CREATE TABLE public.shift_default_intervals (
 
     break_end time without time zone,
 
-    is_break_auto_deduct boolean DEFAULT true NOT NULL,
-
-    break_is_overtime boolean DEFAULT false NOT NULL,
-
     break_punch_mode text NOT NULL DEFAULT 'none',
-    break_credit_mode text NOT NULL DEFAULT 'scheduled',
 
     created_at timestamp with time zone DEFAULT now() NOT NULL,
 
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-
-    early_punch_in_grace_period_minutes integer DEFAULT 0 CONSTRAINT shift_default_intervals_early_punch_in_grace_period_mi_not_null NOT NULL,
-
-    allow_early_ot boolean DEFAULT false NOT NULL,
-
-    max_early_ot_minutes integer,
-
-    ot_aggregation_mode character varying(30) DEFAULT 'aggregate'::character varying NOT NULL,
-
-    is_night_shift boolean DEFAULT false NOT NULL,
 
     version_id uuid NOT NULL,
 
@@ -1569,8 +1554,6 @@ CREATE TABLE public.shift_default_intervals (
     CONSTRAINT shift_default_intervals_day_offsets_check CHECK (((start_day_offset >= 0) AND (end_day_offset >= start_day_offset))),
 
     CONSTRAINT shift_default_intervals_break_punch_mode_check CHECK (break_punch_mode IN ('none', 'required')),
-    CONSTRAINT shift_default_intervals_break_credit_mode_check CHECK (break_credit_mode IN ('scheduled', 'actual', 'none')),
-    CONSTRAINT shift_default_intervals_break_policy_check CHECK (NOT (break_punch_mode = 'required' AND break_credit_mode = 'scheduled')),
 
     CONSTRAINT shift_default_intervals_sort_order_check CHECK ((sort_order >= 0)),
 
@@ -6787,76 +6770,6 @@ COMMENT ON COLUMN public.shift_audit_log.new_values IS 'Full JSON snapshot of th
 
 
 COMMENT ON COLUMN public.shift_audit_log.old_values IS 'Full JSON snapshot of the superseded version including intervals. NULL on initial creation.';
-
-
-
-
-
---
-
--- Name: COLUMN shift_default_intervals.allow_early_ot; Type: COMMENT; Schema: public; Owner: -
-
---
-
-
-
-COMMENT ON COLUMN public.shift_default_intervals.allow_early_ot IS 'Whether work before scheduled start counts as overtime';
-
-
-
-
-
---
-
--- Name: COLUMN shift_default_intervals.early_punch_in_grace_period_minutes; Type: COMMENT; Schema: public; Owner: -
-
---
-
-
-
-COMMENT ON COLUMN public.shift_default_intervals.early_punch_in_grace_period_minutes IS 'Grace period (minutes) before scheduled start without late penalty';
-
-
-
-
-
---
-
--- Name: COLUMN shift_default_intervals.is_night_shift; Type: COMMENT; Schema: public; Owner: -
-
---
-
-
-
-COMMENT ON COLUMN public.shift_default_intervals.is_night_shift IS 'When true, interval hours crossing midnight are attributed to the start day';
-
-
-
-
-
---
-
--- Name: COLUMN shift_default_intervals.max_early_ot_minutes; Type: COMMENT; Schema: public; Owner: -
-
---
-
-
-
-COMMENT ON COLUMN public.shift_default_intervals.max_early_ot_minutes IS 'Maximum minutes of early overtime allowed';
-
-
-
-
-
---
-
--- Name: COLUMN shift_default_intervals.ot_aggregation_mode; Type: COMMENT; Schema: public; Owner: -
-
---
-
-
-
-COMMENT ON COLUMN public.shift_default_intervals.ot_aggregation_mode IS 'aggregate=sum all segments then apply OT threshold, per_segment=OT calculated independently per segment';
 
 
 

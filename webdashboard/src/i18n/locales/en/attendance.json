@@ -652,7 +652,7 @@
       "auto_deduct_label": "Auto-deduct break hours",
       "basic_info": "Basic Info",
       "break_config": "Break Time",
-      "break_config_help": "Choose how break time is counted within this work period.",
+      "break_config_help": "Choose how break time is captured within this work period. Break deduction and break overtime rules are configured in Work Policy.",
       "break_step_record": "How do employees record breaks?",
       "break_capture_label": "Break punch capture",
       "break_capture_none": "No break punches",

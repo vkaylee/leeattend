@@ -31,10 +31,7 @@ export interface IntervalDraft {
   endTime: string;
   endDayOffset: number;
   intervalName: string;
-  breakCreditMode: "scheduled" | "actual" | "none";
   breakPunchMode: "none" | "required";
-  isAutoDeduct: boolean;
-  isBreakOvertime: boolean;
   isFixedBreak: boolean;
   isNightShift: boolean;
   key: string;
@@ -87,7 +84,7 @@ export function getBreakValidation(interval: IntervalDraft): { key: BreakValidat
   if (!range) return { key: "interval_order", breakMinutes: null };
   if (range.end <= range.start) return { key: "interval_order", breakMinutes: null };
   if (!interval.isFixedBreak) {
-    if (interval.breakPunchMode === "none" && interval.isAutoDeduct && interval.breakDuration > range.end - range.start) {
+    if (interval.breakPunchMode === "none" && interval.breakDuration > range.end - range.start) {
       return { key: "break_duration_exceeds_interval", breakMinutes: null };
     }
     return { key: null, breakMinutes: null };
@@ -101,16 +98,13 @@ export function getBreakValidation(interval: IntervalDraft): { key: BreakValidat
   return { key: null, breakMinutes: breakEnd - breakStart };
 }
 
-export function getIntervalPreview(interval: IntervalDraft): { workMinutes: number; breakMinutes: number | null; breakLabel: "scheduled" | "actual" | "paid" } | null {
+export function getIntervalPreview(interval: IntervalDraft): { workMinutes: number; breakMinutes: number | null; breakLabel: "scheduled" | "actual" } | null {
   const range = intervalAbsoluteMinutes(interval);
   if (!range || range.end <= range.start) return null;
   const validation = getBreakValidation(interval);
   if (validation.key) return null;
   if (interval.breakPunchMode === "required") {
     return { workMinutes: range.end - range.start, breakMinutes: null, breakLabel: "actual" };
-  }
-  if (!interval.isAutoDeduct) {
-    return { workMinutes: range.end - range.start, breakMinutes: 0, breakLabel: "paid" };
   }
   const breakMinutes = interval.isFixedBreak ? validation.breakMinutes : Math.max(0, interval.breakDuration);
   return { workMinutes: range.end - range.start - (breakMinutes ?? 0), breakMinutes, breakLabel: "scheduled" };
@@ -146,10 +140,7 @@ function makeDefaultInterval(): IntervalDraft {
   return {
     key: nextIntervalKey(),
     intervalName: "",
-    breakCreditMode: "scheduled",
     breakPunchMode: "none",
-    isAutoDeduct: true,
-    isBreakOvertime: false,
     startTime: "08:00",
     endTime: "17:00",
     startDayOffset: 0,
@@ -238,22 +229,6 @@ export function useShiftEditor(shiftId?: string) {
     setIntervalDrafts(prev => prev.map(iv => {
       if (iv.key !== key) return iv;
       const next = { ...iv, ...patch };
-      if (patch.breakPunchMode === "required") {
-        next.breakPunchMode = "required";
-        next.breakCreditMode = "actual";
-        next.isAutoDeduct = false;
-      } else if (patch.breakPunchMode === "none") {
-        next.breakPunchMode = "none";
-        next.breakCreditMode = next.isAutoDeduct ? "scheduled" : "none";
-      }
-      if (patch.isAutoDeduct !== undefined && next.breakPunchMode === "none") {
-        next.breakCreditMode = patch.isAutoDeduct ? "scheduled" : "none";
-        if (!patch.isAutoDeduct) {
-          next.breakStart = "";
-          next.breakEnd = "";
-          next.isFixedBreak = false;
-        }
-      }
       if (patch.isFixedBreak === false) {
         next.breakStart = "";
         next.breakEnd = "";
@@ -278,10 +253,7 @@ export function useShiftEditor(shiftId?: string) {
       return editingShift.intervals.map((iv): IntervalDraft => ({
         key: nextIntervalKey(),
         intervalName: iv.interval_name ?? "",
-        breakCreditMode: iv.break_credit_mode === "actual" || iv.break_credit_mode === "none" ? iv.break_credit_mode : "scheduled",
         breakPunchMode: iv.break_punch_mode === "required" ? "required" : "none",
-        isAutoDeduct: iv.is_break_auto_deduct ?? true,
-        isBreakOvertime: iv.break_is_overtime ?? false,
         startTime: iv.start_time.substring(0, 5),
         endTime: iv.end_time.substring(0, 5),
         startDayOffset: iv.start_day_offset ?? 0,
@@ -343,10 +315,7 @@ export function useShiftEditor(shiftId?: string) {
       break_duration_minutes: iv.isFixedBreak ? getBreakValidation(iv).breakMinutes ?? 0 : iv.breakDuration,
       break_start: iv.isFixedBreak && iv.breakStart ? padTime(iv.breakStart) : null,
       break_end: iv.isFixedBreak && iv.breakEnd ? padTime(iv.breakEnd) : null,
-      break_credit_mode: iv.breakPunchMode === "required" ? "actual" : iv.isAutoDeduct ? "scheduled" : "none",
       break_punch_mode: iv.breakPunchMode,
-      is_break_auto_deduct: iv.breakPunchMode === "none" && iv.isAutoDeduct,
-      break_is_overtime: iv.isBreakOvertime,
     }));
 
     return {

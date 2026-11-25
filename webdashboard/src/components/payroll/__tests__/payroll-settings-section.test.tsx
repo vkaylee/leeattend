@@ -313,6 +313,60 @@ describe("PayrollSettingsSection", () => {
     expect(api.createWorkPolicyGroupVersion).not.toHaveBeenCalled();
   });
 
+  it("submits all 7 attendance & Early OT work policy rule fields", async () => {
+    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
+      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
+      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
+      pay_method: "monthly", effective_from: "2026-01-01",
+      late_arrival_grace_minutes: 5, early_ot_enabled: false, early_ot_qualification_grace_minutes: 10,
+      early_ot_max_minutes: null, break_auto_deduct: true, break_is_overtime: false, ot_aggregation_mode: "aggregate",
+    }]);
+    vi.mocked(api.createWorkPolicyGroupVersion).mockResolvedValue({} as never);
+    renderWithProviders(<PayrollSettingsSection />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
+    fireEvent.change((await screen.findAllByLabelText("common.payroll.settings.work_policy_effective_from"))[0], { target: { value: "2026-08-01" } });
+    fireEvent.change(await screen.findByLabelText("common.payroll.settings.work_policy_minutes"), { target: { value: "480" } });
+    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_late_grace"), { target: { value: "10" } });
+    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_early_ot_grace"), { target: { value: "15" } });
+    fireEvent.click(screen.getByLabelText("common.payroll.settings.work_policy_early_ot_enabled"));
+    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_early_ot_max"), { target: { value: "45" } });
+    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_ot_aggregation"), { target: { value: "per_segment" } });
+    fireEvent.click(screen.getByLabelText("common.payroll.settings.work_policy_break_auto_deduct"));
+    fireEvent.click(screen.getByLabelText("common.payroll.settings.work_policy_break_is_overtime"));
+    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_create" }));
+
+    await waitFor(() => {
+      expect(api.createWorkPolicyGroupVersion).toHaveBeenCalledWith("g-1", expect.objectContaining({
+        late_arrival_grace_minutes: 10,
+        early_ot_enabled: true,
+        early_ot_qualification_grace_minutes: 15,
+        early_ot_max_minutes: 45,
+        ot_aggregation_mode: "per_segment",
+        break_auto_deduct: false,
+        break_is_overtime: true,
+      }));
+    });
+  });
+
+  it("rejects negative grace or early OT minute limits before submission", async () => {
+    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
+      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
+      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
+      pay_method: "monthly", effective_from: "2026-01-01",
+    }]);
+    renderWithProviders(<PayrollSettingsSection />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
+    fireEvent.change((await screen.findAllByLabelText("common.payroll.settings.work_policy_effective_from"))[0], { target: { value: "2026-08-01" } });
+    fireEvent.change(await screen.findByLabelText("common.payroll.settings.work_policy_minutes"), { target: { value: "480" } });
+    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_late_grace"), { target: { value: "-5" } });
+    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_create" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.work_policy_rules_validation");
+    expect(api.createWorkPolicyGroupVersion).not.toHaveBeenCalled();
+  });
+
   it("calls update API when save button is clicked", async () => {
  
     vi.mocked(api.updatePayrollSettings).mockResolvedValue({} as unknown as never);

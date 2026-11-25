@@ -340,3 +340,100 @@ func TestCalculateAttendance_RejectsInvalidBreakPair(t *testing.T) {
 		t.Fatalf("expected invalid calculation error, got %v", err)
 	}
 }
+
+func TestCalculateDayBuckets_OTAggregationAggregateVsPerSegment(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	mStart, mEnd := date.Add(8*time.Hour), date.Add(12*time.Hour)
+	aStart, aEnd := date.Add(14*time.Hour), date.Add(18*time.Hour)
+	cap30 := int32(30)
+
+	// 10m early on morning + 10m early on afternoon, grace 15m:
+	// aggregate => (10+10)-15 = 5m; per_segment => max(0,10-15) + max(0,10-15) = 0m.
+	splitGrace := []DailyCalcInput{
+		{
+			PunchIn: mStart.Add(-10 * time.Minute), PunchOut: mEnd,
+			ShiftStart: &mStart, ShiftEnd: &mEnd,
+			WorkUnit: 30, RoundingPolicy: RoundingPolicyFloor,
+			AllowEarlyOT: true, GracePeriodMinutes: 15, MaxEarlyOTMinutes: &cap30,
+		},
+		{
+			PunchIn: aStart.Add(-10 * time.Minute), PunchOut: aEnd,
+			ShiftStart: &aStart, ShiftEnd: &aEnd,
+			WorkUnit: 30, RoundingPolicy: RoundingPolicyFloor,
+			AllowEarlyOT: true, GracePeriodMinutes: 15, MaxEarlyOTMinutes: &cap30,
+		},
+	}
+	agg := CalculateDayBuckets(splitGrace, OtAggregate)
+	if agg.Buckets.EarlyOTMinutes != 5 {
+		t.Fatalf("aggregate early OT: want 5, got %d", agg.Buckets.EarlyOTMinutes)
+	}
+	perSeg := CalculateDayBuckets(splitGrace, OtPerSegment)
+	if perSeg.Buckets.EarlyOTMinutes != 0 {
+		t.Fatalf("per_segment early OT: want 0, got %d", perSeg.Buckets.EarlyOTMinutes)
+	}
+
+	// 40m early on each segment, grace 0m, cap 30m:
+	// aggregate => min(80, 30) = 30m; per_segment => min(40,30) + min(40,30) = 60m.
+	splitCap := []DailyCalcInput{
+		{
+			PunchIn: mStart.Add(-40 * time.Minute), PunchOut: mEnd,
+			ShiftStart: &mStart, ShiftEnd: &mEnd,
+			WorkUnit: 30, RoundingPolicy: RoundingPolicyFloor,
+			AllowEarlyOT: true, MaxEarlyOTMinutes: &cap30,
+		},
+		{
+			PunchIn: aStart.Add(-40 * time.Minute), PunchOut: aEnd,
+			ShiftStart: &aStart, ShiftEnd: &aEnd,
+			WorkUnit: 30, RoundingPolicy: RoundingPolicyFloor,
+			AllowEarlyOT: true, MaxEarlyOTMinutes: &cap30,
+		},
+	}
+	aggCap := CalculateDayBuckets(splitCap, OtAggregate)
+	if aggCap.Buckets.EarlyOTMinutes != 30 {
+		t.Fatalf("aggregate capped early OT: want 30, got %d", aggCap.Buckets.EarlyOTMinutes)
+	}
+	perSegCap := CalculateDayBuckets(splitCap, OtPerSegment)
+	if perSegCap.Buckets.EarlyOTMinutes != 60 {
+		t.Fatalf("per_segment capped early OT: want 60, got %d", perSegCap.Buckets.EarlyOTMinutes)
+	}
+}
+
+func TestCalculateDayBuckets_BreakCaptureAndOverrides(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	shiftStart, shiftEnd := date.Add(8*time.Hour), date.Add(17*time.Hour)
+	bStart, bEnd := date.Add(12*time.Hour), date.Add(13*time.Hour)
+	base := DailyCalcInput{
+		PunchIn: shiftStart, PunchOut: shiftEnd, ShiftStart: &shiftStart, ShiftEnd: &shiftEnd,
+		ScheduledBreakMinutes: 60, BreakStart: &bStart, BreakEnd: &bEnd, IsBreakAutoDeduct: true,
+		WorkUnit: 30, RoundingPolicy: RoundingPolicyFloor,
+	}
+	reqActual := base
+	reqActual.BreakPunchMode, reqActual.ActualBreakMinutes, reqActual.ActualBreakCount = BreakPunchModeRequired, 45, 1
+	reqMissing := base
+	reqMissing.BreakPunchMode = BreakPunchModeRequired
+	noneOverride := base
+	noneOverride.BreakPunchMode, noneOverride.ApprovedBreakWorkedMinutes = BreakPunchModeNone, 30
+	noneUnexpected := base
+	noneUnexpected.BreakPunchMode, noneUnexpected.ActualBreakMinutes, noneUnexpected.ActualBreakCount = BreakPunchModeNone, 60, 1
+
+	for _, tc := range []struct {
+		name         string
+		input        DailyCalcInput
+		wantStd      int32
+		wantDeducted int32
+		wantProv     bool
+		wantExc      AttendanceExceptionCode
+	}{
+		{"required actual break ignores scheduled 60m", reqActual, 495, 45, false, ""},
+		{"required missing break flags missing_break_pair", reqMissing, 540, 0, true, AttendanceExceptionMissingBreakPair},
+		{"none auto-deduct minus approved break_worked", noneOverride, 510, 30, false, ""},
+		{"none unexpected break punch flags exception", noneUnexpected, 480, 60, false, AttendanceExceptionUnexpectedBreakPunch},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := CalculateDayBuckets([]DailyCalcInput{tc.input}, OtAggregate)
+			if got.Buckets.StandardMinutes != tc.wantStd || got.DeductedBreakMinutes != tc.wantDeducted || got.BreakProvisional != tc.wantProv || got.BreakExceptionCode != tc.wantExc {
+				t.Fatalf("got %+v, want std=%d ded=%d prov=%v exc=%q", got, tc.wantStd, tc.wantDeducted, tc.wantProv, tc.wantExc)
+			}
+		})
+	}
+}

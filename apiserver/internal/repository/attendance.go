@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/matcher"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/payroll/buckets"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
@@ -403,17 +404,39 @@ func (r AttendanceRepository) GetESSAttendanceState(ctx context.Context, employe
 	return api.AttendanceActionResponse{State: "working", NextAllowedActions: []string{api.AttendanceActionBreakStart, api.AttendanceActionWorkOut}, Entry: &entry}, nil
 }
 
-func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate, endDate string, employeeID *uuid.UUID) (api.ReprocessResponse, error) {
-	db, err := r.db(ctx)
-	if err != nil {
-		return api.ReprocessResponse{}, err
+func decodeReprocessAttendanceRules(raw []byte) api.AttendanceRules {
+	rules := api.DefaultAttendanceRules()
+	if len(raw) == 0 {
+		return rules
 	}
-	if err := ensureReprocessPeriodsOpen(ctx, db, startDate, endDate, employeeID); err != nil {
-		return api.ReprocessResponse{}, err
+	var decoded api.AttendanceRules
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return rules
 	}
-	if err := pairRawLogsForReprocess(ctx, db, startDate, endDate, employeeID); err != nil {
-		return api.ReprocessResponse{}, err
+	if decoded.WorkUnitMinutes > 0 {
+		rules.WorkUnitMinutes = decoded.WorkUnitMinutes
 	}
+	if decoded.RoundingPolicy != "" {
+		rules.RoundingPolicy = decoded.RoundingPolicy
+	}
+	if decoded.EarlyArrivalStrategy != "" {
+		rules.EarlyArrivalStrategy = decoded.EarlyArrivalStrategy
+	}
+	return rules
+}
+
+type reprocessDailyGroup struct {
+	employmentID      uuid.UUID
+	date              string
+	actual            int
+	lateMinutes       int
+	scheduledBreak    int
+	policyID, shiftID *uuid.UUID
+	otAggMode         buckets.OtAggregationMode
+	inputs            []buckets.DailyCalcInput
+}
+
+func loadReprocessDailyGroups(ctx context.Context, db DBTX, startDate, endDate string, employeeID *uuid.UUID) ([]*reprocessDailyGroup, error) {
 	businessDateExpr := `COALESCE(ws.date, (te.punch_in_time AT TIME ZONE COALESCE(sdr.timezone, 'UTC'))::date)`
 	where := businessDateExpr + ` >= $1::date AND ` + businessDateExpr + ` <= $2::date`
 	args := []any{startDate, endDate}
@@ -421,89 +444,162 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 		where += " AND e.employee_id = $3"
 		args = append(args, *employeeID)
 	}
-	rows, err := db.Query(ctx, `SELECT te.employment_id, `+businessDateExpr+`::text, te.punch_in_time, te.punch_out_time, te.duration_minutes, te.segment_id, te.shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot, wp.id, wc.minutes_per_credit, wc.early_ot_enabled, wc.early_ot_qualification_grace_minutes, wc.early_ot_max_minutes, wc.break_auto_deduct, wc.break_is_overtime
+	rows, err := db.Query(ctx, `SELECT te.employment_id, `+businessDateExpr+`::text, te.punch_in_time, te.punch_out_time, te.duration_minutes, te.segment_id, te.shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot, COALESCE(sdi.break_punch_mode, 'none'), wp.id, COALESCE(wc.late_arrival_grace_minutes, 0), COALESCE(wc.early_ot_enabled, false), COALESCE(wc.early_ot_qualification_grace_minutes, 0), wc.early_ot_max_minutes, COALESCE(wc.break_auto_deduct, true), COALESCE(wc.break_is_overtime, false), COALESCE(wc.ot_aggregation_mode, 'aggregate'), apv.rules, COALESCE(tbr.actual_break_minutes, 0), COALESCE(tbr.actual_break_count, 0), COALESCE(tbr.has_open_break, false), COALESCE(bwo.approved_break_worked_minutes, 0)
 		FROM time_entries te
 		JOIN employments e ON e.id = te.employment_id
 		LEFT JOIN work_segments ws ON ws.id = te.segment_id
+		LEFT JOIN shift_default_intervals sdi ON sdi.id = ws.interval_id
 		LEFT JOIN schedule_day_revisions sdr ON sdr.id = ws.schedule_revision_id
 		LEFT JOIN labor_policy_memberships lm ON lm.employment_id = te.employment_id AND lm.effective_from <= `+businessDateExpr+` AND (lm.effective_to IS NULL OR lm.effective_to > `+businessDateExpr+`)
 		LEFT JOIN labor_policy_group_versions wp ON wp.group_id = lm.group_id AND wp.effective_from <= `+businessDateExpr+` AND (wp.effective_to IS NULL OR wp.effective_to > `+businessDateExpr+`)
 		LEFT JOIN work_credit_policies wc ON wc.id = wp.work_credit_policy_id
+		LEFT JOIN LATERAL (
+			SELECT v.rules
+			FROM attendance_policy_versions v
+			WHERE v.policy_id = wc.attendance_policy_id
+			  AND v.valid_from <= ((`+businessDateExpr+`::date + INTERVAL '1 day') - INTERVAL '1 second')
+			  AND (v.valid_to IS NULL OR v.valid_to > `+businessDateExpr+`::date)
+			ORDER BY v.valid_from DESC, v.created_at DESC
+			LIMIT 1
+		) apv ON true
+		LEFT JOIN LATERAL (
+			SELECT
+				COALESCE(SUM(CASE WHEN tb.break_end_at IS NOT NULL THEN GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (tb.break_end_at - tb.break_start_at)) / 60)) ELSE 0 END), 0)::integer AS actual_break_minutes,
+				COUNT(*)::integer AS actual_break_count,
+				BOOL_OR(tb.break_end_at IS NULL) AS has_open_break
+			FROM time_entry_breaks tb
+			WHERE tb.time_entry_id = te.id
+		) tbr ON true
+		LEFT JOIN LATERAL (
+			SELECT COALESCE(SUM(o.minutes), 0)::integer AS approved_break_worked_minutes
+			FROM schedule_day_overrides o
+			WHERE o.employment_id = te.employment_id
+			  AND o.business_date = `+businessDateExpr+`
+			  AND o.work_segment_id = te.segment_id
+			  AND o.override_type = 'break_worked'
+			  AND o.status = 'approved'
+		) bwo ON true
 		WHERE `+where+` AND te.punch_out_time IS NOT NULL ORDER BY te.employment_id, te.punch_in_time`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	byKey := make(map[string]*reprocessDailyGroup)
+	var ordered []*reprocessDailyGroup
+	for rows.Next() {
+		item, err := scanReprocessRow(rows, byKey)
+		if err != nil {
+			return nil, err
+		}
+		if item != nil {
+			ordered = append(ordered, item)
+		}
+	}
+	return ordered, rows.Err()
+}
+
+func scanReprocessRow(rows pgx.Rows, byKey map[string]*reprocessDailyGroup) (*reprocessDailyGroup, error) {
+	var empID uuid.UUID
+	var dateStr, intervalBreakPunchMode, otAggMode string
+	var punchIn, punchOut time.Time
+	var duration, maxEarly *int
+	var segmentID, shiftID, policyID *uuid.UUID
+	var startAt, endAt *time.Time
+	var breaks, attRulesRaw []byte
+	var lateGrace, earlyGrace, actualBreakMins, actualBreakCount, approvedBreakWorked int
+	var earlyEnabled, breakAuto, breakOT, hasOpenBreak bool
+	if err := rows.Scan(&empID, &dateStr, &punchIn, &punchOut, &duration, &segmentID, &shiftID, &startAt, &endAt, &breaks, &intervalBreakPunchMode, &policyID, &lateGrace, &earlyEnabled, &earlyGrace, &maxEarly, &breakAuto, &breakOT, &otAggMode, &attRulesRaw, &actualBreakMins, &actualBreakCount, &hasOpenBreak, &approvedBreakWorked); err != nil {
+		return nil, err
+	}
+	if policyID == nil {
+		return nil, api.ErrAttendancePolicyMissing
+	}
+	breakWindows, breakStart, breakEnd, scheduledBreak, breakPunchMode, err := parseBreakWindowsSnapshot(breaks)
+	if err != nil {
+		return nil, err
+	}
+	if intervalBreakPunchMode == string(buckets.BreakPunchModeRequired) {
+		breakPunchMode = buckets.BreakPunchModeRequired
+	}
+	attRules := decodeReprocessAttendanceRules(attRulesRaw)
+	key := empID.String() + ":" + dateStr
+	item := byKey[key]
+	var created *reprocessDailyGroup
+	if item == nil {
+		item = &reprocessDailyGroup{employmentID: empID, date: dateStr, otAggMode: buckets.OtAggregationMode(otAggMode)}
+		byKey[key] = item
+		created = item
+	}
+	item.actual += int(punchOut.Sub(punchIn) / time.Minute)
+	item.scheduledBreak += int(scheduledBreak)
+	if startAt != nil {
+		item.lateMinutes += int(matcher.ComputeLateMinutes(punchIn, *startAt, lateGrace, false))
+	}
+	var maxEarly32 *int32
+	if maxEarly != nil {
+		v := int32(*maxEarly)
+		maxEarly32 = &v
+	}
+	item.inputs = append(item.inputs, buckets.DailyCalcInput{
+		PunchIn: punchIn, PunchOut: punchOut, ShiftStart: startAt, ShiftEnd: endAt,
+		ScheduledBreakMinutes: scheduledBreak, ActualBreakMinutes: int32(actualBreakMins),
+		ApprovedBreakWorkedMinutes: int32(approvedBreakWorked), ActualBreakCount: actualBreakCount,
+		HasOpenActualBreak: hasOpenBreak, BreakPunchMode: breakPunchMode,
+		BreakStart: breakStart, BreakEnd: breakEnd, BreakWindows: breakWindows,
+		WorkUnit: int32(max(1, attRules.WorkUnitMinutes)), RoundingPolicy: buckets.RoundingPolicy(attRules.RoundingPolicy),
+		EarlyArrivalStrategy: attRules.EarlyArrivalStrategy, GracePeriodMinutes: int32(earlyGrace),
+		AllowEarlyOT: earlyEnabled, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT,
+		MaxEarlyOTMinutes: maxEarly32, SegmentID: segmentID, OTAggregationMode: buckets.OtAggregationMode(otAggMode),
+	})
+	item.policyID = policyID
+	item.shiftID = shiftID
+	return created, nil
+}
+
+func upsertReprocessSummary(ctx context.Context, db DBTX, item *reprocessDailyGroup) error {
+	calc := buckets.CalculateDayBuckets(item.inputs, item.otAggMode)
+	var excCode *string
+	if calc.BreakExceptionCode != "" {
+		s := string(calc.BreakExceptionCode)
+		excCode = &s
+	}
+	sysOT := int(calc.Buckets.EarlyOTMinutes + calc.Buckets.LateOTMinutes + calc.Buckets.BreakOTMinutes)
+	_, err := db.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, employment_id, date, actual_work_minutes, standard_minutes, late_minutes, system_detected_ot_minutes, early_ot_minutes, late_ot_minutes, break_ot_minutes, scheduled_break_minutes, actual_break_minutes, deducted_break_minutes, net_work_minutes, net_paid_minutes, break_provisional, break_exception_code, work_policy_version_id, shift_version_id, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, date) DO UPDATE SET actual_work_minutes = EXCLUDED.actual_work_minutes, standard_minutes = EXCLUDED.standard_minutes, late_minutes = EXCLUDED.late_minutes, system_detected_ot_minutes = EXCLUDED.system_detected_ot_minutes, early_ot_minutes = EXCLUDED.early_ot_minutes, late_ot_minutes = EXCLUDED.late_ot_minutes, break_ot_minutes = EXCLUDED.break_ot_minutes, scheduled_break_minutes = EXCLUDED.scheduled_break_minutes, actual_break_minutes = EXCLUDED.actual_break_minutes, deducted_break_minutes = EXCLUDED.deducted_break_minutes, net_work_minutes = EXCLUDED.net_work_minutes, net_paid_minutes = EXCLUDED.net_paid_minutes, break_provisional = EXCLUDED.break_provisional, break_exception_code = EXCLUDED.break_exception_code, work_policy_version_id = EXCLUDED.work_policy_version_id, shift_version_id = EXCLUDED.shift_version_id, updated_at = CURRENT_TIMESTAMP`, uuid.New(), item.employmentID, item.date, item.actual, int(calc.Buckets.StandardMinutes), item.lateMinutes, sysOT, int(calc.Buckets.EarlyOTMinutes), int(calc.Buckets.LateOTMinutes), int(calc.Buckets.BreakOTMinutes), item.scheduledBreak, int(calc.ActualBreakMinutes), int(calc.DeductedBreakMinutes), int(calc.Buckets.StandardMinutes), int(calc.Buckets.StandardMinutes), calc.BreakProvisional, excCode, item.policyID, item.shiftID)
+	return err
+}
+
+func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate, endDate string, employeeID *uuid.UUID) (api.ReprocessResponse, error) {
+	beginner, err := r.begin(ctx)
 	if err != nil {
 		return api.ReprocessResponse{}, err
 	}
-	defer rows.Close()
-	type daily struct {
-		employmentID                           uuid.UUID
-		date                                   string
-		actual, standard, early, late, breakOT int
-		scheduledBreak, deductedBreak          int
-		netWork, netPaid                       int
-		policyID, shiftID                      *uuid.UUID
-		minutesPerCredit                       int
-	}
-	results := make(map[string]*daily)
-	for rows.Next() {
-		var d daily
-		var punchIn, punchOut time.Time
-		var duration *int
-		var segmentID, shiftID, policyID *uuid.UUID
-		var startAt, endAt *time.Time
-		var breaks []byte
-		var earlyEnabled, breakAuto, breakOT bool
-		var grace int
-		var maxEarly *int
-		if err := rows.Scan(&d.employmentID, &d.date, &punchIn, &punchOut, &duration, &segmentID, &shiftID, &startAt, &endAt, &breaks, &policyID, &d.minutesPerCredit, &earlyEnabled, &grace, &maxEarly, &breakAuto, &breakOT); err != nil {
-			return api.ReprocessResponse{}, err
+	var response api.ReprocessResponse
+	err = service.WithTx(ctx, beginner, func(ctx context.Context, db pgx.Tx) error {
+		if err := ensureReprocessPeriodsOpen(ctx, db, startDate, endDate, employeeID); err != nil {
+			return err
 		}
-		if policyID == nil {
-			return api.ReprocessResponse{}, api.ErrAttendancePolicyMissing
+		if err := pairRawLogsForReprocess(ctx, db, startDate, endDate, employeeID); err != nil {
+			return err
 		}
-		breakWindows, breakStart, breakEnd, scheduledBreak, err := parseBreakWindowsSnapshot(breaks)
+		groups, err := loadReprocessDailyGroups(ctx, db, startDate, endDate, employeeID)
 		if err != nil {
-			return api.ReprocessResponse{}, err
+			return err
 		}
-		key := d.employmentID.String() + ":" + d.date
-		item := results[key]
-		if item == nil {
-			item = &d
-			results[key] = item
-		}
-		item.actual += int(punchOut.Sub(punchIn) / time.Minute)
-		input := buckets.DailyCalcInput{PunchIn: punchIn, PunchOut: punchOut, ShiftStart: startAt, ShiftEnd: endAt, ScheduledBreakMinutes: scheduledBreak, BreakStart: breakStart, BreakEnd: breakEnd, BreakWindows: breakWindows, WorkUnit: int32(max(1, d.minutesPerCredit)), GracePeriodMinutes: int32(grace), AllowEarlyOT: earlyEnabled, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT, MaxEarlyOTMinutes: func() *int32 {
-			if maxEarly == nil {
-				return nil
+		for _, item := range groups {
+			if err := upsertReprocessSummary(ctx, db, item); err != nil {
+				return err
 			}
-			v := int32(*maxEarly)
-			return &v
-		}()}
-		calculated := buckets.CalculateBuckets(input)
-		item.scheduledBreak += int(scheduledBreak)
-		item.deductedBreak += int(buckets.CalculateBreakDeduction(buckets.BreakDeductionInput{ScheduledBreakMinutes: scheduledBreak, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT, BreakStart: breakStart, BreakEnd: breakEnd, BreakWindows: breakWindows, PunchIn: &punchIn, PunchOut: &punchOut}))
-		item.netWork += int(calculated.StandardMinutes)
-		item.netPaid += int(calculated.StandardMinutes)
-		item.standard += int(calculated.StandardMinutes)
-		item.early += int(calculated.EarlyOTMinutes)
-		item.late += int(calculated.LateOTMinutes)
-		item.breakOT += int(calculated.BreakOTMinutes)
-		item.policyID = policyID
-		item.shiftID = shiftID
-	}
-	if err := rows.Err(); err != nil {
+		}
+		response = api.ReprocessResponse{StartDate: startDate, EndDate: endDate, Days: len(groups), Recalculated: len(groups)}
+		if employeeID != nil {
+			response.EmploymentID = employeeID
+		}
+		return nil
+	})
+	if err != nil {
 		return api.ReprocessResponse{}, err
 	}
-	for _, item := range results {
-		_, err := db.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, employment_id, date, actual_work_minutes, standard_minutes, system_detected_ot_minutes, early_ot_minutes, late_ot_minutes, break_ot_minutes, scheduled_break_minutes, deducted_break_minutes, net_work_minutes, net_paid_minutes, work_policy_version_id, shift_version_id, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, date) DO UPDATE SET actual_work_minutes = EXCLUDED.actual_work_minutes, standard_minutes = EXCLUDED.standard_minutes, system_detected_ot_minutes = EXCLUDED.system_detected_ot_minutes, early_ot_minutes = EXCLUDED.early_ot_minutes, late_ot_minutes = EXCLUDED.late_ot_minutes, break_ot_minutes = EXCLUDED.break_ot_minutes, scheduled_break_minutes = EXCLUDED.scheduled_break_minutes, deducted_break_minutes = EXCLUDED.deducted_break_minutes, net_work_minutes = EXCLUDED.net_work_minutes, net_paid_minutes = EXCLUDED.net_paid_minutes, work_policy_version_id = EXCLUDED.work_policy_version_id, shift_version_id = EXCLUDED.shift_version_id, updated_at = CURRENT_TIMESTAMP`, uuid.New(), item.employmentID, item.date, item.actual, item.standard, item.early+item.late+item.breakOT, item.early, item.late, item.breakOT, item.scheduledBreak, item.deductedBreak, item.netWork, item.netPaid, item.policyID, item.shiftID)
-		if err != nil {
-			return api.ReprocessResponse{}, err
-		}
-	}
-	result := api.ReprocessResponse{StartDate: startDate, EndDate: endDate, Days: len(results), Recalculated: len(results)}
-	if employeeID != nil {
-		result.EmploymentID = employeeID
-	}
-	return result, nil
+	return response, nil
 }
 
 func (r AttendanceRepository) db(ctx context.Context) (DBTX, error) {

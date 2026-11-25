@@ -13995,17 +13995,11 @@ components:
         - name
     EffectiveSchedule:
       properties:
-        break_credit_mode:
-          type: string
-          nullable: true
         break_duration_minutes:
           type: number
           nullable: true
         break_end:
           type: string
-          nullable: true
-        break_is_overtime:
-          type: boolean
           nullable: true
         break_punch_mode:
           type: string
@@ -14029,9 +14023,6 @@ components:
           type: array
           items:
             type: object
-        is_break_auto_deduct:
-          type: boolean
-          nullable: true
         is_holiday:
           type: boolean
         is_holiday_paid:
@@ -19503,8 +19494,6 @@ components:
           type: string
     ScheduleReplanBreak:
       properties:
-        break_credit_mode:
-          type: string
         break_punch_mode:
           type: string
         end:
@@ -19512,14 +19501,11 @@ components:
         start:
           type: string
       required:
-        - break_credit_mode
         - break_punch_mode
         - end
         - start
     ScheduleReplanInterval:
       properties:
-        break_credit_mode:
-          type: string
         break_punch_mode:
           type: string
         breaks:
@@ -19543,7 +19529,6 @@ components:
           type: number
           nullable: true
       required:
-        - break_credit_mode
         - break_punch_mode
         - breaks
         - end
@@ -19823,15 +19808,11 @@ components:
         - updated_at
     ShiftIntervalRecord:
       properties:
-        break_credit_mode:
-          type: string
         break_duration_minutes:
           type: number
         break_end:
           type: string
           nullable: true
-        break_is_overtime:
-          type: boolean
         break_punch_mode:
           type: string
         break_start:
@@ -19849,8 +19830,6 @@ components:
         interval_name:
           type: string
           nullable: true
-        is_break_auto_deduct:
-          type: boolean
         sort_order:
           type: number
         start_day_offset:
@@ -19863,29 +19842,21 @@ components:
         version_id:
           type: string
       required:
-        - break_credit_mode
         - break_duration_minutes
-        - break_is_overtime
         - break_punch_mode
         - end_day_offset
         - end_time
         - id
-        - is_break_auto_deduct
         - sort_order
         - start_day_offset
         - start_time
         - version_id
     ShiftIntervalRequest:
       properties:
-        break_credit_mode:
-          type: string
         break_duration_minutes:
           type: number
         break_end:
           type: string
-          nullable: true
-        break_is_overtime:
-          type: boolean
           nullable: true
         break_punch_mode:
           type: string
@@ -19901,9 +19872,6 @@ components:
           nullable: true
         interval_name:
           type: string
-          nullable: true
-        is_break_auto_deduct:
-          type: boolean
           nullable: true
         start_day_offset:
           type: number

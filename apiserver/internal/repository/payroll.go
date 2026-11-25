@@ -2026,6 +2026,8 @@ func (r PayrollRepository) SimulateEmployeePayrollWithPolicy(ctx context.Context
 	return r.simulateEmployeePayroll(ctx, employeeID, year, month, &policyVersionID, actorID)
 }
 
+var errSimulationRollback = errors.New("payroll: rollback simulation transaction")
+
 func (r PayrollRepository) simulateEmployeePayroll(ctx context.Context, employeeID ids.EmployeeID, year, month int, policyVersionID *uuid.UUID, actorID ids.UserID) (api.FullPayslipResponse, error) {
 	db, err := r.db(ctx)
 	if err != nil {
@@ -2049,9 +2051,15 @@ func (r PayrollRepository) simulateEmployeePayroll(ctx context.Context, employee
 			return err
 		}
 		response, err = r.calculateEmploymentPayslip(ctx, tx, employmentID, uuid.UUID(employeeID), deptID, year, month, uuid.UUID(actorID), policyVersionID)
-		return err
+		if err != nil {
+			return err
+		}
+		return errSimulationRollback
 	})
-	return response, err
+	if errors.Is(err, errSimulationRollback) {
+		return response, nil
+	}
+	return api.FullPayslipResponse{}, err
 }
 
 func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.BatchCalculatePayrollRequest, actorID ids.UserID) (api.BatchCalculatePayrollResponse, error) {

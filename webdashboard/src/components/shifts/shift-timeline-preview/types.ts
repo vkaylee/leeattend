@@ -3,11 +3,10 @@ import type { TFunction } from "i18next";
 export interface IntervalPreviewData {
   breakDuration: number;
   breakEnd: string;
+  breakPunchMode?: "none" | "required";
   breakStart: string;
   endTime: string;
   intervalName: string;
-  isAutoDeduct: boolean;
-  isBreakOvertime?: boolean;
   isFixedBreak: boolean;
   startTime: string;
 }

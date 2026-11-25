@@ -19,19 +19,19 @@ func TestIntegrationActivationAwareScheduleReaderRoutesByActivatedEmploymentDays
 		t.Fatalf("insert actor: %v", err)
 	}
 
-	allEmployer, allEmployment := insertActivationAwareEmployment(t, pool, ctx, "2099-01-01", "2099-01-02")
-	insertActivation(t, pool, ctx, allEmployer, "2099-01-01", "2099-01-02")
-	insertPublishedRevision(t, pool, ctx, actorID, allEmployment, allEmployer, "2099-01-01", 1)
-	insertPublishedRevision(t, pool, ctx, actorID, allEmployment, allEmployer, "2099-01-02", 1)
+	allEmployer, allEmployment := insertActivationAwareEmployment(t, pool, ctx, "1990-01-01", "1990-01-02")
+	insertActivation(t, pool, ctx, allEmployer, "1990-01-01", "1990-01-02")
+	insertPublishedRevision(t, pool, ctx, actorID, allEmployment, allEmployer, "1990-01-01", 1)
+	insertPublishedRevision(t, pool, ctx, actorID, allEmployment, allEmployer, "1990-01-02", 1)
 
-	all, err := repo.GetActivationAwareSchedules(ctx, date("2099-01-01"), date("2099-01-02"), []uuid.UUID{allEmployment}, 1, 50)
+	all, err := repo.GetActivationAwareSchedules(ctx, date("1990-01-01"), date("1990-01-02"), []uuid.UUID{allEmployment}, 1, 50)
 	if err != nil {
 		t.Fatalf("all days activated: %v", err)
 	}
 	if len(all.Data) != 1 || len(all.Data[0].Schedules) != 2 || all.Data[0].Schedules[0].Provisional {
 		t.Fatalf("all activated days must use official reader: %+v", all.Data)
 	}
-	allWithoutIDs, err := repo.GetActivationAwareSchedules(ctx, date("2099-01-01"), date("2099-01-02"), nil, 1, 50)
+	allWithoutIDs, err := repo.GetActivationAwareSchedules(ctx, date("1990-01-01"), date("1990-01-02"), nil, 1, 50)
 	if err != nil {
 		t.Fatalf("all eligible employments without IDs: %v", err)
 	}

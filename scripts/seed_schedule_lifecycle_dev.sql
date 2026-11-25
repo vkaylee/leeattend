@@ -66,13 +66,11 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM shift_default_intervals WHERE id = v_interval_id) THEN
         INSERT INTO shift_default_intervals (
             id, version_id, sort_order, interval_name, start_time, end_time,
-            break_duration_minutes, break_start, break_end, is_break_auto_deduct,
-            break_is_overtime, break_punch_mode, break_credit_mode
+            break_duration_minutes, break_start, break_end, break_punch_mode
         )
         VALUES (
             v_interval_id, v_version_id, 0, 'Day Interval', TIME '08:00:00', TIME '17:00:00',
-            60, TIME '12:00:00', TIME '13:00:00', true,
-            false, 'none', 'scheduled'
+            60, TIME '12:00:00', TIME '13:00:00', 'none'
         );
     END IF;
 

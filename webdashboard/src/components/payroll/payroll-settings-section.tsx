@@ -67,7 +67,19 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
 
   const selectPolicyForEdit = (policy: WorkPolicyGroupVersion) => {
     setSelectedPolicyGroupId(policy.group_id);
-    setVersionForm((form) => ({ ...form, attendance_policy_id: policy.attendance_policy_id ?? "", working_pattern_id: policy.working_pattern_id ?? "", overtime_policy_id: policy.overtime_policy_id, late_arrival_grace_minutes: String(policy.late_arrival_grace_minutes), early_ot_enabled: policy.early_ot_enabled, early_ot_qualification_grace_minutes: String(policy.early_ot_qualification_grace_minutes), early_ot_max_minutes: policy.early_ot_max_minutes == null ? "" : String(policy.early_ot_max_minutes), break_auto_deduct: policy.break_auto_deduct, break_is_overtime: policy.break_is_overtime, ot_aggregation_mode: policy.ot_aggregation_mode }));
+    setVersionForm((form) => ({
+      ...form,
+      attendance_policy_id: policy.attendance_policy_id ?? "",
+      working_pattern_id: policy.working_pattern_id ?? "",
+      overtime_policy_id: policy.overtime_policy_id,
+      late_arrival_grace_minutes: String(policy.late_arrival_grace_minutes ?? 0),
+      early_ot_enabled: Boolean(policy.early_ot_enabled),
+      early_ot_qualification_grace_minutes: String(policy.early_ot_qualification_grace_minutes ?? 0),
+      early_ot_max_minutes: policy.early_ot_max_minutes == null ? "" : String(policy.early_ot_max_minutes),
+      break_auto_deduct: policy.break_auto_deduct ?? true,
+      break_is_overtime: Boolean(policy.break_is_overtime),
+      ot_aggregation_mode: policy.ot_aggregation_mode ?? "aggregate",
+    }));
   };
 
   useEffect(() => {
@@ -94,6 +106,18 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
       setVersionError(t("common.payroll.settings.work_policy_validation", "Enter effective date and positive whole minutes."));
       return;
     }
+    const lateGrace = Number(versionForm.late_arrival_grace_minutes);
+    const earlyOTGrace = Number(versionForm.early_ot_qualification_grace_minutes);
+    const hasEarlyOTMax = versionForm.early_ot_enabled && versionForm.early_ot_max_minutes.trim() !== "";
+    const earlyOTMax = hasEarlyOTMax ? Number(versionForm.early_ot_max_minutes) : null;
+    if (
+      !Number.isInteger(lateGrace) || lateGrace < 0
+      || !Number.isInteger(earlyOTGrace) || earlyOTGrace < 0
+      || (earlyOTMax !== null && (!Number.isInteger(earlyOTMax) || earlyOTMax < 0))
+    ) {
+      setVersionError(t("common.payroll.settings.work_policy_rules_validation", "Grace and Early OT minute limits must be non-negative whole numbers."));
+      return;
+    }
     setIsCreatingVersion(true);
     setVersionError(undefined);
     setVersionConflict(false);
@@ -115,10 +139,10 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
         monthly_standard_days: versionForm.pay_method === "monthly" && versionForm.monthly_denominator === "fixed" ? versionForm.monthly_standard_days : undefined,
         rate_component_definition_id: versionForm.pay_method === "monthly" ? null : (versionForm.rate_component_definition_id || selected.rate_component_definition_id || null),
         overtime_policy_id: overtimePolicyID,
-        late_arrival_grace_minutes: Number(versionForm.late_arrival_grace_minutes),
+        late_arrival_grace_minutes: lateGrace,
         early_ot_enabled: versionForm.early_ot_enabled,
-        early_ot_qualification_grace_minutes: Number(versionForm.early_ot_qualification_grace_minutes),
-        early_ot_max_minutes: versionForm.early_ot_enabled && versionForm.early_ot_max_minutes !== "" ? Number(versionForm.early_ot_max_minutes) : null,
+        early_ot_qualification_grace_minutes: earlyOTGrace,
+        early_ot_max_minutes: earlyOTMax,
         break_auto_deduct: versionForm.break_auto_deduct,
         break_is_overtime: versionForm.break_is_overtime,
         ot_aggregation_mode: versionForm.ot_aggregation_mode,
@@ -342,32 +366,35 @@ export default function PayrollSettingsSection({ onDirtyChange }: PayrollSetting
                 {versionForm.monthly_denominator === "fixed" ? <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-monthly-days">{t("common.payroll.settings.work_policy_days", "Monthly standard days")}<input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-monthly-days" min="1" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, monthly_standard_days: event.target.value })); }} step="0.01" type="number" value={versionForm.monthly_standard_days} /></label> : null}
                 </> : <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-rate-component">{t("common.payroll.settings.work_policy_rate_component", "Rate component")}<select className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-rate-component" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, rate_component_definition_id: event.target.value })); }} value={versionForm.rate_component_definition_id}><option value="">{t("common.select", "Select")}</option>{referenceOptions?.salaryComponents.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>}
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-late-grace">
-                  Late arrival grace (minutes)
-                  <input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-late-grace" min="0" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, late_arrival_grace_minutes: event.target.value })); }} type="number" value={versionForm.late_arrival_grace_minutes} />
+                  {t("common.payroll.settings.work_policy_late_grace", "Late arrival grace (minutes)")}
+                  <input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-late-grace" min="0" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, late_arrival_grace_minutes: event.target.value })); }} step="1" type="number" value={versionForm.late_arrival_grace_minutes} />
                 </label>
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-early-ot-grace">
-                  Early OT qualification grace (minutes)
-                  <input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-early-ot-grace" min="0" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, early_ot_qualification_grace_minutes: event.target.value })); }} type="number" value={versionForm.early_ot_qualification_grace_minutes} />
+                  {t("common.payroll.settings.work_policy_early_ot_grace", "Early OT qualification grace (minutes)")}
+                  <input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-early-ot-grace" min="0" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, early_ot_qualification_grace_minutes: event.target.value })); }} step="1" type="number" value={versionForm.early_ot_qualification_grace_minutes} />
                 </label>
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-early-ot-enabled">
                   <input checked={versionForm.early_ot_enabled} className="h-4 w-4" id="policy-early-ot-enabled" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, early_ot_enabled: event.target.checked })); }} type="checkbox" />
-                  Allow Early OT
+                  {t("common.payroll.settings.work_policy_early_ot_enabled", "Allow Early OT")}
                 </label>
                 {versionForm.early_ot_enabled ? <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-early-ot-max">
-                  Maximum Early OT (minutes)
-                  <input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:bg-slate-900" id="policy-early-ot-max" min="0" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, early_ot_max_minutes: event.target.value })); }} type="number" value={versionForm.early_ot_max_minutes} />
+                  {t("common.payroll.settings.work_policy_early_ot_max", "Maximum Early OT (minutes)")}
+                  <input className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-early-ot-max" min="0" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, early_ot_max_minutes: event.target.value })); }} step="1" type="number" value={versionForm.early_ot_max_minutes} />
                 </label> : null}
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-ot-aggregation">
-                  OT aggregation
-                  <select className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:bg-slate-900" id="policy-ot-aggregation" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, ot_aggregation_mode: event.target.value as typeof form.ot_aggregation_mode })); }} value={versionForm.ot_aggregation_mode}><option value="aggregate">Aggregate</option><option value="per_segment">Per segment</option></select>
+                  {t("common.payroll.settings.work_policy_ot_aggregation", "OT aggregation")}
+                  <select className="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" id="policy-ot-aggregation" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, ot_aggregation_mode: event.target.value as typeof form.ot_aggregation_mode })); }} value={versionForm.ot_aggregation_mode}>
+                    <option value="aggregate">{t("common.payroll.settings.work_policy_ot_aggregation_aggregate", "Aggregate across segments")}</option>
+                    <option value="per_segment">{t("common.payroll.settings.work_policy_ot_aggregation_per_segment", "Per segment")}</option>
+                  </select>
                 </label>
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-break-deduct">
                   <input checked={versionForm.break_auto_deduct} className="h-4 w-4" id="policy-break-deduct" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, break_auto_deduct: event.target.checked })); }} type="checkbox" />
-                  Automatically deduct break
+                  {t("common.payroll.settings.work_policy_break_auto_deduct", "Automatically deduct break")}
                 </label>
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-break-ot">
                   <input checked={versionForm.break_is_overtime} className="h-4 w-4" id="policy-break-ot" onChange={(event) => { setIsDraftDirty(true); setVersionForm((form) => ({ ...form, break_is_overtime: event.target.checked })); }} type="checkbox" />
-                  Count break as OT
+                  {t("common.payroll.settings.work_policy_break_is_overtime", "Count break as OT")}
                 </label>
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="policy-pay-method">
                   {t("common.payroll.settings.work_policy_method", "Pay method")}

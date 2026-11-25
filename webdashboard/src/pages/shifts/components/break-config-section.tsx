@@ -1,8 +1,5 @@
 import type { TFunction } from "i18next";
-import { Settings2 } from "lucide-react";
-
-import Button from "@/components/ui/button";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -47,7 +44,6 @@ function BreakConfigSection({
   onUpdate: (key: string, patch: Partial<IntervalDraft>) => void;
 }) {
   const { t } = useTranslation();
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const modeId = `break-mode-${iv.key}`;
   const validation = getBreakValidation(iv);
   const preview = getIntervalPreview(iv);
@@ -65,7 +61,7 @@ function BreakConfigSection({
         {t("shifts.modal.break_config", "Break Time")}
       </legend>
       <p className="text-xs text-slate-500 dark:text-slate-400">
-        {t("shifts.modal.break_config_help", "Choose how break time is counted within this work period.")}
+        {t("shifts.modal.break_config_help", "Choose how break time is captured within this work period. Break deduction and break overtime rules are configured in Work Policy.")}
       </p>
 
       <fieldset className="space-y-3">
@@ -79,8 +75,6 @@ function BreakConfigSection({
             name={`${modeId}-capture`}
             onChange={() => update({
               breakPunchMode: "none",
-              breakCreditMode: "scheduled",
-              isAutoDeduct: true,
               isFixedBreak: false,
               breakStart: "",
               breakEnd: "",
@@ -100,8 +94,6 @@ function BreakConfigSection({
             name={`${modeId}-capture`}
             onChange={() => update({
               breakPunchMode: "required",
-              breakCreditMode: "actual",
-              isAutoDeduct: false,
               isFixedBreak: Boolean(iv.breakStart || iv.breakEnd),
               breakStart: iv.breakStart,
               breakEnd: iv.breakEnd,
@@ -153,26 +145,9 @@ function BreakConfigSection({
             </div>
           </fieldset>
 
-          <div className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-200">
-            <input
-              checked={iv.isAutoDeduct}
-              className="mt-1 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-              id={`${modeId}-deduct`}
-              onChange={(event) => update({ isAutoDeduct: event.target.checked })}
-              type="checkbox"
-            />
-            <span>
-              <span className="block font-semibold">{t("shifts.modal.break_deduct", "Deduct break from working hours")}</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">
-                {t("shifts.modal.break_deduct_help", "When off, break time counts as regular working hours.")}
-              </span>
-            </span>
-          </div>
-
-          {iv.isAutoDeduct && iv.isFixedBreak ? (
+          {iv.isFixedBreak ? (
             <BreakWindowFields interval={iv} onUpdate={update} t={t} />
-          ) : null}
-          {iv.isAutoDeduct && !iv.isFixedBreak ? (
+          ) : (
             <div>
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400" htmlFor={`break-duration-${iv.key}`}>
                 {t("shifts.modal.break_duration", "Break duration")} ({t("common.minutes", "minutes")})
@@ -187,7 +162,7 @@ function BreakConfigSection({
                 value={iv.breakDuration}
               />
             </div>
-          ) : null}
+          )}
         </div>
       ) : (
         <div className="space-y-4 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 p-3">
@@ -212,33 +187,6 @@ function BreakConfigSection({
             </span>
           </div>
           {showBreakWindow ? <BreakWindowFields interval={iv} onUpdate={update} t={t} /> : null}
-          <div>
-            <Button
-              aria-expanded={showAdvanced}
-              className="text-xs text-slate-500 dark:text-slate-400 px-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
-              onClick={() => setShowAdvanced((current) => !current)}
-              type="button"
-              variant="ghost"
-            >
-              <Settings2 aria-hidden="true" size={14} />
-              {t("shifts.modal.advanced_options", "Advanced options")}
-            </Button>
-            {showAdvanced ? (
-              <div className="mt-3 flex items-start gap-3 text-sm text-slate-700 dark:text-slate-200">
-                <input
-                  checked={iv.isBreakOvertime}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  id={`${modeId}-overtime`}
-                  onChange={(event) => update({ isBreakOvertime: event.target.checked })}
-                  type="checkbox"
-                />
-                <span>
-                  <span className="block font-semibold">{t("shifts.modal.break_policy_overtime", "Count break time as overtime")}</span>
-                  <span className="block text-xs text-slate-500 dark:text-slate-400">{t("shifts.modal.break_policy_overtime_help", "Use when employees remain on duty during break.")}</span>
-                </span>
-              </div>
-            ) : null}
-          </div>
         </div>
       )}
 
@@ -308,9 +256,7 @@ function formatPreview(
   const hours = Math.floor(preview.workMinutes / 60);
   const minutes = preview.workMinutes % 60;
   const duration = `${hours}h${minutes.toString().padStart(2, "0")}`;
-  const breakLabel = preview.breakLabel === "paid"
-    ? t("shifts.modal.break_preview_paid", "break counts as work")
-    : t("shifts.modal.break_preview_deducted", "break {{minutes}} min", { minutes: breakMinutes });
+  const breakLabel = t("shifts.modal.break_preview_deducted", "break {{minutes}} min", { minutes: breakMinutes });
   return `${range} · ${breakLabel} → ${duration} ${t("shifts.modal.break_preview_working", "working hours")}`;
 }
 

@@ -29,20 +29,16 @@ type IntervalFixture = Partial<{
 function makeShift(overrides: Partial<Shift> = {}, intervals: IntervalFixture[] = []): Shift {
   const shiftIntervals = intervals.length > 0
     ? intervals.map((iv, i) => ({
-        allow_early_ot: false,
         break_duration_minutes: 60,
         break_end: null,
-        break_is_overtime: false,
+        break_punch_mode: "none",
         break_start: null,
-        early_punch_in_grace_period_minutes: 0,
+        end_day_offset: 0,
         end_time: iv.end_time ?? "17:00:00",
         id: `iv-${i}`,
         interval_name: null,
-        is_break_auto_deduct: true,
-        is_night_shift: false,
-        max_early_ot_minutes: null,
-        ot_aggregation_mode: "daily" as const,
         sort_order: iv.sort_order ?? i,
+        start_day_offset: 0,
         start_time: iv.start_time ?? "08:00:00",
         version_id: "v-1",
       }))

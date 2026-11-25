@@ -64,15 +64,22 @@ func BuildSegments(startDate, endDate time.Time, salaryChanges, departmentChange
 	}
 	points = append(points, endDate)
 	sort.Slice(points, func(left, right int) bool { return points[left].Before(points[right]) })
-	result := make([]DateRange, 0, len(points)-1)
-	for index := 0; index+1 < len(points); index++ {
-		if index == 0 || !points[index].Equal(points[index-1]) {
-			end := points[index+1]
-			if index+1 < len(points)-1 {
-				end = end.AddDate(0, 0, -1)
-			}
-			result = append(result, DateRange{Start: points[index], End: end})
+	unique := make([]time.Time, 0, len(points))
+	for _, point := range points {
+		if len(unique) == 0 || !point.Equal(unique[len(unique)-1]) {
+			unique = append(unique, point)
 		}
+	}
+	if len(unique) == 1 {
+		return []DateRange{{Start: startDate, End: endDate}}
+	}
+	result := make([]DateRange, 0, len(unique)-1)
+	for index := 0; index+1 < len(unique); index++ {
+		end := unique[index+1]
+		if index+1 < len(unique)-1 {
+			end = end.AddDate(0, 0, -1)
+		}
+		result = append(result, DateRange{Start: unique[index], End: end})
 	}
 	return result
 }

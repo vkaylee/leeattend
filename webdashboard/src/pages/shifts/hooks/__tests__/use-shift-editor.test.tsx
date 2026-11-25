@@ -57,7 +57,6 @@ function createWrapper() {
 
 function interval(overrides: Partial<IntervalDraft> = {}): IntervalDraft {
   return {
-    breakCreditMode: "scheduled",
     breakDuration: 60,
     breakEnd: "13:00",
     breakPunchMode: "none",
@@ -65,8 +64,6 @@ function interval(overrides: Partial<IntervalDraft> = {}): IntervalDraft {
     endDayOffset: 0,
     endTime: "17:00",
     intervalName: "",
-    isAutoDeduct: true,
-    isBreakOvertime: false,
     isFixedBreak: true,
     isNightShift: false,
     key: "test",

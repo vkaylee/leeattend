@@ -122,8 +122,7 @@ function measureInterval(interval: ShiftInterval): ShiftIntervalMetrics {
     )
     : 0;
 
-  const isBreakAutoDeduct = interval.is_break_auto_deduct ?? true;
-  const isBreakDeducted = isBreakAutoDeduct && breakMinutes > 0;
+  const isBreakDeducted = breakMinutes > 0;
 
   return {
     breakEnd,
@@ -136,7 +135,7 @@ function measureInterval(interval: ShiftInterval): ShiftIntervalMetrics {
     isFixedBreak,
     name: interval.interval_name ?? "",
     startTime,
-    workMinutes: Math.max(0, durationMinutes - (isBreakDeducted ? breakMinutes : 0)),
+    workMinutes: Math.max(0, durationMinutes - breakMinutes),
   };
 }
 

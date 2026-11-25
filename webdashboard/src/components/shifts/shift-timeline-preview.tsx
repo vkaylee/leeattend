@@ -18,8 +18,7 @@ function toMetricsInput(interval: ShiftTimelinePreviewProps["intervals"][number]
   return {
     break_duration_minutes: interval.breakDuration,
     break_end: interval.isFixedBreak ? interval.breakEnd || null : null,
-    is_break_auto_deduct: interval.isAutoDeduct,
-    break_is_overtime: interval.isBreakOvertime ?? false,
+    break_punch_mode: interval.breakPunchMode ?? "none",
     break_start: interval.isFixedBreak ? interval.breakStart || null : null,
     end_time: interval.endTime,
     id: interval.intervalName || "draft",

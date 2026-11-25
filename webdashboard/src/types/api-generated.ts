@@ -6618,10 +6618,8 @@ export interface components {
             parent_folder_id?: string | null;
         };
         EffectiveSchedule: {
-            break_credit_mode?: string | null;
             break_duration_minutes?: number | null;
             break_end?: string | null;
-            break_is_overtime?: boolean | null;
             break_punch_mode?: string | null;
             break_start?: string | null;
             break_worked_overrides: components["schemas"]["ScheduleBreakWorkedOverride"][];
@@ -6629,7 +6627,6 @@ export interface components {
             end_time?: string | null;
             holiday_name?: string | null;
             intervals: Record<string, never>[];
-            is_break_auto_deduct?: boolean | null;
             is_holiday: boolean;
             is_holiday_paid: boolean;
             provisional: boolean;
@@ -8641,13 +8638,11 @@ export interface components {
             timezone?: string;
         };
         ScheduleReplanBreak: {
-            break_credit_mode: string;
             break_punch_mode: string;
             end: string;
             start: string;
         };
         ScheduleReplanInterval: {
-            break_credit_mode: string;
             break_punch_mode: string;
             breaks: components["schemas"]["ScheduleReplanBreak"][];
             end: string;
@@ -8766,10 +8761,8 @@ export interface components {
             updated_at: string;
         };
         ShiftIntervalRecord: {
-            break_credit_mode: string;
             break_duration_minutes: number;
             break_end?: string | null;
-            break_is_overtime: boolean;
             break_punch_mode: string;
             break_start?: string | null;
             end_day_offset: number;
@@ -8777,7 +8770,6 @@ export interface components {
             end_utc_offset_minutes?: number | null;
             id: string;
             interval_name?: string | null;
-            is_break_auto_deduct: boolean;
             sort_order: number;
             start_day_offset: number;
             start_time: string;
@@ -8785,17 +8777,14 @@ export interface components {
             version_id: string;
         };
         ShiftIntervalRequest: {
-            break_credit_mode?: string;
             break_duration_minutes?: number;
             break_end?: string | null;
-            break_is_overtime?: boolean | null;
             break_punch_mode?: string;
             break_start?: string | null;
             end_day_offset?: number;
             end_time?: string;
             end_utc_offset_minutes?: number | null;
             interval_name?: string | null;
-            is_break_auto_deduct?: boolean | null;
             start_day_offset?: number;
             start_time?: string;
             start_utc_offset_minutes?: number | null;

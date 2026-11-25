@@ -91,20 +91,20 @@ func TestCreateShift_RejectsInvalidInterval(t *testing.T) {
 	}
 }
 
-func TestShiftIntervalRequest_DefaultsBreakPolicy(t *testing.T) {
+func TestShiftIntervalRequest_DefaultsBreakPunchMode(t *testing.T) {
 	var request ShiftIntervalRequest
 	if err := json.Unmarshal([]byte(`{"start_time":"08:00:00","end_time":"17:00:00"}`), &request); err != nil {
 		t.Fatal(err)
 	}
-	if !request.IsBreakAutoDeductValue() || request.BreakIsOvertimeValue() {
-		t.Fatalf("unexpected default break policy: auto=%v overtime=%v", request.IsBreakAutoDeductValue(), request.BreakIsOvertimeValue())
+	if request.BreakPunchModeValue() != "none" {
+		t.Fatalf("unexpected default break punch mode: %q", request.BreakPunchModeValue())
 	}
 
-	if err := json.Unmarshal([]byte(`{"start_time":"08:00:00","end_time":"17:00:00","is_break_auto_deduct":false,"break_is_overtime":true}`), &request); err != nil {
+	if err := json.Unmarshal([]byte(`{"start_time":"08:00:00","end_time":"17:00:00","break_punch_mode":"required"}`), &request); err != nil {
 		t.Fatal(err)
 	}
-	if request.IsBreakAutoDeductValue() || !request.BreakIsOvertimeValue() {
-		t.Fatalf("unexpected explicit break policy: auto=%v overtime=%v", request.IsBreakAutoDeductValue(), request.BreakIsOvertimeValue())
+	if request.BreakPunchModeValue() != "required" {
+		t.Fatalf("unexpected explicit break punch mode: %q", request.BreakPunchModeValue())
 	}
 }
 

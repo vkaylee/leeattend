@@ -32,28 +32,25 @@ vi.mock("@/hooks/use-datetime", () => ({
 type IntervalFixture = Partial<{
   break_duration_minutes: number;
   break_end: string | null;
+  break_punch_mode: "none" | "required";
   break_start: string | null;
   end_time: string;
-  is_break_auto_deduct: boolean;
-  is_night_shift: boolean;
   sort_order: number;
   start_time: string;
 }>;
 
 function iv(overrides: IntervalFixture = {}) {
   return {
-    allow_early_ot: false,
     break_duration_minutes: 0,
     break_end: null,
-    break_is_overtime: false,
+    break_punch_mode: "none" as const,
     break_start: null,
-    early_punch_in_grace_period_minutes: 0,
+    end_day_offset: 0,
     end_time: "17:00:00",
     id: `iv-${Math.random().toString(36).slice(2, 8)}`,
-    is_break_auto_deduct: true,
-    is_night_shift: false,
-    ot_aggregation_mode: "daily",
+    interval_name: null,
     sort_order: 0,
+    start_day_offset: 0,
     start_time: "08:00:00",
     version_id: "v-1",
     ...overrides,

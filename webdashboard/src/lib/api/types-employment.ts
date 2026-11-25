@@ -45,20 +45,16 @@ export interface ScheduleTrace {
 }
 
 export interface EffectiveSchedule {
-  allow_early_ot?: boolean | null;
   break_duration_minutes?: number | null;
   break_end?: string | null;
-  break_is_overtime?: boolean | null;
+  break_punch_mode?: string | null;
   break_start?: string | null;
   closed?: boolean;
   date: string;
-  early_punch_in_grace_period_minutes?: number | null;
   end_time?: string | null;
   holiday_name?: string | null;
-  is_break_auto_deduct?: boolean | null;
   is_holiday?: boolean;
   is_holiday_paid?: boolean;
-  max_early_ot_minutes?: number | null;
   provisional?: boolean;
   published_at?: string | null;
   revision_id?: string | null;

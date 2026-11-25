@@ -101,15 +101,11 @@ func versionToComplianceIntervals(version shiftVersionInfo) []compliance.Interva
 		if iv.breakDurationMinutes != nil {
 			breakMins = *iv.breakDurationMinutes
 		}
-		autoDeduct := false
-		if iv.isBreakAutoDeduct != nil {
-			autoDeduct = *iv.isBreakAutoDeduct
-		}
 		out = append(out, compliance.Interval{
 			StartTime:            *iv.startTime,
 			EndTime:              *iv.endTime,
 			BreakDurationMinutes: breakMins,
-			IsBreakAutoDeduct:    autoDeduct,
+			IsBreakAutoDeduct:    breakMins > 0,
 			StartDayOffset:       iv.startDayOffset,
 			EndDayOffset:         iv.endDayOffset,
 		})

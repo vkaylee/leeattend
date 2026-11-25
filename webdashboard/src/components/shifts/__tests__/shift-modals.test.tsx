@@ -21,9 +21,7 @@ describe("ShiftTimelinePreview Tests", () => {
           breakDuration: 60,
           breakStart: "",
           breakEnd: "",
-          breakCreditMode: "scheduled",
-    breakPunchMode: "none",
-    isAutoDeduct: true,
+          breakPunchMode: "none",
           isFixedBreak: false,
         }]}
       />
@@ -47,9 +45,7 @@ describe("ShiftTimelinePreview Tests", () => {
           breakDuration: 60,
           breakStart: "",
           breakEnd: "",
-          breakCreditMode: "scheduled",
-    breakPunchMode: "none",
-    isAutoDeduct: true,
+          breakPunchMode: "none",
           isFixedBreak: false,
         }]}
       />
@@ -71,9 +67,7 @@ describe("ShiftTimelinePreview Tests", () => {
           breakDuration: 0,
           breakStart: "12:00",
           breakEnd: "13:00",
-          breakCreditMode: "scheduled",
-    breakPunchMode: "none",
-    isAutoDeduct: true,
+          breakPunchMode: "none",
           isFixedBreak: true,
         }]}
       />

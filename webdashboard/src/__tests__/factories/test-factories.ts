@@ -34,10 +34,7 @@ export function createMockShift(overrides?: Partial<Shift>): Shift {
       start_time: "09:00:00",
       end_time: "17:00:00",
       break_duration_minutes: 60,
-      is_break_auto_deduct: false,
-      break_is_overtime: false,
-      early_punch_in_grace_period_minutes: 0,
-      allow_early_ot: false,
+      break_punch_mode: "none",
     }],
     ...overrides,
   } as Shift;

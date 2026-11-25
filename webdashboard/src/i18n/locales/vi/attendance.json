@@ -652,7 +652,7 @@
       "auto_deduct_label": "Tự động trừ giờ nghỉ (Auto-deduct)",
       "basic_info": "Thông tin cơ bản",
       "break_config": "Nghỉ giữa ca",
-      "break_config_help": "Chọn cách hệ thống tính giờ nghỉ trong khoảng làm việc này.",
+      "break_config_help": "Chọn cách ghi nhận giờ nghỉ trong khoảng làm việc này. Luật trừ giờ nghỉ và tăng ca giờ nghỉ được cấu hình trong Chính sách làm việc (Work Policy).",
       "break_step_record": "Nhân viên ghi nhận giờ nghỉ thế nào?",
       "break_capture_label": "Cách ghi nhận giờ nghỉ",
       "break_capture_none": "Không cần chấm công nghỉ",

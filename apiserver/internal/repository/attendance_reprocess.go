@@ -234,11 +234,12 @@ func upsertPairedTimeEntry(ctx context.Context, db DBTX, employmentID uuid.UUID,
 }
 
 type breakSnapshotRow struct {
-	Start    string `json:"start"`
-	End      string `json:"end"`
-	StartAt  string `json:"start_at"`
-	EndAt    string `json:"end_at"`
-	Duration int    `json:"duration_minutes"`
+	Start          string `json:"start"`
+	End            string `json:"end"`
+	StartAt        string `json:"start_at"`
+	EndAt          string `json:"end_at"`
+	Duration       int    `json:"duration_minutes"`
+	BreakPunchMode string `json:"break_punch_mode"`
 }
 
 func parseBreakSnapshotRow(item breakSnapshotRow) (buckets.BreakPair, int32, bool) {
@@ -265,18 +266,22 @@ func firstNonEmptyString(a, b string) string {
 	return b
 }
 
-func parseBreakWindowsSnapshot(breaks []byte) ([]buckets.BreakPair, *time.Time, *time.Time, int32, error) {
+func parseBreakWindowsSnapshot(breaks []byte) ([]buckets.BreakPair, *time.Time, *time.Time, int32, buckets.BreakPunchMode, error) {
 	if len(breaks) == 0 {
-		return nil, nil, nil, 0, nil
+		return nil, nil, nil, 0, buckets.BreakPunchModeNone, nil
 	}
 	var parsed []breakSnapshotRow
 	if err := json.Unmarshal(breaks, &parsed); err != nil {
-		return nil, nil, nil, 0, err
+		return nil, nil, nil, 0, buckets.BreakPunchModeNone, err
 	}
 	var windows []buckets.BreakPair
 	var firstStart, firstEnd *time.Time
 	var scheduledBreak int32
+	punchMode := buckets.BreakPunchModeNone
 	for _, item := range parsed {
+		if item.BreakPunchMode == string(buckets.BreakPunchModeRequired) {
+			punchMode = buckets.BreakPunchModeRequired
+		}
 		pair, dur, ok := parseBreakSnapshotRow(item)
 		if !ok {
 			continue
@@ -288,5 +293,5 @@ func parseBreakWindowsSnapshot(breaks []byte) ([]buckets.BreakPair, *time.Time, 
 		}
 		scheduledBreak += dur
 	}
-	return windows, firstStart, firstEnd, scheduledBreak, nil
+	return windows, firstStart, firstEnd, scheduledBreak, punchMode, nil
 }

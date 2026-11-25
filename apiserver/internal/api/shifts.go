@@ -43,9 +43,6 @@ type ShiftIntervalRequest struct {
 	BreakStart            *string `json:"break_start,omitempty"`
 	BreakEnd              *string `json:"break_end,omitempty"`
 	BreakPunchMode        string  `json:"break_punch_mode,omitempty"`
-	BreakCreditMode       string  `json:"break_credit_mode,omitempty"`
-	IsBreakAutoDeduct     *bool   `json:"is_break_auto_deduct,omitempty"`
-	BreakIsOvertime       *bool   `json:"break_is_overtime,omitempty"`
 }
 
 func (r ShiftIntervalRequest) BreakPunchModeValue() string {
@@ -53,27 +50,6 @@ func (r ShiftIntervalRequest) BreakPunchModeValue() string {
 		return "none"
 	}
 	return r.BreakPunchMode
-}
-
-func (r ShiftIntervalRequest) BreakCreditModeValue() string {
-	if r.BreakPunchModeValue() == "required" {
-		return "actual"
-	}
-	if r.BreakCreditMode != "" {
-		return r.BreakCreditMode
-	}
-	if r.IsBreakAutoDeductValue() {
-		return "scheduled"
-	}
-	return "none"
-}
-
-func (r ShiftIntervalRequest) IsBreakAutoDeductValue() bool {
-	return r.BreakPunchModeValue() != "required" && (r.IsBreakAutoDeduct == nil || *r.IsBreakAutoDeduct)
-}
-
-func (r ShiftIntervalRequest) BreakIsOvertimeValue() bool {
-	return r.BreakIsOvertime != nil && *r.BreakIsOvertime
 }
 
 type CreateShiftRequest struct {
@@ -136,9 +112,6 @@ type ShiftIntervalRecord struct {
 	BreakStart            *string   `json:"break_start"`
 	BreakEnd              *string   `json:"break_end"`
 	BreakPunchMode        string    `json:"break_punch_mode"`
-	BreakCreditMode       string    `json:"break_credit_mode"`
-	IsBreakAutoDeduct     bool      `json:"is_break_auto_deduct"`
-	BreakIsOvertime       bool      `json:"break_is_overtime"`
 }
 
 type ShiftRecord struct {
@@ -317,12 +290,6 @@ func validateIntervals(intervals []ShiftIntervalRequest) error {
 		if interval.BreakPunchModeValue() != "none" && interval.BreakPunchModeValue() != "required" {
 			return ErrShiftValidation
 		}
-		if interval.BreakCreditModeValue() != "scheduled" && interval.BreakCreditModeValue() != "actual" && interval.BreakCreditModeValue() != "none" {
-			return ErrShiftValidation
-		}
-		if interval.BreakPunchModeValue() == "required" && interval.BreakCreditModeValue() == "scheduled" {
-			return ErrShiftValidation
-		}
 		if interval.StartDayOffset < 0 || interval.EndDayOffset < interval.StartDayOffset {
 			return ErrShiftValidation
 		}
@@ -346,7 +313,7 @@ func validateIntervals(intervals []ShiftIntervalRequest) error {
 				return ErrShiftValidation
 			}
 		}
-		if interval.BreakDurationMinutes < 0 || (interval.BreakPunchModeValue() == "none" && interval.BreakCreditModeValue() == "scheduled" && interval.BreakDurationMinutes > intervalEnd-intervalStart) {
+		if interval.BreakDurationMinutes < 0 || (interval.BreakPunchModeValue() == "none" && interval.BreakDurationMinutes > intervalEnd-intervalStart) {
 			return ErrShiftValidation
 		}
 		if interval.StartUTCOffsetMinutes != nil && !validUTCOffset(*interval.StartUTCOffsetMinutes) || interval.EndUTCOffsetMinutes != nil && !validUTCOffset(*interval.EndUTCOffsetMinutes) {

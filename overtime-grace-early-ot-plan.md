@@ -1,139 +1,129 @@
-# Overtime, Grace Period, and Early OT
+# Overtime, Grace Period, Early OT & Break Ownership Plan
 
-Status: Implementation blocked — partial WIP remains
+Status: Completed — verified across unit, PostgreSQL integration, migration rehearsal, 5-role browser acceptance, and full LeeDevKit gates
 
-Latest state:
-- Shift API/repository/schedule responses no longer own moved policy fields.
-- Work Policy contracts/repository/migration now carry moved fields.
-- Shift editor controls removed; Work Policy form payload controls added.
-- Calculation orchestration, full UI contract regeneration, remaining test fixtures, and integration verification are not complete.
-- Do not merge or deploy partial WIP.
+## Approved Architecture (2-Layer HRM Standard)
 
-Approved decisions:
-- Reset development data; no legacy Shift-rule mapping.
-- Return `policy_missing`; no fallback calculation for employment without Work Policy.
-- Move all identified Shift-owned policy rules: grace, Early OT, cap, aggregation, and break deduction/overtime.
+Separate **schedule & capture facts** from **effective-dated calculation rules** with zero duplicate ownership and zero legacy fallback:
 
-Approved decisions:
-- Reset development data; no legacy Shift-rule mapping.
-- Return `policy_missing`; no fallback calculation for employment without Work Policy.
-- Move all identified Shift-owned policy rules: grace, Early OT, cap, aggregation, and break deduction/overtime.
+| Concern | Owner | Notes |
+|---|---|---|
+| Shift hours (`start_time`, `end_time`, day offsets, UTC offsets, sort order) | `Shift` (`shift_default_intervals`) | Answers: *when is work scheduled?* |
+| Break window & duration (`break_start`, `break_end`, `break_duration_minutes`) | `Shift` (`shift_default_intervals`) | Answers: *when is the break window?* |
+| Break punch capture (`break_punch_mode`: `none` \| `required`) | `Shift` (`shift_default_intervals`) | Operational punch behavior enforced by `ESSAttendanceAction` |
+| Break deduction & break OT (`break_auto_deduct`, `break_is_overtime`) | `Work Policy` (`work_credit_policies`) | Effective-dated calculation rule; removed from `Shift` |
+| Late-arrival grace (`late_arrival_grace_minutes`) | `Work Policy` (`work_credit_policies`) | Reuse `matcher.ComputeLateMinutes` (<= grace => 0, > grace => full tardiness) |
+| Early OT eligibility, grace, cap (`early_ot_enabled`, `early_ot_qualification_grace_minutes`, `early_ot_max_minutes`) | `Work Policy` (`work_credit_policies`) | Distinct from late grace; never auto-promoted to payable OT |
+| Multi-segment OT aggregation (`ot_aggregation_mode`: `aggregate` \| `per_segment`) | `Work Policy` (`work_credit_policies`) | Governs rounding/unitizing & cap across multi-segment days |
+| Rounding & work unit (`work_unit_minutes`, `rounding_policy`, `early_arrival_strategy`) | `AttendancePolicy` (`attendance_policy_versions`) | Resolved via `work_credit_policies.attendance_policy_id` effective on `business_date` |
+| OT multipliers, quotas, approval lifecycle (`detected -> claimed -> approved -> payable`) | `OvertimePolicy` | Referenced by `labor_policy_group_versions.overtime_policy_id` |
+| Employee/date applicability & provenance | `LaborPolicyGroup` + `attendance_daily_summaries` | Missing effective policy returns `policy_missing`; no fallback |
 
-## Goal
-Make `Shift` a pure schedule/parser input and move every grace/Early OT eligibility decision into effective-dated `Work Policy`, with no legacy compatibility layer because LeeAttend is pre-production.
+## Break Calculation Contract (Shift Capture × Work Policy × Overrides)
+- **`break_punch_mode = 'required'`**:
+  - Deduct actual break minutes from `time_entry_breaks` (`actual_break_minutes`), NOT scheduled auto-deduct.
+  - Missing/unpaired break punch sets `break_provisional = true`, `break_exception_code = 'missing_break_pair'`.
+- **`break_punch_mode = 'none'`**:
+  - Apply `Work Policy` (`break_auto_deduct`, `break_is_overtime`) against merged scheduled break windows (`parseBreakWindowsSnapshot`).
+  - Subtract approved `schedule_day_overrides` (`override_type = 'break_worked'`, `status = 'approved'`) from deducted break minutes.
+  - Unexpected `time_entry_breaks` rows set `break_exception_code = 'unexpected_break_punch'`.
 
-## Decision
-- `Shift` owns **schedule facts only**: interval start/end, day offsets, UTC offsets, interval order, break boundaries, and other facts needed to parse attendance logs. It answers: **when was work scheduled?**
-- `Shift` does not own eligibility, grace, OT, rounding, deduction, approval, quota, or multiplier rules. Remove `early_punch_in_grace_period_minutes`, `allow_early_ot`, `max_early_ot_minutes`, and `ot_aggregation_mode` from Shift contracts/storage/UI. Derive `is_night_shift` from schedule facts instead of persisting it as a rule input where feasible.
-- `Work Policy` owns applicability and calculation decisions: late-arrival grace, Early OT enabled/disabled, Early OT qualification grace, Early OT cap, rounding/aggregation, break treatment, approval/payability, quota, and policy provenance. Resolve by `employment_id + work_date` through immutable effective-dated policy versions.
-- Keep `OvertimePolicy` as the policy component for multiplier, approval, quota, and OT lifecycle. Extend the existing Work Policy version contract to carry or reference Early OT/attendance rules; do not create a second OT configuration source.
-- Split ambiguous `Grace Period` into explicit fields: `late_arrival_grace_minutes` and `early_ot_qualification_grace_minutes`. Do not reuse one number for two meanings.
-- Calculation flow: parse raw punches against Shift facts, resolve Work Policy, then run pure calculation. Early OT remains separate from detected, claimed, approved, and payable OT; no early time becomes payable without normal approval rules.
-- Pre-production permits a clean contract/schema cutover. No dual-read, legacy Shift fallback, mixed-version rollout, or deprecation adapter. Migration remains reversible and requires approval before destructive column removal.
-- No generic formula engine, microservice, or duplicate settings page.
-
-## Ownership table
-| Concern | Owner |
-|---|---|
-| Scheduled start/end and overnight boundaries | `Shift` |
-| Punch parsing and interval matching | Attendance parser using `Shift` facts |
-| Late-arrival grace | `Work Policy` |
-| Early OT eligibility and cap | `Work Policy` |
-| OT multiplier, approval, quota, payable lifecycle | `OvertimePolicy` referenced by `Work Policy` |
-| Employee/date applicability | `LaborPolicyGroup` membership/version |
-| Historical calculation provenance | Calculation snapshot |
-
-## Calculation boundary
+## Calculation Boundary
 ```text
-raw punch logs
-  -> Shift resolver: schedule facts
-  -> attendance parser: normalized intervals
-  -> Work Policy resolver: effective rules
-  -> pure calculation engine: eligibility and minutes
-  -> detected / claimed / approved / payable results
+raw_attendance_logs + time_entry_breaks + schedule_day_overrides
+  -> Shift / work_segments snapshot (schedule & break_punch_mode facts)
+  -> Effective Work Policy + AttendancePolicy resolver (employment_id + business_date; fail with policy_missing)
+  -> Pure calculation engine (matcher.ComputeLateMinutes + buckets.CalculateBuckets)
+  -> Single-TX upsert into attendance_daily_summaries with work_policy_version_id & shift_version_id
 ```
-
-```go
-CalculateAttendance(schedule ScheduleFacts, punches []PunchInterval, policy PolicyRules) Result
-```
-
-Calculation code receives resolved data only. No DB or repository calls inside pure domain logic.
-
-Example:
-
-```text
-scheduled start: 08:00
-clock-in:        07:40
-early OT grace:  15 minutes
-early OT:        enabled
-eligible Early OT: 5 minutes
-```
-
-`07:40` is parsed from attendance data; policy decides whether 5 minutes qualifies.
-
-## Migration stance
-Because app is not in production, prefer clean cutover over compatibility scaffolding. Existing development values on Shift must not be silently reinterpreted. During migration, either reset disposable dev data or run an explicit, reviewed mapping only after business semantics are confirmed. Never add a hidden fallback.
-
-No new production rollout compatibility is needed, but `up.sql` and `down.sql` remain mandatory and destructive removal still needs explicit approval.
-
-## No implementation yet
-This file only updates architecture and implementation plan. Existing working-tree changes remain untouched.
 
 ## Rule IDs
-- `ARCH-01`: preserve explicit ownership and avoid duplicate configuration sources.
-- `DB-03`: preserve data integrity and transaction boundaries.
-- `MIG-01`: clean, reversible schema cutover with rollback boundary.
-- `API-01`: contract-first validation and stable internal ownership.
-- `TEST-01`: unit, integration, browser, and full LeeDevKit verification.
-- `UI-01`: i18n, accessibility, loading/error states.
+- `ARCH-01`: Single source of truth — `Shift` = schedule + punch capture; `Work Policy` = effective-dated calculation rules.
+- `DB-03`: Transactional integrity (`service.WithTx`) and non-negative CHECK constraints on summaries.
+- `MIG-01`: Clean pre-prod cutover with reversible `up.sql` and `down.sql` + phased schema parity.
+- `API-01`: Contract-first — update Go handlers/repos, `apiserver/openapi.yaml`, and generated TypeScript together.
+- `UI-01`: i18n across EN/VI/ZH, client validation, accessible labels/errors, no dead controls.
+- `TEST-01`: Unit + PostgreSQL integration + migration rehearsal + 5-role 1920×1080 Playwright + full `leedevkit test api/web/all`.
 
-## Constraints and interfaces
-- `ARCH-01`: `Shift` exposes schedule facts; `Work Policy` exposes effective rules; calculation consumes resolved value objects.
-- `DB-03` / `MIG-01`: remove obsolete Shift columns only through reviewed migration with working `down.sql`; do not silently reinterpret dev data.
-- `API-01`: contract-first clean break; update Go structs, OpenAPI/generated TypeScript, repository queries, and consumers together.
-- `TEST-01`: focused tests, integration tests, browser acceptance, then full `api`, `web`, and `all` gates.
-- `UI-01`: configure rules under Work Policy settings, not Shift editor; keep i18n, loading/error states, keyboard focus, and accessible controls.
-- Preserve unrelated user changes in `webdashboard/src/lib/__tests__/api.test.ts`, `webdashboard/src/lib/api/shifts.ts`, and `webdashboard/src/pages/shifts/hooks/use-shift-data.ts`.
+## Completed Baseline
+- [x] **B1. Shift grace/Early OT removal:** Dropped `early_punch_in_grace_period_minutes`, `allow_early_ot`, `max_early_ot_minutes`, `ot_aggregation_mode`, `is_night_shift` from `shift_default_intervals` (`20261119000000_work_policy_attendance_rules`), Shift API/Repo, and Shift editor (`grace-ot-section.tsx`, `ot-aggregation-section.tsx` deleted).
+- [x] **B2. Work Policy rule storage & API:** Added the 7 rule fields to `work_credit_policies`, domain validation, API, `apiserver/openapi.yaml`, and basic inputs in `payroll-settings-section.tsx`.
+- [x] **B3. Provenance, H6 pairing & closure guard:** Added `work_policy_version_id` / `shift_version_id` (`20261119010000_attendance_policy_provenance`), `ensureReprocessPeriodsOpen`, `pairRawLogsForReprocess`, multi-break overlap merge, `ErrAttendancePolicyMissing` / `ErrPayrollPolicyMissing`, and `h6_pairing_reprocess_payroll_integration_test.go`.
 
-## Constraints and interfaces
-- `ARCH-01`: preserve current domain boundaries and reuse existing shift/work-policy objects.
-- `DB-03` / `MIG-01`: no destructive rename; any migration must be additive, reversible, and preserve historical versions.
-- `API-01`: contract-first, additive fields only; UUID/date/minute validation and backend authorization before business logic.
-- `TEST-01`: focused tests, integration tests, then full `api`, `web`, and `all` gates.
-- `UI-01`: existing UI components, i18n, labels, loading/error states, keyboard focus, and accessible toggle labeling.
-- Preserve unrelated user changes in `webdashboard/src/lib/__tests__/api.test.ts`, `webdashboard/src/lib/api/shifts.ts`, and `webdashboard/src/pages/shifts/hooks/use-shift-data.ts`.
+## Remaining Refactor Plan
 
-## Tasks
-- [ ] 1. Inventory and classify current consumers. Trace Shift interval fields through API, repository, attendance parser, OT detection, payroll, generated schema, and UI. Identify every place where `early_punch_in_grace_period_minutes`, `allow_early_ot`, `max_early_ot_minutes`, `ot_aggregation_mode`, break treatment, and `is_night_shift` are read or written. Verify: each field is marked `Shift fact`, `Policy rule`, derived value, or obsolete; no consumer missed.
-- [ ] 2. Freeze clean-break contract. Define `ScheduleFacts`, `PolicyRules`, normalized punch intervals, effective-date precedence, missing-policy behavior, zero values, overnight matching, multiple intervals, cap, rounding, and approval flow. Add explicit fields for late grace versus Early OT grace. Verify: contract examples cover 07:40/08:00, exact grace boundary, cap, disabled flag, overnight, and mid-period policy change.
-- [ ] 3. Refactor backend contracts and schema. Remove policy fields from Shift request/response/domain/repository SQL and add them to Work Policy/Overtime Policy version contract. Add clean-cutover migration with `up.sql` and `down.sql`; handle existing dev rows through explicit reset or reviewed mapping, never silent reinterpretation. Update OpenAPI/generated TypeScript together. Verify: schema applies, rollback works, no Shift API exposes removed policy fields, and policy version returns all required rules.
-- [ ] 4. Implement resolver and pure calculation boundary. Resolve Shift schedule facts by work date, resolve Work Policy by employment/date, normalize punches, then calculate Early OT and late status using pure value objects. Keep DB out of calculation. Separate detected, claimed, approved, and payable values. Verify: unit cases cover boundary, zero, negative rejection, cap, disabled, overnight, multiple intervals, missing policy, and no implicit fallback.
-- [ ] 5. Wire persistence, snapshots, and audit. Persist policy rules in immutable effective-dated versions, record selected Shift/version and Work Policy/Overtime Policy provenance in calculation snapshots, and keep locked payroll history immutable. Add audit events for policy changes without raw PII. Verify: disposable PostgreSQL integration covers effective-date resolution, concurrent overlap rejection, rollback, snapshot provenance, and historical result immutability.
-- [ ] 6. Move UI configuration to Work Policy. Remove Grace/Early OT controls from `webdashboard/src/pages/shifts/components/grace-ot-section.tsx`, `interval-draft-editor.tsx`, and `use-shift-editor.ts`. Add the controls to existing Work Policy editor/settings with separate labels: `Late arrival grace`, `Early OT qualification grace`, `Allow Early OT`, and `Maximum Early OT`. Update EN/VI/ZH translations, generated types, validation, empty/loading/error/409 states, keyboard focus, and accessible toggle names. Verify: Shift editor contains schedule facts only; Work Policy editor changes policy fields only.
-- [ ] 7. Add contract and integration coverage. Extend API tests for clean-break payloads, validation, 403/400/409 paths, effective-date resolution, and policy persistence. Add regression tests proving Shift changes alter schedule parsing but do not alter eligibility rules, while Work Policy changes alter eligibility and preserve snapshots. Verify: old incorrect field ownership fails before implementation and passes after.
-- [ ] 8. Browser acceptance by role. Read `docs/dev-accounts.md`, create route × role matrix, use 1920×1080 viewport, and test Shift editor plus Work Policy settings for `employee`, `team_lead`, `shift_manager`, `hr_manager`, and `admin`. Record expected 403/redirect versus unexpected 404/5xx/crash, console, and network evidence; never record credentials or PII.
-- [ ] 9. Final verification. Run `leedevkit test api`, `leedevkit test web`, then `leedevkit test all`; inspect phase logs, run `git diff --check`, and report skipped/failed checks. Do not claim completion from unit-only or lint-only output.
+### Phase 1 — Clean Cutover: Remove Break Policy Rules from Shift
+- [x] **1.1 Migration (`20261126000000_remove_shift_break_policy_rules/{up,down}.sql`)**
+  - Drop `is_break_auto_deduct`, `break_is_overtime`, `break_credit_mode` and their CHECK constraints (`shift_default_intervals_break_credit_mode_check`, `shift_default_intervals_break_policy_check`) from `shift_default_intervals`.
+  - Keep `break_punch_mode` (`none` | `required`) and `shift_default_intervals_break_punch_mode_check`.
+  - Keep phased schema `apiserver/migrations/phases/attendance_schedule/up.sql` aligned.
+  - Verify: `up -> down -> up` cleanly applies and rolls back.
+- [x] **1.2 Backend Shift & Schedule Contract Cleanup**
+  - Remove `is_break_auto_deduct`, `break_is_overtime`, `break_credit_mode` from:
+    - `apiserver/internal/api/shifts.go`, `apiserver/internal/api/shifts_test.go`
+    - `apiserver/internal/api/schedules.go`
+    - `apiserver/internal/repository/shifts.go`
+    - `apiserver/internal/repository/schedules.go`
+    - `apiserver/internal/repository/schedule_lifecycle.go` (preview/replan/breaks snapshot keep `start`, `end`, `start_at`, `end_at`, `duration_minutes`, `break_punch_mode` only)
+    - `apiserver/internal/repository/schedule_break_override_integration_test.go`
+  - Update `apiserver/openapi.yaml` and regenerate `webdashboard/src/types/api-generated.ts`.
+  - Verify: no Shift or Schedule endpoint reads, writes, or documents removed policy fields.
 
-## Test impact matrix
-- Changed behavior: grace and Early OT boundary, cap, policy resolution, payable-OT separation.
-- Existing behavior: normal schedule parsing, late handling, regular/post-shift OT, attendance normalization, and historical snapshots.
-- Inputs: missing, zero, negative, maximum, malformed time/date/UUID, overnight and multiple intervals.
-- State: no policy membership, effective policy change, mid-period policy change, closed payroll period, stale preview.
-- Failures: missing references, disabled policy, overlap, DB conflict, transaction rollback, dependency timeout.
-- Security: unauthenticated, forbidden role, unauthorized Shift/Work Policy mutation, audit event without PII.
-- Compatibility: intentional pre-production clean break; migration/reset of dev rows, generated API types, and no legacy fallback.
+### Phase 2 — Complete Pure Calculation Engine & Reprocess Pipeline
+- [x] **2.1 Pure Calculation (`apiserver/internal/domain/payroll/buckets/buckets.go`)**
+  - Wire `OTAggregationMode` (`aggregate` vs `per_segment`) cleanly for multi-segment daily calculation (unit rounding and `MaxEarlyOTMinutes` cap behavior).
+  - Support `BreakPunchMode` (`required` uses `ActualBreakMinutes` + provisional/exception flags; `none` uses `Work Policy` `IsBreakAutoDeduct` / `IsBreakOvertime` minus approved `break_worked` minutes).
+  - Keep all calculation functions pure (no DB/IO).
+  - Verify: unit tests in `buckets_test.go` cover grace boundaries, caps, `aggregate` vs `per_segment`, `break_punch_mode = required` (complete + missing pair), `break_punch_mode = none` (auto-deduct, paid, break OT, unexpected punch, approved `break_worked` override).
+- [x] **2.2 Orchestration & Transaction (`apiserver/internal/repository/attendance.go`)**
+  - Select `wc.late_arrival_grace_minutes`, `wc.ot_aggregation_mode`, and effective `attendance_policy_versions.rules` (`work_unit_minutes`, `rounding_policy`, `early_arrival_strategy`) for `wc.attendance_policy_id` on `business_date`.
+  - Compute daily `late_minutes` using existing `matcher.ComputeLateMinutes(punchIn, shiftStart, lateGrace, isHoliday)` — do not duplicate logic.
+  - Load `time_entry_breaks` per `time_entry` and approved `schedule_day_overrides` (`break_worked`) per `(employment_id, business_date)`.
+  - Persist `late_minutes`, `actual_break_minutes`, `deducted_break_minutes`, `break_provisional`, `break_exception_code`, `net_work_minutes`, `net_paid_minutes`, `work_policy_version_id`, `shift_version_id`.
+  - Wrap `ReprocessAttendance` (period check + pairing + daily upserts) in a single DB transaction (`service.WithTx`).
+  - Verify: rollback leaves zero partial summaries; `policy_missing` aborts cleanly; closed period returns `ErrAttendanceLockedPeriod`.
 
-## Done when
-- `Shift` exposes schedule facts only; no grace/Early OT/OT eligibility fields remain in its contract, storage, or editor.
-- `Work Policy` exposes explicit attendance and Early OT rules with effective-dated membership/version resolution.
-- UI wording matches actual semantics in all supported locales.
-- Calculation combines point-in-time Shift facts and Work Policy rules and preserves provenance.
-- Negative/forbidden/conflict paths are tested.
-- Clean migration/reset path is verified; no silent legacy fallback exists.
-- Integration, browser acceptance, migration rehearsal, and full LeeDevKit gates pass.
+### Phase 3 — Frontend UI Cleanup, i18n & Stale Type Removal
+- [x] **3.1 Shift Editor & Shift Metrics Cleanup**
+  - Update `webdashboard/src/pages/shifts/components/break-config-section.tsx` and `webdashboard/src/pages/shifts/hooks/use-shift-editor.ts`:
+    - Keep `breakPunchMode` (`none` | `required`), break schedule (`fixed` vs `duration`), `breakStart`, `breakEnd`, `breakDuration`.
+    - Remove `isAutoDeduct`, `isBreakOvertime`, `breakCreditMode` checkboxes, state, and payload fields.
+    - Show concise helper text noting that break deduction & break OT rules are configured in **Work Policy**.
+  - Update `webdashboard/src/components/shifts/shift-timeline-preview.tsx` and `webdashboard/src/lib/shift-card-metrics.ts` (+ `__tests__/shift-card-metrics.test.ts`).
+- [x] **3.2 Work Policy Settings UX, Validation & i18n**
+  - `webdashboard/src/components/payroll/payroll-settings-section.tsx`:
+    - Replace all hardcoded English labels/options (lines 344–371) with i18n keys.
+    - Add matching translations in `webdashboard/src/i18n/locales/{en,vi,zh}/settings.json` (and `shifts.json` / `attendance.json` where updated).
+    - Add client validation (non-negative integers for `late_arrival_grace_minutes`, `early_ot_qualification_grace_minutes`, `early_ot_max_minutes`) with accessible `aria-invalid` / `aria-describedby` error messages and clear grouping (Grace & Early OT vs Break Treatment).
+  - Add unit tests in `payroll-settings-section.test.tsx` covering render, validation, and payload submission for all 7 fields.
+- [x] **3.3 Clean Stale Legacy Types & Test Fixtures**
+  - Remove obsolete Shift fields (`early_punch_in_grace_period_minutes`, `allow_early_ot`, `max_early_ot_minutes`, `ot_aggregation_mode`, `is_break_auto_deduct`, `break_credit_mode`, `break_is_overtime`) from:
+    - `webdashboard/src/lib/api/types-work-segments.ts`, `types-employment.ts`, `types-attendance.ts`, `condition-types.ts`
+    - `webdashboard/src/pages/settings/components/condition-type-form.tsx`
+    - `webdashboard/src/hooks/reports/use-row-meta.ts`, `daily-report-columns.tsx`
+    - `webdashboard/src/__tests__/factories/test-factories.ts` and affected unit test fixtures (`shifts-page.test.tsx`, `shift-picker-*.test.tsx`, `roster-toolbar-parts.test.tsx`, `shift-revision-history-dialog.test.tsx`, `daily-report-*.test.tsx`, `reports-page.test.tsx`, `unrecorded-shifts-tab.test.tsx`).
 
-## Review focus
-- Existing Shift columns and UI currently mix schedule facts with policy rules; clean cutover must update all readers/writers.
-- `early_punch_in_grace_period_minutes` currently has ambiguous semantics and must not be silently mapped to one new rule.
-- `is_night_shift` is derived from schedule boundaries; avoid storing duplicate derived state.
-- Early OT must remain distinct from approved/payable OT and must not alter locked payroll history.
+### Phase 4 — Verification Gates
+- [x] **4.1 Integration Tests (PostgreSQL)**
+  - Extend `h6_pairing_reprocess_payroll_integration_test.go` and add targeted integration tests covering:
+    - `late_arrival_grace_minutes` boundary (<= grace vs > grace)
+    - `early_ot_qualification_grace_minutes` + `early_ot_max_minutes` + `early_ot_enabled = false`
+    - `ot_aggregation_mode` (`aggregate` vs `per_segment`)
+    - `break_punch_mode = 'required'` with `time_entry_breaks` (paired + missing pair exception)
+    - `break_punch_mode = 'none'` with `Work Policy` auto-deduct, break OT, and approved `schedule_day_overrides` (`break_worked`)
+    - `ErrAttendancePolicyMissing` when membership is missing
+    - Transaction rollback atomicity
+- [x] **4.2 Migration Rehearsal**
+  - Verify `up -> down -> up` on `20261126000000_remove_shift_break_policy_rules`, `20261119000000_work_policy_attendance_rules`, and `20261119010000_attendance_policy_provenance`.
+- [x] **4.3 Browser Acceptance by Role (1920×1080)**
+  - Read `docs/dev-accounts.md`, build route × role acceptance matrix for all 5 roles (`employee`, `team_lead`, `shift_manager`, `hr_manager`, `admin`).
+  - Verify Shift editor (no break deduction/OT or grace/Early OT toggles; `break_punch_mode` + window work cleanly) and Work Policy settings (all 7 fields localized, validated, persisted) with zero console/5xx errors; mask all PII/credentials.
+- [x] **4.4 Full LeeDevKit Gates**
+  - Run `leedevkit test api`, `leedevkit test web`, `leedevkit test all`; inspect every phase in `.test_logs/` (never rely on trailing summary alone); run `git diff --check`.
+
+## Done When
+- `Shift` owns schedule facts + `break_punch_mode` only; zero calculation rules remain on `Shift` DB, API, OpenAPI, TS types, or UI.
+- `Work Policy` is the sole effective-dated source for late grace, Early OT, OT aggregation, and break deduction/OT rules.
+- `ReprocessAttendance` resolves `Work Policy` + `AttendancePolicy`, reuses `matcher.ComputeLateMinutes`, applies `time_entry_breaks` + `schedule_day_overrides`, runs in a single TX, and records provenance.
+- Work Policy UI is localized (EN/VI/ZH), validated, accessible, and tested.
+- Migration rehearsal, PostgreSQL integration tests, 5-role 1920×1080 browser acceptance, and full `leedevkit test api/web/all` pass.

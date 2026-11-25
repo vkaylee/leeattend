@@ -295,6 +295,31 @@ func TestIntegrationConcurrentPolicyMembershipInsertHasSingleWinner(t *testing.T
 	}
 }
 
+func attachDefaultMonthlyWorkPolicy(t *testing.T, pool *pgxpool.Pool, ctx context.Context, employmentID uuid.UUID, label string) {
+	t.Helper()
+	actorID := uuid.New()
+	attPolicyID, patternID, workCreditID, payBasisID, otPolicyID, groupID, versionID := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	for _, q := range []struct {
+		sql  string
+		args []any
+	}{
+		{`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, []any{actorID, actorID.String() + "@invalid.test"}},
+		{`INSERT INTO attendance_policies (id, name, is_default) VALUES ($1, $2, false)`, []any{attPolicyID, label + "-att-" + attPolicyID.String()[:8]}},
+		{`INSERT INTO working_patterns (id, name, pattern_type, is_active) VALUES ($1, $2, 'weekly', true)`, []any{patternID, label + "-pat-" + patternID.String()[:8]}},
+		{`INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, 480, $3, $4, $5)`, []any{workCreditID, label + "-wc-" + workCreditID.String()[:8], attPolicyID, patternID, actorID}},
+		{`INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, $2, 'monthly', 'fixed', 26, $3)`, []any{payBasisID, label + "-pb-" + payBasisID.String()[:8], actorID}},
+		{`INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, $2)`, []any{otPolicyID, label + "-ot-" + otPolicyID.String()[:8]}},
+		{`INSERT INTO overtime_rules (id, policy_id, priority, multiplier) VALUES (gen_random_uuid(), $1, 1, 1.50)`, []any{otPolicyID}},
+		{`INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, $2, $3)`, []any{groupID, label + "-grp-" + groupID.String()[:8], actorID}},
+		{`INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, created_by) VALUES ($1, $2, $3, $4, $5, DATE '2026-01-01', $6)`, []any{versionID, groupID, workCreditID, payBasisID, otPolicyID, actorID}},
+		{`INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, created_by) VALUES (gen_random_uuid(), $1, $2, DATE '2026-01-01', $3)`, []any{employmentID, groupID, actorID}},
+	} {
+		if _, err := pool.Exec(ctx, q.sql, q.args...); err != nil {
+			t.Fatalf("attach default work policy (%s): %v", label, err)
+		}
+	}
+}
+
 func TestIntegrationLegacyPayrollCalculationKeepsArithmeticAcrossReruns(t *testing.T) {
 	pool, ctx := requireIntegrationDatabase(t)
 	employerID := uuid.New()
@@ -332,6 +357,10 @@ func TestIntegrationLegacyPayrollCalculationKeepsArithmeticAcrossReruns(t *testi
 	}
 
 	repo := PayrollRepository{DB: pool}
+	if _, err := repo.CalculateEmployeePayroll(ctx, ids.EmployeeID(employeeID), 2026, 1, ids.UserID(uuid.New())); !errors.Is(err, api.ErrPayrollPolicyMissing) {
+		t.Fatalf("expected ErrPayrollPolicyMissing without work policy, got %v", err)
+	}
+	attachDefaultMonthlyWorkPolicy(t, pool, ctx, employmentID, "parity")
 	first, err := repo.CalculateEmployeePayroll(ctx, ids.EmployeeID(employeeID), 2026, 1, ids.UserID(uuid.New()))
 	if err != nil {
 		t.Fatalf("first legacy payroll calculation: %v", err)
@@ -384,6 +413,7 @@ func TestIntegrationPayrollUsesApprovedOvertimeOnly(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, date, employment_id, standard_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, early_ot_minutes, late_ot_minutes) VALUES ($1, DATE '2026-01-15', $2, 480, 180, 120, 120, 0, 0)`, uuid.New(), employmentID); err != nil {
 		t.Fatalf("insert approved OT summary: %v", err)
 	}
+	attachDefaultMonthlyWorkPolicy(t, pool, ctx, employmentID, "approved-ot")
 
 	result, err := (PayrollRepository{DB: pool}).CalculateEmployeePayroll(ctx, ids.EmployeeID(employeeID), 2026, 1, ids.UserID(uuid.New()))
 	if err != nil {
@@ -410,8 +440,8 @@ func TestIntegrationComparePayrollImpactBatchAggregatesWithoutMutation(t *testin
 		t.Fatalf("insert impact employment: %v", err)
 	}
 	beforeRunID, afterRunID := uuid.New(), uuid.New()
-	beforeInput := `{"kpi_inputs":{"production.output":"100"},"policy":{"version_id":"policy-a"}}`
-	afterInput := `{"kpi_inputs":{"production.output":"100"},"policy":{"version_id":"policy-b"}}`
+	beforeInput := `{"kpi_inputs":{"production.output":"100"},"policy":{"version_id":"` + uuid.NewString() + `"}}`
+	afterInput := `{"kpi_inputs":{"production.output":"100"},"policy":{"version_id":"` + uuid.NewString() + `"}}`
 	beforeOutput := `{"base_pay":"1000","overtime_pay":"0","deductions":"0","net_pay":"1000","standard_units":"10","overtime_units":"0"}`
 	afterOutput := `{"base_pay":"1200","overtime_pay":"0","deductions":"0","net_pay":"1200","standard_units":"12","overtime_units":"0"}`
 	for _, item := range []struct {
@@ -460,6 +490,7 @@ func TestIntegrationSimulatePayrollRollsBackAllPayrollWrites(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, date, employment_id, standard_minutes) SELECT gen_random_uuid(), DATE '2026-01-01' + day, $1, 480 FROM generate_series(0, 21) AS days(day)`, employmentID); err != nil {
 		t.Fatalf("insert simulation attendance: %v", err)
 	}
+	attachDefaultMonthlyWorkPolicy(t, pool, ctx, employmentID, "simulation")
 
 	result, err := (PayrollRepository{DB: pool}).SimulateEmployeePayroll(ctx, ids.EmployeeID(employeeID), 2026, 1, ids.UserID(uuid.New()))
 	if err != nil {
@@ -622,6 +653,7 @@ func TestIntegrationPayrollCreditsUseExactMinutesPerEffectivePolicySegment(t *te
 		{`INSERT INTO attendance_policies (id, name) VALUES ($1, 'credit-parity-attendance')`, []any{attendancePolicyID}},
 		{`INSERT INTO working_patterns (id, name) VALUES ($1, 'credit-parity-pattern')`, []any{workingPatternID}},
 		{`INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'credit-parity-overtime')`, []any{overtimePolicyID}},
+		{`INSERT INTO overtime_rules (id, policy_id, priority, multiplier) VALUES (gen_random_uuid(), $1, 1, 1.50)`, []any{overtimePolicyID}},
 		{`INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, 'credit-parity-group', $2)`, []any{groupID, userID}},
 	} {
 		if _, err := pool.Exec(ctx, query.sql, query.args...); err != nil {

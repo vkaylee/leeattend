@@ -34,8 +34,7 @@ function makeShift(overrides: Partial<Shift> & {
     break_start?: string | null;
     break_end?: string | null;
     break_duration_minutes?: number;
-    is_break_auto_deduct?: boolean;
-    is_night_shift?: boolean;
+    break_punch_mode?: "none" | "required";
     interval_name?: string;
   };
 } = {}): Shift {
@@ -51,8 +50,7 @@ function makeShift(overrides: Partial<Shift> & {
       break_start: "12:00:00",
       break_end: "13:00:00",
       break_duration_minutes: 60,
-      is_break_auto_deduct: true,
-      is_night_shift: false,
+      break_punch_mode: "none",
     }],
     employer_id: overrides.employer_id ?? null,
     location_id: overrides.location_id ?? null,
@@ -64,13 +62,13 @@ function makeShift(overrides: Partial<Shift> & {
 }
 
 const defaultShifts: Shift[] = [
-  makeShift({ id: "s1", name: "Morning Shift", report_symbol: "MS", intervals: [{ start_time: "08:00:00", end_time: "17:00:00", break_duration_minutes: 60, is_break_auto_deduct: true, is_night_shift: false }] }),
-  makeShift({ id: "s2", name: "Night Shift", report_symbol: "NS", intervals: [{ start_time: "22:00:00", end_time: "06:00:00", break_duration_minutes: 30, is_break_auto_deduct: false, is_night_shift: true }] }),
+  makeShift({ id: "s1", name: "Morning Shift", report_symbol: "MS", intervals: [{ start_time: "08:00:00", end_time: "17:00:00", break_duration_minutes: 60, break_punch_mode: "none" }] }),
+  makeShift({ id: "s2", name: "Night Shift", report_symbol: "NS", intervals: [{ start_time: "22:00:00", end_time: "06:00:00", break_duration_minutes: 30, break_punch_mode: "none" }] }),
   makeShift({ id: "s3", name: "Split Shift", report_symbol: "SP", intervals: [
-    { start_time: "08:00:00", end_time: "12:00:00", break_duration_minutes: 0, is_break_auto_deduct: false, is_night_shift: false },
-    { start_time: "14:00:00", end_time: "18:00:00", break_duration_minutes: 0, is_break_auto_deduct: false, is_night_shift: false },
+    { start_time: "08:00:00", end_time: "12:00:00", break_duration_minutes: 0, break_punch_mode: "none" },
+    { start_time: "14:00:00", end_time: "18:00:00", break_duration_minutes: 0, break_punch_mode: "none" },
   ] }),
-  makeShift({ id: "s4", name: "Afternoon Shift", report_symbol: "AS", intervals: [{ start_time: "14:00:00", end_time: "22:00:00", break_duration_minutes: 30, is_break_auto_deduct: true, is_night_shift: false }] }),
+  makeShift({ id: "s4", name: "Afternoon Shift", report_symbol: "AS", intervals: [{ start_time: "14:00:00", end_time: "22:00:00", break_duration_minutes: 30, break_punch_mode: "none" }] }),
 ];
 
 // ── Tests ────────────────────────────────────────────────────────────

@@ -159,7 +159,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       break_duration_minutes: 60,
       break_start: null,
       break_end: null,
-      is_break_auto_deduct: true,
     },
     {
       id: "shift-2",
@@ -169,7 +168,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       break_duration_minutes: 60,
       break_start: "18:00:00",
       break_end: "19:00:00",
-      is_break_auto_deduct: true,
     },
     {
       id: "shift-3",
@@ -179,7 +177,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       break_duration_minutes: 30,
       break_start: null,
       break_end: null,
-      is_break_auto_deduct: true,
     },
   ];
 

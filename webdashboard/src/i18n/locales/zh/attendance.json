@@ -652,7 +652,7 @@
       "auto_deduct_label": "自动扣除休息时间",
       "basic_info": "基本信息",
       "break_config": "休息时间",
-      "break_config_help": "选择如何计算此工作时段内的休息时间。",
+      "break_config_help": "选择此工作时段内的休息打卡方式。休息扣除与休息加班规则在工作政策（Work Policy）中配置。",
       "break_step_record": "员工如何记录休息？",
       "break_capture_label": "休息打卡方式",
       "break_capture_none": "无需休息打卡",
