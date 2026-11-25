@@ -2117,6 +2117,7 @@
       "missing": "缺少排班",
       "closed": "已关闭",
       "draft": "草稿",
+      "work": "工作日（未发布）",
       "conflict": "冲突",
       "legacy_unverified": "旧数据未验证"
     }

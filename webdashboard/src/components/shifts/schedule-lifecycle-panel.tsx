@@ -26,6 +26,7 @@ import {
   publishRotatingSchedules,
 } from "@/lib/api";
 import { createQueryKey } from "@/lib/query-keys";
+import { generateUUID } from "@/utils/uuid";
 
 
 interface ScheduleLifecyclePanelProps {
@@ -41,6 +42,13 @@ function formatDate(date: Date): string {
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
   const day = String(date.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function formatLocalClock(timestamp: string, timeZone: string): string {
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(timestamp)) return timestamp.slice(0, 5);
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return timestamp;
+  return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", hour12: false, minute: "2-digit", timeZone }).format(parsed);
 }
 
 function lifecycleStatus(status: string | null | undefined): "success" | "warning" | "danger" | "info" | "neutral" {
@@ -124,22 +132,26 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
     const date = formatDate(day);
     return { label: date, value: date };
   });
+  const resolvedTimezone = employeeSchedule.schedules.find((day) => day.timezone)?.timezone ?? organization?.timezone ?? "UTC";
+  const effectiveReason = reason.trim() || t("scheduleLifecycle.preview");
   const selectedSchedule = scheduleByDate.get(selectedDate);
-  const selectedRevision = evidence?.revisions.at(-1);
-  const selectedSegment = evidence?.segments.at(-1);
+  const selectedRevision = evidence?.revisions.find((revision) => revision.state === "published") ?? evidence?.revisions.at(-1);
+  const selectedSegment = evidence?.segments.find((segment) => segment.schedule_revision_id === selectedRevision?.revision_id) ?? evidence?.segments.at(-1);
   const replacement = selectedSegment?.selected_shift_version_id
     ? {
         status: "work" as const,
         source: "manual",
         shift_version_id: selectedSegment.selected_shift_version_id,
         intervals: selectedSegment.scheduled_start_at && selectedSegment.scheduled_end_at
-          ? [{ sort_order: 0, start: selectedSegment.scheduled_start_at, end: selectedSegment.scheduled_end_at, breaks: [] }]
+          ? [{
+              sort_order: 0,
+              start: formatLocalClock(selectedSegment.scheduled_start_at, resolvedTimezone),
+              end: formatLocalClock(selectedSegment.scheduled_end_at, resolvedTimezone),
+              breaks: [],
+            }]
           : [],
       }
     : null;
-
-  const resolvedTimezone = employeeSchedule.schedules.find((day) => day.timezone)?.timezone ?? organization?.timezone ?? "UTC";
-  const effectiveReason = reason.trim() || t("scheduleLifecycle.preview");
 
   const previewMutation = useMutation({
     mutationFn: () => previewSchedules({
@@ -166,10 +178,10 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
         approval_instance_id: null,
         preview_id: preview.preview_id,
         preview_hash: preview.preview_hash,
-        reason: reason.trim(),
+        reason: effectiveReason,
         retroactive: false,
         expected_revisions: expectedRevisions,
-      }, crypto.randomUUID());
+      }, generateUUID());
     },
     onSuccess: () => {
       setPreview(null);
@@ -205,7 +217,7 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
         preview_id: replanPreview.preview_id,
         preview_hash: replanPreview.preview_hash,
         confirm_diff_hash: replanPreview.diff_hash,
-      }, crypto.randomUUID());
+      }, generateUUID());
     },
     onSuccess: () => {
       setReplanPreview(null);
@@ -256,7 +268,7 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
       <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
         <Button icon={<History size={15} />} loading={historyMutation.isPending} onClick={() => { historyMutation.mutate(); }} variant="outline">{t("scheduleLifecycle.history")}</Button>
         <Button icon={<FileSearch size={15} />} loading={evidenceMutation.isPending} onClick={() => { evidenceMutation.mutate(); }} variant="outline">{t("scheduleLifecycle.evidence")}</Button>
-        <Button disabled={!replacement || !selectedSchedule?.revision_number} icon={<RefreshCw size={15} />} loading={replanPreviewMutation.isPending} onClick={() => { replanPreviewMutation.mutate(); }} variant="outline">{t("scheduleLifecycle.replan")}</Button>
+        <Button disabled={!replacement || !(selectedSchedule?.revision_number ?? selectedRevision?.revision_number)} icon={<RefreshCw size={15} />} loading={replanPreviewMutation.isPending} onClick={() => { replanPreviewMutation.mutate(); }} variant="outline">{t("scheduleLifecycle.replan")}</Button>
       </div>
 
       {history ? <div aria-live="polite" className="space-y-3"><Typography className="m-0 text-sm font-bold text-slate-700 dark:text-slate-200" variant="h3">{t("scheduleLifecycle.history")}</Typography>{history.data.length === 0 ? <Typography className="m-0 text-sm text-slate-500">{t("scheduleLifecycle.noHistory")}</Typography> : history.data.map((entry) => <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700" key={entry.revision_id}><span className="font-mono text-xs">{entry.business_date} · r{entry.revision_number}</span><StatusBadge variant={lifecycleStatus(entry.state)}>{t(`scheduleLifecycle.states.${entry.state}`)}</StatusBadge><span className="text-xs text-slate-500">{entry.reason || t("scheduleLifecycle.noReason")}</span></div>)}</div> : null}
