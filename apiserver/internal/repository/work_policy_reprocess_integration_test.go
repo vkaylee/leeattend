@@ -43,8 +43,7 @@ func TestIntegrationWorkPolicyRulesLateGraceOTAggregationAndBreaks(t *testing.T)
 
 	createWorker := func(label string, lateGrace int, earlyEnabled bool, earlyGrace int, earlyMax *int, breakAuto, breakOT bool, aggMode string, assignPolicy bool) (uuid.UUID, uuid.UUID) {
 		empID, employmentID := uuid.New(), uuid.New()
-		mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, $3, DATE '2026-01-01', DATE '2026-01-01')`, empID, label+"-"+empID.String()[:8], label)
-		mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01', DATE '2026-12-31')`, employmentID, empID, employerID)
+		seedIntegrationEmployeeGraphWithRange(t, ctx, pool, empID, employerID, employmentID, label+"-"+empID.String()[:8], label, "2026-01-01", "2026-01-01", "2026-12-31")
 		if assignPolicy {
 			wcID, groupID, verGroupID := uuid.New(), uuid.New(), uuid.New()
 			mustExec(`INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, late_arrival_grace_minutes, early_ot_enabled, early_ot_qualification_grace_minutes, early_ot_max_minutes, break_auto_deduct, break_is_overtime, ot_aggregation_mode, created_by) VALUES ($1, $2, 480, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, wcID, "WC-"+label, attPolicyID, patternID, lateGrace, earlyEnabled, earlyGrace, earlyMax, breakAuto, breakOT, aggMode, actorID)

@@ -124,7 +124,7 @@ func assertInvalidScopeCreateRollsBack(t *testing.T, ctx context.Context, tx pgx
 		t.Fatalf("invalid employer err = %v, want ErrInvalidInput", err)
 	}
 	var leftover int
-	if err := tx.QueryRow(ctx, `SELECT count(*) FROM employees WHERE employee_id_number = 'EMP-RB-01'`).Scan(&leftover); err != nil || leftover != 0 {
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM employee_tenures WHERE employee_number = 'EMP-RB-01'`).Scan(&leftover); err != nil || leftover != 0 {
 		t.Fatalf("rollback leaked employee rows: count=%d err=%v", leftover, err)
 	}
 }
@@ -226,9 +226,9 @@ func seedTerminatedEmployeeForReuse(
 	t.Helper()
 	empID := uuid.New()
 	if _, err := db.Exec(ctx, `
-		INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date, termination_date, is_active)
-		VALUES ($1, $2, 'Terminated Reuse Person', $3::date, $3::date, $4::date, FALSE)
-	`, empID, code, startDate, endDate); err != nil {
+		INSERT INTO employees (id, full_name)
+		VALUES ($1, 'Terminated Reuse Person')
+	`, empID); err != nil {
 		t.Fatalf("insert terminated employee: %v", err)
 	}
 	if _, err := db.Exec(ctx, `INSERT INTO employee_profiles (employee_id, phone, date_of_birth) VALUES ($1, '+84900000001', DATE '1990-01-01')`, empID); err != nil {
@@ -340,9 +340,6 @@ func linkTestUserToTenure(t *testing.T, ctx context.Context, tx pgx.Tx, empID, t
 	if _, err := tx.Exec(ctx, `INSERT INTO users (id, email, password_hash, full_name) VALUES ($1, $2, 'hash', 'ESS Reuse User')`, userID, fmt.Sprintf("ess-reuse-%s@example.invalid", userID.String()[:8])); err != nil {
 		t.Fatalf("insert ess user: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `UPDATE employees SET user_id = $1 WHERE id = $2`, userID, empID); err != nil {
-		t.Fatalf("link employee user: %v", err)
-	}
 	if _, err := tx.Exec(ctx, `UPDATE employee_tenures SET user_id = $1 WHERE id = $2`, userID, tenureID); err != nil {
 		t.Fatalf("link new tenure user: %v", err)
 	}
@@ -375,7 +372,9 @@ func runConcurrentCreateCodeRace(t *testing.T, ctx context.Context, pool *pgxpoo
 	tag := uuid.NewString()[:8]
 	codes := []string{"race-" + tag, "  RACE-" + tag + " "}
 	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM employees WHERE UPPER(BTRIM(employee_id_number)) = UPPER($1)`, "race-"+tag)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM employee_profiles WHERE employee_id IN (SELECT employee_id FROM employee_tenures WHERE employee_number_normalized = UPPER($1))`, "race-"+tag)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM employee_tenures WHERE employee_number_normalized = UPPER($1)`, "race-"+tag)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM employees WHERE full_name LIKE 'Race Code %' AND id NOT IN (SELECT employee_id FROM employee_tenures)`)
 	})
 
 	errs := runParallel2(func(idx int) error {
@@ -394,6 +393,7 @@ func runConcurrentCreateIdentityRace(t *testing.T, ctx context.Context, pool *pg
 	tag := uuid.NewString()[:8]
 	nidHash, _, _ := hasher.HashNationalID("999-" + tag)
 	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM employee_tenures WHERE employee_id IN (SELECT employee_id FROM employee_profiles WHERE national_id_lookup_hash = $1)`, nidHash)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM employees WHERE id IN (SELECT employee_id FROM employee_profiles WHERE national_id_lookup_hash = $1)`, nidHash)
 	})
 

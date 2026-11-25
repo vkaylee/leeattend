@@ -71,28 +71,55 @@ func TestEmployeeImport_DateParsing(t *testing.T) {
 }
 
 func TestEmployeeImportRepository_TerminationUpdatesRelationship(t *testing.T) {
+	employeeID := uuid.New()
+	employerID := uuid.New()
 	employmentID := uuid.New()
 	relationshipID := uuid.New()
+	tenureID := uuid.New()
 	segmentUpdated := false
 	relationshipLocked := false
 	relationshipUpdated := false
+	tenureClosed := false
 	tx := &fakeTx{}
 	tx.fakeDBTX.queryRowFn = func(_ context.Context, query string, _ ...any) pgx.Row {
 		switch {
 		case strings.Contains(query, "FROM employments"):
 			return fakeRow{scanFn: func(dest ...any) error {
-				*(dest[0].(*string)) = "active"
-				*(dest[1].(*time.Time)) = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-				*(dest[2].(**uuid.UUID)) = &relationshipID
+				*(dest[0].(*uuid.UUID)) = employeeID
+				*(dest[1].(*uuid.UUID)) = employerID
+				*(dest[2].(*string)) = "active"
+				*(dest[3].(*time.Time)) = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+				*(dest[4].(*uuid.UUID)) = relationshipID
 				return nil
 			}}
-		case strings.Contains(query, "FROM employment_relationships"):
+		case strings.Contains(query, "FROM payroll_periods"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*bool)) = false
+				return nil
+			}}
+		case strings.Contains(query, "SELECT tenure_id FROM employment_relationships"):
 			if !strings.Contains(query, "FOR UPDATE") {
 				t.Fatalf("relationship lookup must lock row: %s", query)
 			}
 			relationshipLocked = true
 			return fakeRow{scanFn: func(dest ...any) error {
-				*(dest[0].(*uuid.UUID)) = relationshipID
+				*(dest[0].(*uuid.UUID)) = tenureID
+				return nil
+			}}
+		case strings.Contains(query, "SELECT count(*) FROM employment_relationships"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int)) = 0
+				return nil
+			}}
+		case strings.Contains(query, "FROM employee_tenures"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(**uuid.UUID)) = nil
+				*(dest[1].(**time.Time)) = nil
+				return nil
+			}}
+		case strings.Contains(query, "SELECT GREATEST"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*string)) = "2026-06-30"
 				return nil
 			}}
 		default:
@@ -112,6 +139,8 @@ func TestEmployeeImportRepository_TerminationUpdatesRelationship(t *testing.T) {
 			segmentUpdated = true
 		case strings.Contains(query, "UPDATE employment_relationships"):
 			relationshipUpdated = true
+		case strings.Contains(query, "UPDATE employee_tenures"):
+			tenureClosed = true
 		}
 		return pgconn.NewCommandTag("UPDATE 1"), nil
 	}
@@ -127,27 +156,48 @@ func TestEmployeeImportRepository_TerminationUpdatesRelationship(t *testing.T) {
 	if err != nil {
 		t.Fatalf("terminate employment: %v", err)
 	}
-	if count != 1 || !segmentUpdated || !relationshipLocked || !relationshipUpdated || !tx.committed {
-		t.Fatalf("termination count/segment update/relationship lock/relationship update/commit = %d/%t/%t/%t/%t, want 1/true/true/true/true", count, segmentUpdated, relationshipLocked, relationshipUpdated, tx.committed)
+	if count != 1 || !segmentUpdated || !relationshipLocked || !relationshipUpdated || !tenureClosed || !tx.committed {
+		t.Fatalf("termination count/segment/relLock/relUpdate/tenureClosed/commit = %d/%t/%t/%t/%t/%t, want 1/true/true/true/true/true", count, segmentUpdated, relationshipLocked, relationshipUpdated, tenureClosed, tx.committed)
 	}
 }
 
 func TestEmployeeImportRepository_TerminationAcceptsStartDate(t *testing.T) {
+	employeeID := uuid.New()
+	employerID := uuid.New()
 	relationshipID := uuid.New()
+	tenureID := uuid.New()
 	tx := &fakeTx{}
 	tx.fakeDBTX.queryRowFn = func(_ context.Context, query string, _ ...any) pgx.Row {
-		if strings.Contains(query, "FROM employments") {
+		switch {
+		case strings.Contains(query, "FROM employments"):
 			return fakeRow{scanFn: func(dest ...any) error {
-				*(dest[0].(*string)) = "active"
-				*(dest[1].(*time.Time)) = time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC)
-				*(dest[2].(**uuid.UUID)) = &relationshipID
+				*(dest[0].(*uuid.UUID)) = employeeID
+				*(dest[1].(*uuid.UUID)) = employerID
+				*(dest[2].(*string)) = "active"
+				*(dest[3].(*time.Time)) = time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC)
+				*(dest[4].(*uuid.UUID)) = relationshipID
+				return nil
+			}}
+		case strings.Contains(query, "FROM payroll_periods"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*bool)) = false
+				return nil
+			}}
+		case strings.Contains(query, "SELECT tenure_id FROM employment_relationships"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*uuid.UUID)) = tenureID
+				return nil
+			}}
+		case strings.Contains(query, "SELECT count(*) FROM employment_relationships"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*int)) = 1
+				return nil
+			}}
+		default:
+			return fakeRow{scanFn: func(dest ...any) error {
 				return nil
 			}}
 		}
-		return fakeRow{scanFn: func(dest ...any) error {
-			*(dest[0].(*uuid.UUID)) = relationshipID
-			return nil
-		}}
 	}
 	tx.fakeDBTX.queryFn = func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
 		return &fakeRows{}, nil
@@ -173,9 +223,11 @@ func TestEmployeeImportRepository_TerminationRejectsDateBeforeStart(t *testing.T
 			t.Fatalf("unexpected query after invalid date: %s", query)
 		}
 		return fakeRow{scanFn: func(dest ...any) error {
-			*(dest[0].(*string)) = "active"
-			*(dest[1].(*time.Time)) = time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
-			*(dest[2].(**uuid.UUID)) = nil
+			*(dest[0].(*uuid.UUID)) = uuid.New()
+			*(dest[1].(*uuid.UUID)) = uuid.New()
+			*(dest[2].(*string)) = "active"
+			*(dest[3].(*time.Time)) = time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+			*(dest[4].(*uuid.UUID)) = uuid.New()
 			return nil
 		}}
 	}
@@ -202,21 +254,31 @@ func TestEmployeeImportRepository_TerminationRejectsDateBeforeStart(t *testing.T
 }
 
 func TestEmployeeImportRepository_TerminationRollsBackWhenRelationshipUpdateFails(t *testing.T) {
+	employeeID := uuid.New()
+	employerID := uuid.New()
 	relationshipID := uuid.New()
+	tenureID := uuid.New()
 	relationshipErr := errors.New("relationship update failed")
 	tx := &fakeTx{}
 	tx.fakeDBTX.queryRowFn = func(_ context.Context, query string, _ ...any) pgx.Row {
 		switch {
 		case strings.Contains(query, "FROM employments"):
 			return fakeRow{scanFn: func(dest ...any) error {
-				*(dest[0].(*string)) = "active"
-				*(dest[1].(*time.Time)) = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-				*(dest[2].(**uuid.UUID)) = &relationshipID
+				*(dest[0].(*uuid.UUID)) = employeeID
+				*(dest[1].(*uuid.UUID)) = employerID
+				*(dest[2].(*string)) = "active"
+				*(dest[3].(*time.Time)) = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+				*(dest[4].(*uuid.UUID)) = relationshipID
+				return nil
+			}}
+		case strings.Contains(query, "FROM payroll_periods"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*bool)) = false
 				return nil
 			}}
 		case strings.Contains(query, "FROM employment_relationships"):
 			return fakeRow{scanFn: func(dest ...any) error {
-				*(dest[0].(*uuid.UUID)) = relationshipID
+				*(dest[0].(*uuid.UUID)) = tenureID
 				return nil
 			}}
 		default:

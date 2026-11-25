@@ -24,8 +24,7 @@ func TestIntegrationPunchInPinsUniqueMaterializedSegmentSnapshot(t *testing.T) {
 		}
 	}
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'segment-snapshot-employer')`, employerID)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'segment-snapshot-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID)
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "segment-snapshot-employee", "2026-01-01", "2026-01-01", "")
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'segment-snapshot-template')`, templateID)
 	mustExec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, 'segment-snapshot-version', DATE '2026-01-01', 'create', $3)`, versionID, templateID, actorID)
@@ -54,12 +53,7 @@ func TestIntegrationRawPunchIngestRemainsAllowedAfterClosedAttendanceSnapshot(t 
 	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'late-data-employer')`, employerID); err != nil {
 		t.Fatalf("insert employer: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'late-data-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
-		t.Fatalf("insert employee: %v", err)
-	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
-		t.Fatalf("insert employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "late-data-employee", "2026-01-01", "2026-01-01", "")
 	if _, err := pool.Exec(ctx, `INSERT INTO attendance_periods (id, employer_id, period_year, period_month, status, version) VALUES ($1, $2, 2026, 11, 'closed', 2)`, uuid.New(), employerID); err != nil {
 		t.Fatalf("insert closed attendance period: %v", err)
 	}
@@ -149,7 +143,7 @@ func seedAttendanceSegmentFixture(t *testing.T, name string) (*pgxpool.Pool, con
 		}
 	}
 	exec(`INSERT INTO employers (id, name) VALUES ($1, $2)`, employerID, name+"-employer")
-	exec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, $3, DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String(), name+"-employee")
+	exec(`INSERT INTO employees (id, full_name) VALUES ($1, $2)`, employeeID, name+"-employee")
 	exec(`INSERT INTO employee_tenures (id, employee_id, employee_number, start_date) VALUES ($1, $2, $3, DATE '2026-01-01')`, tenureID, employeeID, employeeID.String())
 	exec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, relationshipID, employeeID, employerID, tenureID)
 	exec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID, relationshipID)
@@ -171,7 +165,7 @@ func TestIntegrationRequiredBreakWorkOutRejectsOpenOrMissingBreak(t *testing.T) 
 		}
 	}
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'required-break-employer')`, employerID)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'required-break-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
+	mustExec(`INSERT INTO employees (id, full_name) VALUES ($1, 'required-break-employee')`, employeeID)
 	mustExec(`INSERT INTO employee_tenures (id, employee_id, employee_number, start_date) VALUES ($1, $2, $3, DATE '2026-01-01')`, tenureID, employeeID, employeeID.String())
 	mustExec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, relationshipID, employeeID, employerID, tenureID)
 	mustExec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID, relationshipID)

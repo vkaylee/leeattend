@@ -16,12 +16,7 @@ func TestIntegrationResolverLoadsPatternAndExplicitOffRoster(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'assignment-resolver-employer')`, employerID); err != nil {
 		t.Fatalf("insert employer: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'assignment-resolver-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
-		t.Fatalf("insert employee: %v", err)
-	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-11-01', DATE '2026-11-30')`, employmentID, employeeID, employerID); err != nil {
-		t.Fatalf("insert employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "assignment-resolver-employee", "2026-01-01", "2026-11-01", "2026-11-30")
 	actorID := uuid.New()
 	if _, err := pool.Exec(ctx, `INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test"); err != nil {
 		t.Fatalf("insert actor: %v", err)

@@ -45,7 +45,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 			logger.Warn("crypto service initialization failed", "error", err)
 		}
 	}
-	rbacRepo := repository.OrganizationRBACRepository{SystemDB: db}
+	rbacRepo := repository.OrganizationRBACRepository{SystemDB: db, Revoker: redisClient}
 	rbacHandler := &api.OrganizationRBACHandler{
 		Repository:    rbacRepo,
 		Authorizer:    organizationAuthorizer,
@@ -67,18 +67,19 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	recruitmentRepo := repository.RecruitmentSourceRepository{DB: db}
 	recruitmentHandler := &api.RecruitmentSourceHandler{Repository: recruitmentRepo, Authorizer: organizationAuthorizer}
 	registerPeopleRoutes(protectedRouter, departmentHandler, locationHandler, employerHandler, recruitmentHandler)
-	employeeRepo := repository.EmployeeRepository{DB: db}
+	employeeRepo := repository.EmployeeRepository{DB: db, Revoker: redisClient}
 	employeeIdentityRepo := repository.EmployeeIdentityRepository{DB: db}
 	identityHasher, _ := identity.NewHasher(cfg.IdentityLookupHMACSecret.Expose())
 	employeeHandler := &api.EmployeeHandler{
 		Repository:      employeeRepo,
 		TenureCreator:   employeeRepo,
+		TenureManager:   employeeRepo,
 		IdentityMatcher: employeeIdentityRepo,
 		IdentityHasher:  identityHasher,
 		Authorizer:      organizationAuthorizer,
 		Audit:           repository.AuditLogWriter{DB: db},
 	}
-	employeeImportRepo := repository.EmployeeImportRepository{DB: db}
+	employeeImportRepo := repository.EmployeeImportRepository{DB: db, Revoker: redisClient}
 	employeeImportHandler := &api.EmployeeImportHandler{
 		Repository: employeeImportRepo,
 		Queue: repository.EmployeeImportQueue{
@@ -131,7 +132,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	customFieldRepo := repository.CustomFieldRepository{DB: db}
 	customFieldHandler := &api.CustomFieldHandler{Repository: customFieldRepo, Authorizer: organizationAuthorizer}
 	contractRepo := repository.ContractRepository{DB: db}
-	employmentRepo := repository.EmploymentRepository{DB: db}
+	employmentRepo := repository.EmploymentRepository{DB: db, Revoker: redisClient}
 	contractEmploymentHandler := &api.ContractEmploymentHandler{Contracts: contractRepo, Employments: employmentRepo, CustomFields: customFieldRepo, Authorizer: organizationAuthorizer}
 	registerEmploymentRoutes(protectedRouter, contractEmploymentHandler, assignmentHandler, customFieldHandler)
 	leaveRepo := repository.LeaveRepository{DB: db}

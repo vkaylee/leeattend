@@ -184,7 +184,7 @@ func TestOrganizationRBACRepository_Members_ListAndAdd(t *testing.T) {
 			return fakeRow{}
 		},
 		queryFn: func(_ context.Context, sql string, args ...any) (pgx.Rows, error) {
-			if strings.Contains(sql, "FROM user_roles ur JOIN users u") {
+			if strings.Contains(sql, "FROM user_roles ur") && strings.Contains(sql, "JOIN users u") {
 				return &rbacTestRows{
 					rows: [][]any{
 						{userID, roleID, email, &fullName, (*string)(nil)},

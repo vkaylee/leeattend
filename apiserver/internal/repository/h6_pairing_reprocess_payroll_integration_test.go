@@ -38,8 +38,7 @@ func TestIntegrationRawLogsToSessionsSummariesAndClosureGuard(t *testing.T) {
 
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'h6-employer')`, employerID)
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'H6 Worker', DATE '2026-01-01', DATE '2026-01-01')`, empID, "H6-"+empID.String()[:8])
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01', DATE '2026-12-31')`, employmentID, empID, employerID)
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, empID, employerID, employmentID, "H6-"+empID.String()[:8], "H6 Worker", "2026-01-01", "2026-01-01", "2026-12-31")
 
 	mustExec(`INSERT INTO attendance_policies (id, name, is_default) VALUES ($1, 'H6 Att Policy', false)`, attPolicyID)
 	mustExec(`INSERT INTO working_patterns (id, name, pattern_type, is_active) VALUES ($1, 'H6 Pattern', 'weekly', true)`, patternID)

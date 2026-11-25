@@ -660,14 +660,26 @@ func (r AttendanceRepository) ListTimeHistory(ctx context.Context, employeeID uu
 	return entries, rows.Err()
 }
 
-// IsEmployeeOwnedByUser reports whether the employee record belongs to the user.
+// IsEmployeeOwnedByUser reports whether the employee's currently effective tenure belongs to the user.
 func (r AttendanceRepository) IsEmployeeOwnedByUser(ctx context.Context, employeeID, userID uuid.UUID) (bool, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return false, err
 	}
 	var owned bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL)`, employeeID, userID).Scan(&owned)
+	err = db.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM employee_tenures t
+			JOIN employees e ON e.id = t.employee_id
+			WHERE t.employee_id = $1
+			  AND t.user_id = $2
+			  AND t.deleted_at IS NULL
+			  AND e.deleted_at IS NULL
+			  AND t.start_date <= `+orgTodaySQL+`
+			  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
+		)
+	`, employeeID, userID).Scan(&owned)
 	return owned, err
 }
 
@@ -959,14 +971,25 @@ WHERE %s ORDER BY s.date DESC LIMIT $%d OFFSET $%d`, whereSQL, idx, idx+1)
 	}, nil
 }
 
-// GetEmployeeIDByUserID returns the employee ID for a given user ID.
+// GetEmployeeIDByUserID returns the employee ID for a given user ID via their active tenure.
 func (r AttendanceRepository) GetEmployeeIDByUserID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
 	db, err := r.db(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	var empID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1`, userID).Scan(&empID)
+	err = db.QueryRow(ctx, `
+		SELECT t.employee_id
+		FROM employee_tenures t
+		JOIN employees e ON e.id = t.employee_id
+		WHERE t.user_id = $1
+		  AND t.deleted_at IS NULL
+		  AND e.deleted_at IS NULL
+		  AND t.start_date <= `+orgTodaySQL+`
+		  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
+		ORDER BY t.start_date DESC, t.id DESC
+		LIMIT 1
+	`, userID).Scan(&empID)
 	if err != nil {
 		return uuid.Nil, err
 	}

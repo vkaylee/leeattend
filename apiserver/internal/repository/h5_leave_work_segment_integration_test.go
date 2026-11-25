@@ -30,8 +30,7 @@ func TestIntegrationZeroCompensationAndPartialLeave(t *testing.T) {
 	}
 
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'h5-employer')`, employerID)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'H5 Worker', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, "H5-"+employeeID.String()[:8])
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01', DATE '2026-11-30')`, employmentID, employeeID, employerID)
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, "H5-"+employeeID.String()[:8], "H5 Worker", "2026-01-01", "2026-01-01", "2026-11-30")
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'h5-shift')`, templateID)
 	mustExec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, 'h5-v1', DATE '2026-01-01', 'create', $3)`, versionID, templateID, actorID)

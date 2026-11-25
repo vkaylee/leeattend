@@ -96,8 +96,7 @@ func insertActivationAwareEmployment(t *testing.T, pool interface {
 		}
 	}
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, $2)`, employerID, "activation-aware-employer-"+employerID.String())
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date, tags) VALUES ($1, $2, $3, $4::date, $4::date, '{}'::text[])`, employeeID, employeeID.String(), "activation-aware-employee-"+employeeID.String(), start)
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', $4::date, $5::date)`, employmentID, employeeID, employerID, start, end)
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "activation-aware-employee-"+employeeID.String(), start, start, end)
 	return employerID, employmentID
 }
 

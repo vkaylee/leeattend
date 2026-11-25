@@ -1,7 +1,7 @@
-import { Building2, Calendar, MapPin, Check, Globe, Clock, User } from "lucide-react";
+import { Building2, Calendar, MapPin, Check, Globe, Clock, User, History } from "lucide-react";
 import React from "react";
 
-import type { Department, Employee, OrganizationMember, Employment } from "@/lib/api";
+import type { Department, Employee, EmployeeTenureRecord, OrganizationMember, Employment } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api/locations";
 
 import PermissionGate from "@/components/common/permission-gate";
@@ -184,6 +184,74 @@ export function UserSection({
                     <div className="text-slate-300 dark:text-slate-600 font-bold text-xl tracking-tighter uppercase font-mono">—</div>
                 )}
             </div>
+        </section>
+    );
+}
+
+export function TenureHistorySection({
+    tenures,
+    formatDate,
+    t,
+}: {
+    tenures: EmployeeTenureRecord[];
+    formatDate: (date: string) => string;
+    t: (k: string) => string;
+}) {
+    return (
+        <section className="space-y-5" data-testid="employee-tenure-history">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2 px-2">
+                <History className="text-primary-500" size={14} /> {t("employees.tenures.title").toUpperCase()}
+            </span>
+            {tenures.length === 0 ? (
+                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl text-xs text-slate-500 dark:text-slate-400 italic">
+                    {t("employees.tenures.empty")}
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {tenures.map((tenure) => (
+                        <div
+                            className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-5 rounded-3xl flex flex-col gap-3"
+                            data-testid={`tenure-row-${tenure.id}`}
+                            key={tenure.id}
+                        >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-mono font-bold text-sm text-slate-800 dark:text-slate-100">
+                                        {tenure.employee_number}
+                                    </span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300">
+                                        {t(`employees.tenures.hire_type.${tenure.hire_type}`)}
+                                    </span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-200/70 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                                        {t(`employees.tenures.status.${tenure.status}`)}
+                                    </span>
+                                </div>
+                                <div className="text-xs font-mono text-slate-600 dark:text-slate-400">
+                                    {formatDate(tenure.start_date)} → {tenure.end_date ? formatDate(tenure.end_date) : t("employees.tenures.present")}
+                                </div>
+                            </div>
+                            {tenure.prior_service_credit_days > 0 ? (
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    {t("employees.rehire.prior_service_credit_days")}: {tenure.prior_service_credit_days}
+                                </div>
+                            ) : null}
+                            {tenure.relationships && tenure.relationships.length > 0 ? (
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                    {tenure.relationships.map((rel) => (
+                                        <span
+                                            className="text-[11px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1 text-slate-700 dark:text-slate-300"
+                                            key={rel.id}
+                                        >
+                                            {rel.employer_name || rel.employer_id} · {formatDate(rel.start_date)}
+                                            {rel.end_date ? ` – ${formatDate(rel.end_date)}` : ""}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : null}
+                        </div>
+                    ))}
+                </div>
+            )}
         </section>
     );
 }

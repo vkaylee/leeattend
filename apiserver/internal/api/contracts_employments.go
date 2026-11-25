@@ -128,6 +128,7 @@ type EmploymentRelationship struct {
 	ID                uuid.UUID `json:"id"`
 	EmployeeID        uuid.UUID `json:"employee_id"`
 	EmployerID        uuid.UUID `json:"employer_id"`
+	TenureID          uuid.UUID `json:"tenure_id"`
 	Status            string    `json:"status"`
 	StartDate         string    `json:"start_date"`
 	EndDate           *string   `json:"end_date"`
@@ -146,6 +147,7 @@ type EmploymentRelationshipListResponse struct {
 
 type CreateEmploymentRelationshipRequest struct {
 	EmployerID          uuid.UUID  `json:"employer_id"`
+	TenureID            *uuid.UUID `json:"tenure_id,omitempty"`
 	Status              string     `json:"status"`
 	StartDate           string     `json:"start_date"`
 	EndDate             *string    `json:"end_date"`
@@ -166,6 +168,7 @@ type EmploymentRelationshipCreated struct {
 type CreateEmploymentRequest struct {
 	EmployeeID          uuid.UUID  `json:"employee_id"`
 	EmployerID          uuid.UUID  `json:"employer_id"`
+	RelationshipID      *uuid.UUID `json:"relationship_id,omitempty"`
 	PrimaryLocationID   *uuid.UUID `json:"primary_location_id"`
 	DepartmentID        *uuid.UUID `json:"department_id"`
 	Status              string     `json:"status"`
@@ -174,6 +177,20 @@ type CreateEmploymentRequest struct {
 	JobTitle            *string    `json:"job_title"`
 	EmploymentType      string     `json:"employment_type"`
 	ManagerEmploymentID *uuid.UUID `json:"manager_employment_id"`
+}
+
+type TerminateEmploymentRequest struct {
+	TerminationDate   string  `json:"termination_date"`
+	TerminationReason *string `json:"termination_reason,omitempty"`
+	RehireEligible    *bool   `json:"rehire_eligible,omitempty"`
+	Notes             *string `json:"notes,omitempty"`
+}
+
+type TerminateEmploymentResult struct {
+	Employment         Employment `json:"employment"`
+	RelationshipClosed bool       `json:"relationship_closed"`
+	TenureClosed       bool       `json:"tenure_closed"`
+	SessionsRevoked    bool       `json:"sessions_revoked"`
 }
 
 type UpdateEmploymentRequest struct {
@@ -235,6 +252,7 @@ type EmploymentRepository interface {
 	CreateEmployment(context.Context, CreateEmploymentRequest) (Employment, error)
 	GetEmployment(context.Context, uuid.UUID) (Employment, error)
 	UpdateEmployment(context.Context, uuid.UUID, UpdateEmploymentRequest) (Employment, error)
+	TerminateEmployment(context.Context, uuid.UUID, uuid.UUID, TerminateEmploymentRequest) (TerminateEmploymentResult, error)
 	SoftDeleteEmployment(context.Context, uuid.UUID) error
 }
 type ContractEmploymentHandler struct {
@@ -688,6 +706,10 @@ func (h *ContractEmploymentHandler) UpdateEmployment(w http.ResponseWriter, r *h
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
+	if req.Status != nil && strings.EqualFold(strings.TrimSpace(*req.Status), "terminated") {
+		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
+		return
+	}
 	current, err := h.employmentForEmployee(r.Context(), ids[0], ids[1])
 	if err != nil {
 		h.error(w, r, err)
@@ -731,6 +753,32 @@ func (h *ContractEmploymentHandler) UpdateEmployment(w http.ResponseWriter, r *h
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
+func (h *ContractEmploymentHandler) TerminateEmployment(w http.ResponseWriter, r *http.Request) {
+	if !h.employeePermission(w, r, true) {
+		return
+	}
+	ids, ok := h.path(w, r, "employee_id", "employment_id")
+	if !ok {
+		return
+	}
+	req, err := DecodeJSON[TerminateEmploymentRequest](r, 1<<20)
+	if err != nil || !validContractEmploymentDate(req.TerminationDate) {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Employments.TerminateEmployment(r.Context(), ids[0], ids[1], req)
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	result.Employment, err = h.addCustomFields(r.Context(), result.Employment)
+	if err != nil {
+		h.error(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
 func (h *ContractEmploymentHandler) DeleteEmployment(w http.ResponseWriter, r *http.Request) {
 	if !h.canDeleteEmployee(w, r) {
 		return

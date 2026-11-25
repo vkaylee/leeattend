@@ -60,18 +60,7 @@ func TestIntegrationPayrollPolicySnapshotsAreAppendOnlyAcrossReruns(t *testing.T
 	if err != nil {
 		t.Fatalf("insert employer: %v", err)
 	}
-	_, err = tx.Exec(ctx, `
-		INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date)
-		VALUES ($1, $2, 'payroll-history-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
-	if err != nil {
-		t.Fatalf("insert employee: %v", err)
-	}
-	_, err = tx.Exec(ctx, `
-		INSERT INTO employments (id, employee_id, employer_id, status, start_date)
-		VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID)
-	if err != nil {
-		t.Fatalf("insert employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, tx, employeeID, employerID, employmentID, employeeID.String(), "payroll-history-test-employee", "2026-01-01", "2026-01-01", "")
 	_, err = tx.Exec(ctx, `
 		INSERT INTO payslips (
 			id, employment_id, period_start, period_end, base_pay_amount,
@@ -191,12 +180,7 @@ func TestIntegrationComparePayrollImpactUsesPolicyOnlyRunsWithoutMutation(t *tes
 	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'impact-test-employer')`, employerID); err != nil {
 		t.Fatalf("insert impact employer: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'impact-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
-		t.Fatalf("insert impact employee: %v", err)
-	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
-		t.Fatalf("insert impact employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "impact-test-employee", "2026-01-01", "2026-01-01", "")
 	if _, err := pool.Exec(ctx, `INSERT INTO payslips (id, employment_id, period_start, period_end, base_pay_amount, net_pay_amount) VALUES ($1, $2, DATE '2026-06-01', DATE '2026-06-30', 1000, 1000)`, payslipID, employmentID); err != nil {
 		t.Fatalf("insert impact payslip: %v", err)
 	}
@@ -239,14 +223,17 @@ func TestIntegrationConcurrentPolicyMembershipInsertHasSingleWinner(t *testing.T
 		t.Fatalf("begin setup transaction: %v", err)
 	}
 	userID, employerID, employeeID, employmentID, groupID := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	tenureID, relID := uuid.New(), uuid.New()
 	for _, query := range []struct {
 		sql  string
 		args []any
 	}{
 		{`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, []any{userID, userID.String() + "@invalid.test"}},
 		{`INSERT INTO employers (id, name) VALUES ($1, 'concurrent-membership-employer')`, []any{employerID}},
-		{`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'concurrent-membership-employee', DATE '2026-01-01', DATE '2026-01-01')`, []any{employeeID, employeeID.String()}},
-		{`INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID}},
+		{`INSERT INTO employees (id, full_name) VALUES ($1, 'concurrent-membership-employee')`, []any{employeeID}},
+		{`INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date) VALUES ($1, $2, $3, 'initial', DATE '2026-01-01')`, []any{tenureID, employeeID, employeeID.String()}},
+		{`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{relID, employeeID, employerID, tenureID}},
+		{`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID, relID}},
 		{`INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, 'concurrent-membership-group', $2)`, []any{groupID, userID}},
 	} {
 		if _, err := setup.Exec(ctx, query.sql, query.args...); err != nil {
@@ -332,14 +319,7 @@ func TestIntegrationLegacyPayrollCalculationKeepsArithmeticAcrossReruns(t *testi
 	if err != nil {
 		t.Fatalf("insert parity employer: %v", err)
 	}
-	_, err = pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'legacy-parity-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
-	if err != nil {
-		t.Fatalf("insert parity employee: %v", err)
-	}
-	_, err = pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID)
-	if err != nil {
-		t.Fatalf("insert parity employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "legacy-parity-test-employee", "2026-01-01", "2026-01-01", "")
 	_, err = pool.Exec(ctx, `INSERT INTO salary_component_definitions (id, name, code, component_type) VALUES ($1, 'Legacy base salary', $2, 'base_salary')`, componentDefinitionID, "LEGACY_BASE_"+componentDefinitionID.String()[:8])
 	if err != nil {
 		t.Fatalf("insert parity salary definition: %v", err)
@@ -398,12 +378,7 @@ func TestIntegrationPayrollUsesApprovedOvertimeOnly(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'approved-ot-parity-employer')`, employerID); err != nil {
 		t.Fatalf("insert approved OT employer: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'approved-ot-parity-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
-		t.Fatalf("insert approved OT employee: %v", err)
-	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
-		t.Fatalf("insert approved OT employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "approved-ot-parity-employee", "2026-01-01", "2026-01-01", "")
 	if _, err := pool.Exec(ctx, `INSERT INTO salary_component_definitions (id, name, code, component_type) VALUES ($1, 'Approved OT base salary', $2, 'base_salary')`, componentDefinitionID, "APPROVED_OT_BASE_"+componentDefinitionID.String()[:8]); err != nil {
 		t.Fatalf("insert approved OT salary definition: %v", err)
 	}
@@ -433,12 +408,7 @@ func TestIntegrationComparePayrollImpactBatchAggregatesWithoutMutation(t *testin
 	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'batch-impact-employer')`, employerID); err != nil {
 		t.Fatalf("insert impact employer: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'batch-impact-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
-		t.Fatalf("insert impact employee: %v", err)
-	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
-		t.Fatalf("insert impact employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "batch-impact-employee", "2026-01-01", "2026-01-01", "")
 	beforeRunID, afterRunID := uuid.New(), uuid.New()
 	beforeInput := `{"kpi_inputs":{"production.output":"100"},"policy":{"version_id":"` + uuid.NewString() + `"}}`
 	afterInput := `{"kpi_inputs":{"production.output":"100"},"policy":{"version_id":"` + uuid.NewString() + `"}}`
@@ -475,12 +445,7 @@ func TestIntegrationSimulatePayrollRollsBackAllPayrollWrites(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'simulation-test-employer')`, employerID); err != nil {
 		t.Fatalf("insert simulation employer: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'simulation-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
-		t.Fatalf("insert simulation employee: %v", err)
-	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
-		t.Fatalf("insert simulation employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "simulation-test-employee", "2026-01-01", "2026-01-01", "")
 	if _, err := pool.Exec(ctx, `INSERT INTO salary_component_definitions (id, name, code, component_type) VALUES ($1, 'Simulation base salary', $2, 'base_salary')`, componentDefinitionID, "SIM_BASE_"+componentDefinitionID.String()[:8]); err != nil {
 		t.Fatalf("insert simulation salary definition: %v", err)
 	}
@@ -547,14 +512,7 @@ func TestIntegrationResolveWorkPolicyUsesExclusiveMembershipAndVersionBoundaries
 	if err != nil {
 		t.Fatalf("insert resolver employer: %v", err)
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'resolver-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
-	if err != nil {
-		t.Fatalf("insert resolver employee: %v", err)
-	}
-	_, err = tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID)
-	if err != nil {
-		t.Fatalf("insert resolver employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, tx, employeeID, employerID, employmentID, employeeID.String(), "resolver-test-employee", "2026-01-01", "2026-01-01", "")
 	_, err = tx.Exec(ctx, `INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'resolver-test-overtime')`, overtimePolicyID)
 	if err != nil {
 		t.Fatalf("insert resolver overtime policy: %v", err)
@@ -640,14 +598,17 @@ func TestIntegrationPayrollCreditsUseExactMinutesPerEffectivePolicySegment(t *te
 	groupID, workCreditA, payBasisA, versionA := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	workCreditB, payBasisB, versionB := uuid.New(), uuid.New(), uuid.New()
 
+	tenureID, relID := uuid.New(), uuid.New()
 	for _, query := range []struct {
 		sql  string
 		args []any
 	}{
 		{`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, []any{userID, userID.String() + "@invalid.test"}},
 		{`INSERT INTO employers (id, name) VALUES ($1, 'credit-parity-employer')`, []any{employerID}},
-		{`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'credit-parity-employee', DATE '2026-01-01', DATE '2026-01-01')`, []any{employeeID, employeeID.String()}},
-		{`INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID}},
+		{`INSERT INTO employees (id, full_name) VALUES ($1, 'credit-parity-employee')`, []any{employeeID}},
+		{`INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date) VALUES ($1, $2, $3, 'initial', DATE '2026-01-01')`, []any{tenureID, employeeID, employeeID.String()}},
+		{`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{relID, employeeID, employerID, tenureID}},
+		{`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID, relID}},
 		{`INSERT INTO salary_component_definitions (id, name, code, component_type) VALUES ($1, 'Credit parity base salary', $2, 'base_salary')`, []any{componentDefinitionID, "CREDIT_PARITY_BASE_" + componentDefinitionID.String()[:8]}},
 		{`INSERT INTO employee_salary_components (id, component_definition_id, amount, effective_date, employment_id) VALUES ($1, $2, 2600, DATE '2026-01-01', $3)`, []any{componentID, componentDefinitionID, employmentID}},
 		{`INSERT INTO attendance_policies (id, name) VALUES ($1, 'credit-parity-attendance')`, []any{attendancePolicyID}},

@@ -21,8 +21,7 @@ func TestIntegrationScheduleEvidencePreservesAmendmentChain(t *testing.T) {
 	}
 
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'evidence-chain-employer')`, employerID)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'evidence-chain-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-11-20', DATE '2026-11-20')`, employmentID, employeeID, employerID)
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "evidence-chain-employee", "2026-01-01", "2026-11-20", "2026-11-20")
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'evidence-chain-shift')`, templateID)
 	mustExec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, 'evidence-chain-version', DATE '2026-01-01', 'create', $3)`, versionID, templateID, actorID)

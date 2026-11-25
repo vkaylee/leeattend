@@ -21,8 +21,11 @@ func TestIntegrationScheduleLocksSerializeCrossEmploymentSameEmployee(t *testing
 		}
 	}
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'concurrency-schedule-employer')`, employerID)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'concurrency-schedule-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01'), ($4, $2, $3, 'active', DATE '2026-01-01')`, employmentA, employeeID, employerID, employmentB)
+	tenureID, relID := uuid.New(), uuid.New()
+	mustExec(`INSERT INTO employees (id, full_name) VALUES ($1, 'concurrency-schedule-employee')`, employeeID)
+	mustExec(`INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date) VALUES ($1, $2, $3, 'initial', DATE '2026-01-01')`, tenureID, employeeID, employeeID.String())
+	mustExec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, relID, employeeID, employerID, tenureID)
+	mustExec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01'), ($5, $2, $3, $4, 'active', DATE '2026-01-01')`, employmentA, employeeID, employerID, relID, employmentB)
 
 	first, err := pool.Begin(ctx)
 	if err != nil {

@@ -24,6 +24,7 @@ func registerEmploymentRoutes(
 	registerRoute(router, "POST /api/v1/employees/{employee_id}/employments", contracts.CreateEmployment)
 	registerRoute(router, "GET /api/v1/employees/{employee_id}/employments/{employment_id}", contracts.GetEmployment)
 	registerRoute(router, "PATCH /api/v1/employees/{employee_id}/employments/{employment_id}", contracts.UpdateEmployment)
+	registerRoute(router, "POST /api/v1/employees/{employee_id}/employments/{employment_id}/terminate", contracts.TerminateEmployment)
 	registerRoute(router, "DELETE /api/v1/employees/{employee_id}/employments/{employment_id}", contracts.DeleteEmployment)
 	registerRoute(router, "GET /api/v1/assignment-history", assignments.AssignmentHistory)
 	registerRoute(router, "GET /api/v1/assignment-rules", assignments.ListAssignmentRules)

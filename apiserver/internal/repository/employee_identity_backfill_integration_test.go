@@ -52,12 +52,21 @@ func TestIntegrationEmployeeIdentityBackfillIdempotentAndCollisionAware(t *testi
 		empID := uuid.New()
 		if _, err := tx.Exec(
 			ctx,
-			`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date)
-			 VALUES ($1, $2, 'identity-backfill-test', DATE '2026-01-01', DATE '2026-01-01')`,
+			`INSERT INTO employees (id, full_name)
+			 VALUES ($1, 'identity-backfill-test')`,
+			empID,
+		); err != nil {
+			t.Fatalf("insert employee %s: %v", f.code, err)
+		}
+		if _, err := tx.Exec(
+			ctx,
+			`INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date)
+			 VALUES ($1, $2, $3, 'initial', DATE '2026-01-01')`,
+			uuid.New(),
 			empID,
 			f.code,
 		); err != nil {
-			t.Fatalf("insert employee %s: %v", f.code, err)
+			t.Fatalf("insert tenure %s: %v", f.code, err)
 		}
 		if _, err := tx.Exec(
 			ctx,

@@ -470,8 +470,12 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, emp
 
 	var employeeUserID *uuid.UUID
 	var employeeName string
-	err = db.QueryRow(ctx, `SELECT user_id, full_name FROM employees
-		WHERE id = $1 AND deleted_at IS NULL`, employment.EmployeeID).Scan(&employeeUserID, &employeeName)
+	err = db.QueryRow(ctx, `
+		SELECT tenure.user_id, e.full_name
+		FROM employees e
+		`+sqlEffectiveTenureLateral+`
+		WHERE e.id = $1 AND e.deleted_at IS NULL
+	`, employment.EmployeeID).Scan(&employeeUserID, &employeeName)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.LifecycleChecklistResponse{}, api.ErrEmployeeNotFound
 	}
@@ -512,7 +516,7 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, emp
 		var managerEmployeeID uuid.UUID
 		if err := db.QueryRow(ctx, `SELECT employee_id FROM employments WHERE id = $1`, *employment.ManagerEmploymentID).Scan(&managerEmployeeID); err == nil {
 			var managerUserID *uuid.UUID
-			if err := db.QueryRow(ctx, `SELECT user_id FROM employees WHERE id = $1`, managerEmployeeID).Scan(&managerUserID); err == nil {
+			if err := db.QueryRow(ctx, `SELECT t.user_id FROM employee_tenures t WHERE t.employee_id = $1 AND t.deleted_at IS NULL AND t.start_date <= `+orgTodaySQL+` AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`) ORDER BY t.start_date DESC, t.id DESC LIMIT 1`, managerEmployeeID).Scan(&managerUserID); err == nil {
 				directManagerUserID = managerUserID
 			}
 		}
@@ -717,13 +721,15 @@ func (r LifecycleRepository) ListChecklists(ctx context.Context) ([]api.Lifecycl
 		return nil, err
 	}
 	query := `SELECT
-		c.id, c.employment_id, em.employee_id, e.full_name, COALESCE(e.employee_id_number, ''), d.name,
+		c.id, c.employment_id, em.employee_id, e.full_name, COALESCE(et.employee_number, ''), d.name,
 		c.template_id, t.name, c.checklist_type, c.status, c.progress_percent,
 		COALESCE(item_counts.total_items, 0), COALESCE(item_counts.completed_items, 0),
 		c.started_at, c.completed_at, c.created_at, c.updated_at
 	FROM lifecycle_checklists c
 	INNER JOIN employments em ON em.id = c.employment_id
 	INNER JOIN employees e ON e.id = em.employee_id
+	LEFT JOIN employment_relationships er ON er.id = em.relationship_id
+	LEFT JOIN employee_tenures et ON et.id = er.tenure_id
 	LEFT JOIN departments d ON d.id = em.department_id
 	LEFT JOIN lifecycle_checklist_templates t ON t.id = c.template_id
 	LEFT JOIN (

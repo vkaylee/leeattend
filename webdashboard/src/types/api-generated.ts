@@ -1622,6 +1622,26 @@ export interface paths {
         patch: operations["patch_api_v1_employees_employee_id_employments_employment_id"];
         trace?: never;
     };
+    "/api/v1/employees/{employee_id}/employments/{employment_id}/terminate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+                employment_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Atomically terminate an employment segment, its relationship, and parent tenure when last open */
+        post: operations["post_api_v1_employees_employee_id_employments_employment_id_terminate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employees/{employee_id}/payslips": {
         parameters: {
             query?: never;
@@ -1649,10 +1669,31 @@ export interface paths {
             };
             cookie?: never;
         };
+        /** List all non-deleted tenures and employer relationships for an employee */
+        get: operations["get_api_v1_employees_employee_id_tenures"];
+        put?: never;
+        /** Rehire an existing terminated employee by creating a new non-overlapping tenure */
+        post: operations["post_api_v1_employees_employee_id_tenures"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{employee_id}/tenures/{tenure_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+                tenure_id: string;
+            };
+            cookie?: never;
+        };
         get?: never;
         put?: never;
-        /** Reuse an existing terminated employee by creating a new non-overlapping tenure */
-        post: operations["post_api_v1_employees_employee_id_tenures"];
+        /** Atomically close an open tenure, all open child relationships/segments, and revoke HRM sessions */
+        post: operations["post_api_v1_employees_employee_id_tenures_tenure_id_close"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1870,24 +1911,6 @@ export interface paths {
         get: operations["get_api_v1_employees_id_payroll_config"];
         put?: never;
         post: operations["post_api_v1_employees_id_payroll_config"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/employees/{id}/rehire": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["post_api_v1_employees_id_rehire"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6008,16 +6031,25 @@ export interface components {
             tags?: string[];
             user_id?: string | null;
         };
+        CloseEmployeeTenureRequest: {
+            end_date: string;
+            notes?: string | null;
+            rehire_eligible?: boolean | null;
+            termination_reason?: string | null;
+        };
         CreateEmployeeTenureRequest: {
             /** Format: uuid */
             department_id?: string | null;
+            employee_number?: string | null;
             /** Format: uuid */
             employer_id: string;
             expected_employee_code?: string | null;
             /** @enum {string|null} */
             expected_status?: "terminated" | null;
+            notes?: string | null;
             /** Format: uuid */
             primary_location_id?: string | null;
+            prior_service_credit_days?: number | null;
             start_date: string;
         };
         CreateEmployerRequest: {
@@ -6881,6 +6913,16 @@ export interface components {
             full_name: string;
             schedules: components["schemas"]["EffectiveSchedule"][];
         };
+        EmployeeTenureClosed: {
+            closed_relationships: number;
+            closed_segments: number;
+            /** Format: uuid */
+            employee_id: string;
+            end_date: string;
+            sessions_revoked: boolean;
+            /** Format: uuid */
+            tenure_id: string;
+        };
         EmployeeTenureCreated: {
             employee_code: string;
             /** Format: uuid */
@@ -6889,13 +6931,61 @@ export interface components {
             employer_id: string;
             /** Format: uuid */
             employment_id: string;
+            /** @enum {string} */
+            hire_type: "initial" | "rehire";
+            prior_service_credit_days: number;
             /** Format: uuid */
             relationship_id: string;
             start_date: string;
             /** @enum {string} */
-            status: "active";
+            status: "planned" | "active";
             /** Format: uuid */
             tenure_id: string;
+        };
+        EmployeeTenureRelationshipSummary: {
+            /** Format: uuid */
+            employer_id: string;
+            employer_name: string;
+            end_date?: string | null;
+            /** Format: uuid */
+            id: string;
+            start_date: string;
+            status: string;
+            termination_reason?: string | null;
+        };
+        EmployeeTenureRecord: {
+            created_at: string;
+            /** Format: uuid */
+            employee_id: string;
+            employee_number: string;
+            end_date?: string | null;
+            /** @enum {string} */
+            hire_type: "initial" | "rehire";
+            /** Format: uuid */
+            id: string;
+            notes?: string | null;
+            prior_service_credit_days: number;
+            rehire_eligible: boolean;
+            relationships: components["schemas"]["EmployeeTenureRelationshipSummary"][];
+            start_date: string;
+            /** @enum {string} */
+            status: "planned" | "active" | "closed";
+            termination_reason?: string | null;
+            updated_at: string;
+            /** Format: uuid */
+            user_id?: string | null;
+        };
+        TerminateEmploymentRequest: {
+            notes?: string | null;
+            rehire_eligible?: boolean | null;
+            termination_date: string;
+            termination_reason?: string | null;
+        };
+        TerminateEmploymentResult: {
+            employment: components["schemas"]["Employment"];
+            relationship_closed: boolean;
+            sessions_revoked: boolean;
+            tenure_closed: boolean;
         };
         EmployeeWorkingPattern: {
             anchor_date?: string | null;
@@ -8378,12 +8468,6 @@ export interface components {
             month: string;
         };
         RegisterRequest: components["schemas"]["registerRequest"];
-        RehireEmployeeRequest: {
-            employee_id_number?: string | null;
-            employer_id?: string | null;
-            hire_date?: string;
-            primary_location_id?: string | null;
-        };
         RenameFolderRequest: {
             name?: string;
         };
@@ -14086,6 +14170,45 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    post_api_v1_employees_employee_id_employments_employment_id_terminate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+                employment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TerminateEmploymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Employment terminated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerminateEmploymentResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description Already terminated or locked payroll period conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            500: components["responses"]["InternalError"];
+        };
+    };
     get_api_v1_employees_employee_id_payslips: {
         parameters: {
             query?: never;
@@ -14112,6 +14235,33 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    get_api_v1_employees_employee_id_tenures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employee tenure history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeTenureRecord"][];
+                };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
@@ -14149,6 +14299,45 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             /** @description Active employee, stale candidate, or date/code overlap conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            500: components["responses"]["InternalError"];
+        };
+    };
+    post_api_v1_employees_employee_id_tenures_tenure_id_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+                tenure_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseEmployeeTenureRequest"];
+            };
+        };
+        responses: {
+            /** @description Employee tenure closed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeTenureClosed"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description Already closed, child date conflict, or locked payroll period */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -14704,40 +14893,6 @@ export interface operations {
         };
     };
     post_api_v1_employees_id_payroll_config: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JsonObject"];
-                };
-            };
-            /** @description Successful response without body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    post_api_v1_employees_id_rehire: {
         parameters: {
             query?: never;
             header?: never;

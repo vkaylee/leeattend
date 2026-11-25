@@ -149,6 +149,9 @@ func (r EmployeeDepartmentRepository) TransferEmployee(ctx context.Context, empl
 		}
 
 		active := segments[activeIdx]
+		if err := checkLockedPayrollForEmployeeDate(ctx, tx, active.EmployerID, req.EffectiveDate); err != nil {
+			return err
+		}
 		oldDeptID := active.DepartmentID
 		var returnedID uuid.UUID
 

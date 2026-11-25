@@ -31,7 +31,7 @@ func seedBreakOverrideFixture(t *testing.T) *breakOverrideFixture {
 		}
 	}
 	exec(`INSERT INTO employers (id, name) VALUES ($1, 'break-override-employer')`, fixture.employerID)
-	exec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'break-override-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
+	exec(`INSERT INTO employees (id, full_name) VALUES ($1, 'break-override-employee')`, employeeID)
 	exec(`INSERT INTO employee_tenures (id, employee_id, employee_number, start_date) VALUES ($1, $2, $3, DATE '2026-01-01')`, tenureID, employeeID, employeeID.String())
 	exec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, relationshipID, employeeID, fixture.employerID, tenureID)
 	exec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, fixture.employmentID, employeeID, fixture.employerID, relationshipID)

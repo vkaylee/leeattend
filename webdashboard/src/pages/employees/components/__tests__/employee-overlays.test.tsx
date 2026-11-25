@@ -51,11 +51,11 @@ vi.mock("@/components/features/employees/terminate-employee-modal", () => ({
 }));
 
 vi.mock("@/components/features/employees/rehire-employee-modal", () => ({
-  default: (props: { isOpen: boolean; onSuccess?: () => void }) =>
+  default: (props: { isOpen: boolean; onSuccess?: (tenure: unknown) => void }) =>
     props.isOpen ? (
       <div data-testid="rehire-employee-modal">
         Rehire
-        <Button data-testid="rehire-success" onClick={() => props.onSuccess?.(mockEmployee)} type="button" variant="ghost">Success</Button>
+        <Button data-testid="rehire-success" onClick={() => props.onSuccess?.({ tenure_id: "t-1", employee_id: "emp-1" })} type="button" variant="ghost">Success</Button>
       </div>
     ) : null,
 }));

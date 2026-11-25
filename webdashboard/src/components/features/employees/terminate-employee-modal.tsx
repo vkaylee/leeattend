@@ -11,7 +11,7 @@ import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
-import { updateEmployeeEmployment } from "@/lib/api";
+import { terminateEmployeeEmployment } from "@/lib/api";
 import { employeeKeys, createQueryKey  } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
@@ -46,22 +46,23 @@ export default function TerminateEmployeeModal({
   const toast = useToast();
 
   const terminateMutation = useOrganizationMutation<
-    { endDate: string; reason: string; notes: string },
-    Awaited<ReturnType<typeof updateEmployeeEmployment>>
+    { endDate: string; reason: string; notes: string; rehireEligible: boolean },
+    Awaited<ReturnType<typeof terminateEmployeeEmployment>>
   >({ keys: [employeeKeys.all()],
-  mutationFn: ({ endDate, reason, notes }) => {
+  mutationFn: ({ endDate, reason, notes, rehireEligible }) => {
     if (!employeeId) throw new Error("No employee selected");
     if (!activeEmploymentId) throw new Error("No active employment found");
-    return updateEmployeeEmployment(employeeId, activeEmploymentId, {
-      status: "terminated",
-      end_date: endDate,
+    return terminateEmployeeEmployment(employeeId, activeEmploymentId, {
+      termination_date: endDate,
       termination_reason: reason,
+      rehire_eligible: rehireEligible,
       notes: notes || null,
     });
   },
   onSuccess: () => {
     void queryClient.invalidateQueries({ queryKey: createQueryKey("deptHistory", employeeId) });
     void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-employments",employeeId) });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-tenures", employeeId) });
     onClose();
     toast.success(t("common.success"));
     onSuccess?.();
@@ -74,6 +75,7 @@ export default function TerminateEmployeeModal({
       endDate: formData.get("endDate") as string,
       reason: formData.get("reason") as string,
       notes: formData.get("notes") as string,
+      rehireEligible: formData.get("rehireEligible") === "on",
     });
   };
 
@@ -132,6 +134,18 @@ export default function TerminateEmployeeModal({
             rows={3}
             type="textarea"
           />
+
+          <label className="flex items-center gap-3 px-1 cursor-pointer select-none">
+            <input
+              className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+              defaultChecked
+              name="rehireEligible"
+              type="checkbox"
+            />
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {t("employees.terminate.rehire_eligible_label")}
+            </span>
+          </label>
 
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
             <Button onClick={onClose} size="lg" type="button" variant="outline">

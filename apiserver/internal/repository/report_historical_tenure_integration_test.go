@@ -16,7 +16,7 @@ func TestIntegrationAttendanceReportKeepsHistoricalTenureNumber(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'report-tenure-employer')`, employerID); err != nil {
 		t.Fatalf("insert employer: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, 'current-1541', 'report-tenure-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, full_name) VALUES ($1, 'report-tenure-employee')`, employeeID); err != nil {
 		t.Fatalf("insert employee: %v", err)
 	}
 	oldTenure, newTenure := uuid.New(), uuid.New()

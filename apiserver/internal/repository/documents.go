@@ -124,8 +124,16 @@ func (r DocumentRepository) DistributeDocument(ctx context.Context, req api.Dist
 	count := 0
 	for _, empID := range req.TargetEmployeeIDs {
 		_, err := db.Exec(ctx, `INSERT INTO file_acknowledgements (
-			id, document_id, employee_id, status, created_at, updated_at
-		) VALUES (gen_random_uuid(), $1, $2, 'pending', NOW(), NOW())
+			id, document_id, employee_id, tenure_id, status, created_at, updated_at
+		) VALUES (
+			gen_random_uuid(),
+			$1,
+			$2,
+			(SELECT t.id FROM employee_tenures t WHERE t.employee_id = $2 AND t.deleted_at IS NULL AND t.start_date <= `+orgTodaySQL+` AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`) ORDER BY t.start_date DESC, t.id DESC LIMIT 1),
+			'pending',
+			NOW(),
+			NOW()
+		)
 		ON CONFLICT DO NOTHING`, req.DocumentID, empID)
 		if err == nil {
 			count++

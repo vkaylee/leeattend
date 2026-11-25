@@ -190,6 +190,24 @@ func (m *mockEmploymentRepo) GetEmployment(_ context.Context, id uuid.UUID) (Emp
 	return e, nil
 }
 
+func (m *mockEmploymentRepo) TerminateEmployment(_ context.Context, employeeID, employmentID uuid.UUID, req TerminateEmploymentRequest) (TerminateEmploymentResult, error) {
+	e, ok := m.employments[employmentID]
+	if !ok || e.EmployeeID != employeeID {
+		return TerminateEmploymentResult{}, ErrEmploymentNotFound
+	}
+	e.Status = "terminated"
+	end := req.TerminationDate
+	e.EndDate = &end
+	e.TerminationReason = req.TerminationReason
+	e.Notes = req.Notes
+	m.employments[employmentID] = e
+	return TerminateEmploymentResult{
+		Employment:         e,
+		RelationshipClosed: true,
+		TenureClosed:       true,
+	}, nil
+}
+
 func (m *mockEmploymentRepo) UpdateEmployment(_ context.Context, id uuid.UUID, req UpdateEmploymentRequest) (Employment, error) {
 	e, ok := m.employments[id]
 	if !ok {

@@ -43,6 +43,11 @@ func TestEmployeeDepartmentRepository_TransferPreservesRelationshipOnSegmentSpli
 				*(dest[0].(*bool)) = true
 				return nil
 			}}
+		case strings.Contains(query, "FROM payroll_periods"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*bool)) = false
+				return nil
+			}}
 		default:
 			t.Fatalf("unexpected query row: %s", query)
 			return fakeRow{}

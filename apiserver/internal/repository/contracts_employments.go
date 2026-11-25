@@ -297,6 +297,7 @@ func (r ContractRepository) SoftDeleteContract(ctx context.Context, contractID u
 type EmploymentRepository struct {
 	DB      DBTX
 	BeginTx func(context.Context) (TxBeginner, error)
+	Revoker SessionRevoker
 }
 
 func (r EmploymentRepository) beginEmploymentTx(ctx context.Context) (TxBeginner, error) {
@@ -340,14 +341,14 @@ const employmentColumns = `id, employee_id, employer_id, primary_location_id, de
 	status, start_date::text, end_date::text, job_title, employment_type, manager_employment_id,
 	created_at, updated_at, termination_reason, notes`
 
-const relationshipColumns = `id, employee_id, employer_id, status,
+const relationshipColumns = `id, employee_id, employer_id, tenure_id, status,
 	start_date::text, end_date::text, termination_reason, notes, created_at, updated_at`
 
 func scanEmploymentRelationship(row interface{ Scan(...any) error }) (api.EmploymentRelationship, error) {
 	var relationship api.EmploymentRelationship
 	var created, updated time.Time
 	if err := row.Scan(
-		&relationship.ID, &relationship.EmployeeID, &relationship.EmployerID, &relationship.Status,
+		&relationship.ID, &relationship.EmployeeID, &relationship.EmployerID, &relationship.TenureID, &relationship.Status,
 		&relationship.StartDate, &relationship.EndDate, &relationship.TerminationReason, &relationship.Notes,
 		&created, &updated,
 	); err != nil {
@@ -434,9 +435,42 @@ func (r EmploymentRepository) CreateEmploymentRelationship(ctx context.Context, 
 		if err := tx.QueryRow(ctx, `SELECT id FROM employees WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, employeeID).Scan(new(uuid.UUID)); err != nil {
 			return err
 		}
+		var tenureID uuid.UUID
+		if req.TenureID != nil && *req.TenureID != uuid.Nil {
+			err = tx.QueryRow(ctx, `
+				SELECT id
+				FROM employee_tenures
+				WHERE id = $1 AND employee_id = $2 AND deleted_at IS NULL
+				FOR UPDATE
+			`, *req.TenureID, employeeID).Scan(&tenureID)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return fmt.Errorf("%w: tenure not found for employee", api.ErrInvalidInput)
+			}
+			if err != nil {
+				return err
+			}
+		} else {
+			err = tx.QueryRow(ctx, `
+				SELECT id
+				FROM employee_tenures
+				WHERE employee_id = $1
+				  AND deleted_at IS NULL
+				  AND start_date <= $2::date
+				  AND (end_date IS NULL OR end_date >= $2::date)
+				ORDER BY start_date DESC, id DESC
+				LIMIT 1
+				FOR UPDATE
+			`, employeeID, req.StartDate).Scan(&tenureID)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return fmt.Errorf("%w: no effective tenure covers relationship start_date", api.ErrConflict)
+			}
+			if err != nil {
+				return err
+			}
+		}
 		relationshipID := uuid.New()
 		segmentID := uuid.New()
-		result.Relationship, err = scanEmploymentRelationship(tx.QueryRow(ctx, `INSERT INTO employment_relationships (id, employee_id, employer_id, status, start_date, end_date, termination_reason, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5::date, $6::date, $7, $8, NOW(), NOW()) RETURNING `+relationshipColumns, relationshipID, employeeID, req.EmployerID, req.Status, req.StartDate, req.EndDate, req.TerminationReason, req.Notes))
+		result.Relationship, err = scanEmploymentRelationship(tx.QueryRow(ctx, `INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date, end_date, termination_reason, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6::date, $7::date, $8, $9, NOW(), NOW()) RETURNING `+relationshipColumns, relationshipID, employeeID, req.EmployerID, tenureID, req.Status, req.StartDate, req.EndDate, req.TerminationReason, req.Notes))
 		if err != nil {
 			return mapRelationshipConstraintError(err)
 		}
@@ -485,18 +519,92 @@ func (r EmploymentRepository) ListEmployments(ctx context.Context, employeeID uu
 }
 
 func (r EmploymentRepository) CreateEmployment(ctx context.Context, req api.CreateEmploymentRequest) (api.Employment, error) {
-	db, err := r.db(ctx)
+	txBeginner, err := r.beginEmploymentTx(ctx)
 	if err != nil {
 		return api.Employment{}, err
 	}
-	empID := uuid.New()
-	item, err := scanEmployment(db.QueryRow(ctx, `INSERT INTO employments
-		(id, employee_id, employer_id, primary_location_id, department_id, status, start_date, end_date, job_title, employment_type, manager_employment_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7::date, $8::date, $9, $10, $11, NOW(), NOW())
-		RETURNING `+employmentColumns,
-		empID, req.EmployeeID, req.EmployerID, req.PrimaryLocationID, req.DepartmentID, req.Status, req.StartDate, req.EndDate, req.JobTitle, req.EmploymentType, req.ManagerEmploymentID))
+	var item api.Employment
+	err = service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
+		if err := tx.QueryRow(ctx, `SELECT id FROM employees WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, req.EmployeeID).Scan(new(uuid.UUID)); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return api.ErrEmployeeNotFound
+			}
+			return err
+		}
+
+		var relationshipID uuid.UUID
+		if req.RelationshipID != nil && *req.RelationshipID != uuid.Nil {
+			err := tx.QueryRow(ctx, `
+				SELECT id
+				FROM employment_relationships
+				WHERE id = $1 AND employee_id = $2 AND employer_id = $3 AND deleted_at IS NULL
+				FOR UPDATE
+			`, *req.RelationshipID, req.EmployeeID, req.EmployerID).Scan(&relationshipID)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return api.ErrEmploymentRelationshipNotFound
+			}
+			if err != nil {
+				return err
+			}
+		} else {
+			// Resolve existing covering relationship for same employee+employer, or create one under the covering tenure.
+			err := tx.QueryRow(ctx, `
+				SELECT id
+				FROM employment_relationships
+				WHERE employee_id = $1
+				  AND employer_id = $2
+				  AND deleted_at IS NULL
+				  AND start_date <= $3::date
+				  AND (end_date IS NULL OR end_date >= $3::date)
+				ORDER BY start_date DESC, id DESC
+				LIMIT 1
+				FOR UPDATE
+			`, req.EmployeeID, req.EmployerID, req.StartDate).Scan(&relationshipID)
+			if errors.Is(err, pgx.ErrNoRows) {
+				var tenureID uuid.UUID
+				tErr := tx.QueryRow(ctx, `
+					SELECT id
+					FROM employee_tenures
+					WHERE employee_id = $1
+					  AND deleted_at IS NULL
+					  AND start_date <= $2::date
+					  AND (end_date IS NULL OR end_date >= $2::date)
+					ORDER BY start_date DESC, id DESC
+					LIMIT 1
+					FOR UPDATE
+				`, req.EmployeeID, req.StartDate).Scan(&tenureID)
+				if errors.Is(tErr, pgx.ErrNoRows) {
+					return fmt.Errorf("%w: no effective tenure covers employment start_date", api.ErrConflict)
+				}
+				if tErr != nil {
+					return tErr
+				}
+				relationshipID = uuid.New()
+				if _, err := tx.Exec(ctx, `
+					INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date, end_date, created_at, updated_at)
+					VALUES ($1, $2, $3, $4, $5, $6::date, $7::date, NOW(), NOW())
+				`, relationshipID, req.EmployeeID, req.EmployerID, tenureID, req.Status, req.StartDate, req.EndDate); err != nil {
+					return mapRelationshipConstraintError(err)
+				}
+			} else if err != nil {
+				return err
+			}
+		}
+
+		empID := uuid.New()
+		created, err := scanEmployment(tx.QueryRow(ctx, `INSERT INTO employments
+			(id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, end_date, job_title, employment_type, manager_employment_id, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, $9::date, $10, $11, $12, NOW(), NOW())
+			RETURNING `+employmentColumns,
+			empID, req.EmployeeID, req.EmployerID, relationshipID, req.PrimaryLocationID, req.DepartmentID, req.Status, req.StartDate, req.EndDate, req.JobTitle, req.EmploymentType, req.ManagerEmploymentID))
+		if err != nil {
+			return mapRelationshipConstraintError(err)
+		}
+		item = created
+		return nil
+	})
 	if err != nil {
-		return api.Employment{}, mapConstraintError(err)
+		return api.Employment{}, err
 	}
 	return item, nil
 }
@@ -582,6 +690,217 @@ func (r EmploymentRepository) UpdateEmployment(ctx context.Context, id uuid.UUID
 		return api.Employment{}, api.ErrEmploymentNotFound
 	}
 	return item, err
+}
+
+type lockedTerminationTarget struct {
+	employerID     uuid.UUID
+	relationshipID uuid.UUID
+	tenureID       uuid.UUID
+	tenureUserID   *uuid.UUID
+	tenureEnd      *time.Time
+	rehireEligible bool
+}
+
+// TerminateEmployment atomically closes the employment segment and its parent relationship.
+// If it is the last open relationship in the parent tenure, the tenure is also closed and
+// the tenure user's HRM sessions are revoked (fail-closed).
+func (r EmploymentRepository) TerminateEmployment(
+	ctx context.Context,
+	employeeID, employmentID uuid.UUID,
+	req api.TerminateEmploymentRequest,
+) (api.TerminateEmploymentResult, error) {
+	txBeginner, err := r.beginEmploymentTx(ctx)
+	if err != nil {
+		return api.TerminateEmploymentResult{}, err
+	}
+	termDate, err := time.Parse("2006-01-02", req.TerminationDate)
+	if err != nil {
+		return api.TerminateEmploymentResult{}, api.ErrInvalidInput
+	}
+
+	var result api.TerminateEmploymentResult
+	err = service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
+		target, err := lockTerminationTarget(ctx, tx, employeeID, employmentID, req.TerminationDate, termDate)
+		if err != nil {
+			return err
+		}
+		updatedSeg, relClosed, err := closeRelationshipAndSegments(ctx, tx, employmentID, target.relationshipID, req)
+		if err != nil {
+			return err
+		}
+		tenureClosed, sessionsRevoked, err := maybeCloseParentTenureOnTermination(ctx, tx, r.Revoker, target, req)
+		if err != nil {
+			return err
+		}
+		result = api.TerminateEmploymentResult{
+			Employment:         updatedSeg,
+			RelationshipClosed: relClosed,
+			TenureClosed:       tenureClosed,
+			SessionsRevoked:    sessionsRevoked,
+		}
+		return nil
+	})
+	if err != nil {
+		return api.TerminateEmploymentResult{}, err
+	}
+	return result, nil
+}
+
+func lockTerminationTarget(ctx context.Context, tx pgx.Tx, employeeID, employmentID uuid.UUID, termDateStr string, termDate time.Time) (lockedTerminationTarget, error) {
+	if err := tx.QueryRow(ctx, `SELECT id FROM employees WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, employeeID).Scan(new(uuid.UUID)); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return lockedTerminationTarget{}, api.ErrEmployeeNotFound
+		}
+		return lockedTerminationTarget{}, err
+	}
+	target, err := lockTerminationSegment(ctx, tx, employeeID, employmentID, termDateStr, termDate)
+	if err != nil {
+		return lockedTerminationTarget{}, err
+	}
+	return loadTerminationParents(ctx, tx, target, termDate)
+}
+
+func lockTerminationSegment(ctx context.Context, tx pgx.Tx, employeeID, employmentID uuid.UUID, termDateStr string, termDate time.Time) (lockedTerminationTarget, error) {
+	var target lockedTerminationTarget
+	var segStart time.Time
+	var segStatus string
+	err := tx.QueryRow(ctx, `
+		SELECT employer_id, relationship_id, start_date, status
+		FROM employments
+		WHERE id = $1 AND employee_id = $2 AND deleted_at IS NULL
+		FOR UPDATE
+	`, employmentID, employeeID).Scan(&target.employerID, &target.relationshipID, &segStart, &segStatus)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return lockedTerminationTarget{}, api.ErrEmploymentNotFound
+	}
+	if err != nil {
+		return lockedTerminationTarget{}, err
+	}
+	if segStatus == "terminated" {
+		return lockedTerminationTarget{}, fmt.Errorf("%w: employment is already terminated", api.ErrConflict)
+	}
+	if termDate.Before(segStart) {
+		return lockedTerminationTarget{}, fmt.Errorf("%w: termination_date precedes segment start_date", api.ErrInvalidInput)
+	}
+	if err := checkLockedPayrollForEmployeeDate(ctx, tx, target.employerID, termDateStr); err != nil {
+		return lockedTerminationTarget{}, err
+	}
+	return target, nil
+}
+
+func loadTerminationParents(ctx context.Context, tx pgx.Tx, target lockedTerminationTarget, termDate time.Time) (lockedTerminationTarget, error) {
+	var relStart time.Time
+	if err := tx.QueryRow(ctx, `
+		SELECT tenure_id, start_date
+		FROM employment_relationships
+		WHERE id = $1 AND deleted_at IS NULL
+		FOR UPDATE
+	`, target.relationshipID).Scan(&target.tenureID, &relStart); err != nil {
+		return lockedTerminationTarget{}, err
+	}
+	if termDate.Before(relStart) {
+		return lockedTerminationTarget{}, fmt.Errorf("%w: termination_date precedes relationship start_date", api.ErrInvalidInput)
+	}
+	if err := tx.QueryRow(ctx, `
+		SELECT user_id, end_date, rehire_eligible
+		FROM employee_tenures
+		WHERE id = $1 AND deleted_at IS NULL
+		FOR UPDATE
+	`, target.tenureID).Scan(&target.tenureUserID, &target.tenureEnd, &target.rehireEligible); err != nil {
+		return lockedTerminationTarget{}, err
+	}
+	return target, nil
+}
+
+func closeRelationshipAndSegments(ctx context.Context, tx pgx.Tx, employmentID, relationshipID uuid.UUID, req api.TerminateEmploymentRequest) (api.Employment, bool, error) {
+	if _, err := tx.Exec(ctx, `
+		UPDATE employments
+		SET status = 'terminated',
+		    end_date = $1::date,
+		    termination_reason = COALESCE($2, termination_reason),
+		    notes = COALESCE($3, notes),
+		    updated_at = NOW()
+		WHERE relationship_id = $4
+		  AND id <> $5
+		  AND deleted_at IS NULL
+		  AND end_date IS NULL
+	`, req.TerminationDate, req.TerminationReason, req.Notes, relationshipID, employmentID); err != nil {
+		return api.Employment{}, false, mapRelationshipConstraintError(err)
+	}
+
+	updatedSeg, err := scanEmployment(tx.QueryRow(ctx, `
+		UPDATE employments
+		SET status = 'terminated',
+		    end_date = $1::date,
+		    termination_reason = COALESCE($2, termination_reason),
+		    notes = COALESCE($3, notes),
+		    updated_at = NOW()
+		WHERE id = $4 AND deleted_at IS NULL
+		RETURNING `+employmentColumns,
+		req.TerminationDate, req.TerminationReason, req.Notes, employmentID))
+	if err != nil {
+		return api.Employment{}, false, mapRelationshipConstraintError(err)
+	}
+
+	relTag, err := tx.Exec(ctx, `
+		UPDATE employment_relationships
+		SET status = 'terminated',
+		    end_date = $1::date,
+		    termination_reason = COALESCE($2, termination_reason),
+		    notes = COALESCE($3, notes),
+		    updated_at = NOW()
+		WHERE id = $4 AND deleted_at IS NULL
+	`, req.TerminationDate, req.TerminationReason, req.Notes, relationshipID)
+	if err != nil {
+		return api.Employment{}, false, mapRelationshipConstraintError(err)
+	}
+	return updatedSeg, relTag.RowsAffected() > 0, nil
+}
+
+func maybeCloseParentTenureOnTermination(ctx context.Context, tx pgx.Tx, revoker SessionRevoker, target lockedTerminationTarget, req api.TerminateEmploymentRequest) (bool, bool, error) {
+	var remainingOpen int
+	if err := tx.QueryRow(ctx, `
+		SELECT count(*)
+		FROM employment_relationships
+		WHERE tenure_id = $1
+		  AND deleted_at IS NULL
+		  AND end_date IS NULL
+	`, target.tenureID).Scan(&remainingOpen); err != nil {
+		return false, false, err
+	}
+	if remainingOpen > 0 || target.tenureEnd != nil {
+		return false, false, nil
+	}
+	var effectiveTenureEnd string
+	if err := tx.QueryRow(ctx, `
+		SELECT GREATEST($1::date, COALESCE(MAX(end_date), $1::date))::text
+		FROM employment_relationships
+		WHERE tenure_id = $2 AND deleted_at IS NULL
+	`, req.TerminationDate, target.tenureID).Scan(&effectiveTenureEnd); err != nil {
+		return false, false, err
+	}
+	rehireEligible := target.rehireEligible
+	if req.RehireEligible != nil {
+		rehireEligible = *req.RehireEligible
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE employee_tenures
+		SET end_date = $1::date,
+		    termination_reason = COALESCE($2, termination_reason),
+		    rehire_eligible = $3,
+		    notes = COALESCE($4, notes),
+		    updated_at = NOW()
+		WHERE id = $5
+	`, effectiveTenureEnd, req.TerminationReason, rehireEligible, req.Notes, target.tenureID); err != nil {
+		return false, false, mapRelationshipConstraintError(err)
+	}
+	if target.tenureUserID == nil || *target.tenureUserID == uuid.Nil {
+		return true, false, nil
+	}
+	if err := revokeUserSessionsDBTX(ctx, tx, revoker, *target.tenureUserID); err != nil {
+		return false, false, err
+	}
+	return true, true, nil
 }
 
 func (r EmploymentRepository) SoftDeleteEmployment(ctx context.Context, id uuid.UUID) error {

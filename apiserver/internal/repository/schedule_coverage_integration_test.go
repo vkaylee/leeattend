@@ -21,8 +21,8 @@ func TestIntegrationOfficialScheduleCoverageFiltersBeforePagination(t *testing.T
 		}
 	}
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'coverage-employer')`, employerID)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'coverage-missing', DATE '2026-01-01', DATE '2026-01-01'), ($3, $4, 'coverage-complete', DATE '2026-01-01', DATE '2026-01-01')`, employeeMissing, employeeMissing.String(), employeeComplete, employeeComplete.String())
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-11-16', DATE '2026-11-17'), ($4, $5, $3, 'active', DATE '2026-11-16', DATE '2026-11-16')`, employmentMissing, employeeMissing, employerID, employmentComplete, employeeComplete)
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeMissing, employerID, employmentMissing, employeeMissing.String(), "coverage-missing", "2026-01-01", "2026-11-16", "2026-11-17")
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeComplete, employerID, employmentComplete, employeeComplete.String(), "coverage-complete", "2026-01-01", "2026-11-16", "2026-11-16")
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'coverage-template')`, templateID)
 	mustExec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, 'coverage-version', DATE '2026-01-01', 'create', $3)`, versionID, templateID, actorID)

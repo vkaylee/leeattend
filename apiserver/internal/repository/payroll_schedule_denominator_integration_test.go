@@ -23,12 +23,7 @@ func TestIntegrationLoadScheduledWorkdayCountsUsesCanonicalWorkSegments(t *testi
 	if _, err := tx.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'schedule-denominator-test-employer')`, employerID); err != nil {
 		t.Fatalf("insert employer: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'schedule-denominator-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
-		t.Fatalf("insert employee: %v", err)
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
-		t.Fatalf("insert employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, tx, employeeID, employerID, employmentID, employeeID.String(), "schedule-denominator-test-employee", "2026-01-01", "2026-01-01", "")
 	if _, err := tx.Exec(ctx, `INSERT INTO shift_templates (id, name) VALUES ($1, 'schedule-denominator-test-template')`, templateID); err != nil {
 		t.Fatalf("insert shift template: %v", err)
 	}

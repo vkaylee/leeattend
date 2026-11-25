@@ -12,14 +12,14 @@ import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
-import { rehireEmployee, fetchEmployers, type Employee } from "@/lib/api";
+import { createEmployeeTenure, fetchEmployers, type CreateEmployeeTenureRequest, type EmployeeTenureCreated } from "@/lib/api";
 import { employeeKeys, createQueryKey } from "@/lib/query-keys";
 
 interface RehireEmployeeModalProps {
   employeeId: string | null;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (employee: Employee) => void;
+  onSuccess?: (tenure: EmployeeTenureCreated) => void;
 }
 
 export default function RehireEmployeeModal({
@@ -37,33 +37,39 @@ export default function RehireEmployeeModal({
   enabled: isOpen, });
 
   const rehireMutation = useOrganizationMutation<
-    { hire_date: string; employer_id: string },
-    Employee
+    CreateEmployeeTenureRequest,
+    EmployeeTenureCreated
   >({ keys: [employeeKeys.all()],
   mutationFn: (data) => {
     if (!employeeId) throw new Error("No employee selected");
-    return rehireEmployee(employeeId, data);
+    return createEmployeeTenure(employeeId, data);
   },
-  onSuccess: (updatedEmp: Employee) => {
+  onSuccess: (createdTenure: EmployeeTenureCreated) => {
     void queryClient.invalidateQueries({ queryKey: createQueryKey("employmentHistory", employeeId) });
-    void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-employments",employeeId) });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-employments", employeeId) });
+    void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-tenures", employeeId) });
     onClose();
     toast.success(t("common.success"));
-    onSuccess?.(updatedEmp);
+    onSuccess?.(createdTenure);
   }, });
 
   const handleRehireSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedEmployerId) {
-      toast.error("Vui lòng chọn pháp nhân trực thuộc");
+      toast.error(t("employees.rehire.employer_required"));
       return;
     }
     const formData = new FormData(e.currentTarget);
-    const employeeIDNumber = String(formData.get("employee_id_number") ?? "").trim();
+    const employeeNumber = String(formData.get("employee_number") ?? "").trim();
+    const rawCredit = String(formData.get("prior_service_credit_days") ?? "").trim();
+    const parsedCredit = rawCredit ? Number.parseInt(rawCredit, 10) : undefined;
     rehireMutation.mutate({
-      hire_date: formData.get("hire_date") as string,
+      start_date: formData.get("start_date") as string,
       employer_id: selectedEmployerId,
-      ...(employeeIDNumber ? { employee_id_number: employeeIDNumber } : {}),
+      ...(employeeNumber ? { employee_number: employeeNumber } : {}),
+      ...(parsedCredit !== undefined && !Number.isNaN(parsedCredit) && parsedCredit >= 0
+        ? { prior_service_credit_days: parsedCredit }
+        : {}),
     });
   };
 
@@ -102,15 +108,21 @@ export default function RehireEmployeeModal({
             />
           </div>
           <FormField
-            label="New employee number (optional)"
-            name="employee_id_number"
-            placeholder="Leave blank to reuse previous number"
+            label={t("employees.rehire.employee_number")}
+            name="employee_number"
+            placeholder={t("employees.rehire.employee_number_placeholder")}
             type="text"
+          />
+          <FormField
+            defaultValue="0"
+            label={t("employees.rehire.prior_service_credit_days")}
+            name="prior_service_credit_days"
+            type="number"
           />
           <FormField
             defaultValue={format(new Date(), "yyyy-MM-dd")}
             label={t("employees.rehire.rehire_date")}
-            name="hire_date"
+            name="start_date"
             required
             type="date"
           />

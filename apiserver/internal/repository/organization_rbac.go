@@ -16,6 +16,7 @@ import (
 type OrganizationRBACRepository struct {
 	SystemDB DBTX
 	BeginTx  func(context.Context) (TxBeginner, error)
+	Revoker  SessionRevoker
 }
 
 func (r OrganizationRBACRepository) begin(ctx context.Context) (TxBeginner, error) {
@@ -61,7 +62,20 @@ func (r OrganizationRBACRepository) ListMembers(ctx context.Context, page, limit
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := r.SystemDB.Query(ctx, `SELECT ur.user_id, ur.role_id, u.email, u.full_name, u.avatar_url, e.id FROM user_roles ur JOIN users u ON u.id = ur.user_id LEFT JOIN employees e ON e.user_id = ur.user_id AND e.deleted_at IS NULL ORDER BY ur.user_id LIMIT $1 OFFSET $2`, limit, offset)
+	rows, err := r.SystemDB.Query(ctx, `
+		SELECT ur.user_id, ur.role_id, u.email, u.full_name, u.avatar_url, t.employee_id
+		FROM user_roles ur
+		JOIN users u ON u.id = ur.user_id
+		LEFT JOIN employee_tenures t
+		  ON t.user_id = ur.user_id
+		 AND t.end_date IS NULL
+		 AND t.deleted_at IS NULL
+		LEFT JOIN employees e
+		  ON e.id = t.employee_id
+		 AND e.deleted_at IS NULL
+		ORDER BY ur.user_id
+		LIMIT $1 OFFSET $2
+	`, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -356,40 +370,79 @@ func (r OrganizationRBACRepository) LinkMemberEmployee(ctx context.Context, acto
 		if !employeeExists {
 			return api.ErrRBACNotFound
 		}
-		var alreadyLinked bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE user_id = $1 AND id <> $2 AND deleted_at IS NULL) OR EXISTS (SELECT 1 FROM employees WHERE id = $2 AND user_id IS NOT NULL AND deleted_at IS NULL)`, userID, employeeID).Scan(&alreadyLinked); err != nil {
-			return err
-		}
-		if alreadyLinked {
+
+		var openTenureID uuid.UUID
+		var currentTenureUser *uuid.UUID
+		err := tx.QueryRow(ctx, `
+			SELECT id, user_id
+			FROM employee_tenures
+			WHERE employee_id = $1
+			  AND end_date IS NULL
+			  AND deleted_at IS NULL
+			ORDER BY start_date DESC, id DESC
+			LIMIT 1
+			FOR UPDATE
+		`, employeeID).Scan(&openTenureID, &currentTenureUser)
+		if errors.Is(err, pgx.ErrNoRows) {
 			return api.ErrConflict
 		}
-		if _, err := tx.Exec(ctx, `UPDATE employees SET user_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND deleted_at IS NULL`, userID, employeeID); err != nil {
-			return mapConstraintError(err)
-		}
-		if _, err := tx.Exec(ctx, `UPDATE employee_tenures SET user_id = $1, updated_at = CURRENT_TIMESTAMP WHERE employee_id = $2 AND deleted_at IS NULL AND start_date <= CURRENT_DATE AND (end_date IS NULL OR end_date >= CURRENT_DATE)`, userID, employeeID); err != nil {
+		if err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, created_at) VALUES ($1, $2, 'member.employee_linked', jsonb_build_object('user_id', $3, 'employee_id', $2), CURRENT_TIMESTAMP)`, actorID, employeeID, userID)
+		if currentTenureUser != nil {
+			return api.ErrConflict
+		}
+
+		var userAlreadyLinked bool
+		if err := tx.QueryRow(ctx, `
+			SELECT EXISTS (
+				SELECT 1
+				FROM employee_tenures
+				WHERE user_id = $1
+				  AND end_date IS NULL
+				  AND deleted_at IS NULL
+			)
+		`, userID).Scan(&userAlreadyLinked); err != nil {
+			return err
+		}
+		if userAlreadyLinked {
+			return api.ErrConflict
+		}
+
+		if _, err := tx.Exec(ctx, `UPDATE employee_tenures SET user_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, userID, openTenureID); err != nil {
+			return mapConstraintError(err)
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, created_at) VALUES ($1, $2, 'member.employee_linked', jsonb_build_object('user_id', $3::uuid, 'employee_id', $2::uuid, 'tenure_id', $4::uuid), CURRENT_TIMESTAMP)`, actorID, employeeID, userID, openTenureID)
 		return err
 	})
 }
 
 func (r OrganizationRBACRepository) UnlinkMemberEmployee(ctx context.Context, actorID, userID uuid.UUID) error {
 	return r.withTx(ctx, func(ctx context.Context, tx DBTX) error {
-		var employeeID uuid.UUID
-		if err := tx.QueryRow(ctx, `SELECT id FROM employees WHERE user_id = $1 AND deleted_at IS NULL`, userID).Scan(&employeeID); err != nil {
+		var tenureID, employeeID uuid.UUID
+		if err := tx.QueryRow(ctx, `
+			SELECT id, employee_id
+			FROM employee_tenures
+			WHERE user_id = $1
+			  AND end_date IS NULL
+			  AND deleted_at IS NULL
+			ORDER BY start_date DESC, id DESC
+			LIMIT 1
+			FOR UPDATE
+		`, userID).Scan(&tenureID, &employeeID); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return nil
 			}
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE employees SET user_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, employeeID); err != nil {
+		// Only clear user_id on the open tenure so closed historical tenures keep their account audit trail.
+		if _, err := tx.Exec(ctx, `UPDATE employee_tenures SET user_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, tenureID); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE employee_tenures SET user_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE employee_id = $1 AND deleted_at IS NULL`, employeeID); err != nil {
+		if err := revokeUserSessionsDBTX(ctx, tx, r.Revoker, userID); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, created_at) VALUES ($1, $2, 'member.employee_unlinked', jsonb_build_object('user_id', $3, 'employee_id', $2), CURRENT_TIMESTAMP)`, actorID, employeeID, userID)
+		_, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, created_at) VALUES ($1, $2, 'member.employee_unlinked', jsonb_build_object('user_id', $3::uuid, 'employee_id', $2::uuid, 'tenure_id', $4::uuid), CURRENT_TIMESTAMP)`, actorID, employeeID, userID, tenureID)
 		return err
 	})
 }

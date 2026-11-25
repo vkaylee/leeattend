@@ -175,7 +175,19 @@ func (r FileRepository) SignDocument(ctx context.Context, requestID, signerID uu
 	if err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `UPDATE signature_requests sr SET status = 'signed', signed_at = NOW(), updated_at = NOW() FROM employees e WHERE sr.id = $1 AND sr.signer_id = e.id AND e.user_id = $2 AND sr.status = 'pending'`, requestID, signerID)
+	tag, err := db.Exec(ctx, `
+		UPDATE signature_requests sr
+		SET status = 'signed', signed_at = NOW(), updated_at = NOW()
+		FROM employee_tenures t
+		JOIN employees e ON e.id = t.employee_id AND e.deleted_at IS NULL
+		WHERE sr.id = $1
+		  AND sr.signer_id = t.employee_id
+		  AND t.user_id = $2
+		  AND t.deleted_at IS NULL
+		  AND t.start_date <= `+orgTodaySQL+`
+		  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
+		  AND sr.status = 'pending'
+	`, requestID, signerID)
 	if err != nil {
 		return err
 	}

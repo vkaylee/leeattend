@@ -46,8 +46,7 @@ func TestIntegrationSplitShiftAttendanceConsumers(t *testing.T) {
 	createWorker := func(name string) (uuid.UUID, uuid.UUID) {
 		t.Helper()
 		empID, employmentID := uuid.New(), uuid.New()
-		mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, $3, DATE '2026-01-01', DATE '2026-01-01')`, empID, "H3-"+empID.String()[:8], name)
-		mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01', DATE '2026-11-30')`, employmentID, empID, employerID)
+		seedIntegrationEmployeeGraphWithRange(t, ctx, pool, empID, employerID, employmentID, "H3-"+empID.String()[:8], name, "2026-01-01", "2026-01-01", "2026-11-30")
 		return empID, employmentID
 	}
 

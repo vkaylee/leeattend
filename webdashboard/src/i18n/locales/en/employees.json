@@ -374,12 +374,29 @@
       "subtitle": "Activate Profile",
       "confirm_msg": "Confirm the date the employee starts their new work period",
       "rehire_date": "Rehire Date",
-      "employee_number": "New employee number (leave blank to reuse old number)",
+      "employee_number": "New employee number (optional)",
+      "employee_number_placeholder": "Leave blank to reuse previous number",
+      "prior_service_credit_days": "Prior Service Credit (Days)",
+      "employer_required": "Please select an employer",
       "previous_tenure": "Previous tenure",
       "account_reset_notice": "New account access starts with this new tenure.",
       "cancel": "Cancel",
       "confirm": "Confirm",
       "processing": "Processing..."
+    },
+    "tenures": {
+      "title": "Tenure History",
+      "empty": "No tenure records found.",
+      "present": "Present",
+      "hire_type": {
+        "initial": "Initial Hire",
+        "rehire": "Rehire"
+      },
+      "status": {
+        "planned": "Planned",
+        "active": "Active",
+        "closed": "Closed"
+      }
     },
     "terminate": {
       "title": "Terminate Employment",
@@ -390,6 +407,7 @@
       "termination_reason_placeholder": "Select a reason...",
       "termination_notes_label": "Additional Notes (Optional)",
       "termination_notes_placeholder": "Provide additional context about the termination...",
+      "rehire_eligible_label": "Eligible for future rehire",
       "cancel": "Cancel",
       "confirm": "Terminate",
       "processing": "Processing...",

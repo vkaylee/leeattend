@@ -147,6 +147,11 @@ func newEmploymentRelationshipCreateTx(employeeID, employerID, relationshipID, s
 				*(dest[0].(*bool)) = true
 				return nil
 			}}
+		case strings.Contains(query, "FROM employee_tenures") && strings.Contains(query, "FOR UPDATE"):
+			return fakeRow{scanFn: func(dest ...any) error {
+				*(dest[0].(*uuid.UUID)) = uuid.New()
+				return nil
+			}}
 		case strings.Contains(query, "FOR UPDATE"):
 			return fakeRow{scanFn: func(dest ...any) error {
 				*(dest[0].(*uuid.UUID)) = employeeID
@@ -157,13 +162,14 @@ func newEmploymentRelationshipCreateTx(employeeID, employerID, relationshipID, s
 				*(dest[0].(*uuid.UUID)) = relationshipID
 				*(dest[1].(*uuid.UUID)) = employeeID
 				*(dest[2].(*uuid.UUID)) = employerID
-				*(dest[3].(*string)) = "active"
-				*(dest[4].(*string)) = "2026-01-01"
-				*(dest[5].(**string)) = nil
+				*(dest[3].(*uuid.UUID)) = uuid.New()
+				*(dest[4].(*string)) = "active"
+				*(dest[5].(*string)) = "2026-01-01"
 				*(dest[6].(**string)) = nil
 				*(dest[7].(**string)) = nil
-				*(dest[8].(*time.Time)) = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+				*(dest[8].(**string)) = nil
 				*(dest[9].(*time.Time)) = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+				*(dest[10].(*time.Time)) = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 				return nil
 			}}
 		case strings.Contains(query, "INSERT INTO employments"):

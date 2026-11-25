@@ -41,7 +41,6 @@ export default function EditTerminationModal({
       if (!employeeId) throw new Error("No employee selected");
       if (!employmentId) throw new Error("No employment record found");
       return updateEmployeeEmployment(employeeId, employmentId, {
-        status: "terminated",
         end_date: newEndDate,
       });
     },

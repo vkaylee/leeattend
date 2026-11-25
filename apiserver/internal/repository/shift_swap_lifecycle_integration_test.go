@@ -30,7 +30,7 @@ func TestIntegrationApprovedShiftSwapRollsBackOnOfficialSchedule(t *testing.T) {
 		}
 	}
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'swap-lifecycle-employer')`, employerID)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'swap-employee-a', DATE '2026-01-01', DATE '2026-01-01'), ($3, $4, 'swap-employee-b', DATE '2026-01-01', DATE '2026-01-01')`, employeeA, employeeA.String(), employeeB, employeeB.String())
+	mustExec(`INSERT INTO employees (id, full_name) VALUES ($1, 'swap-employee-a'), ($2, 'swap-employee-b')`, employeeA, employeeB)
 	relA, relB, tenureA, tenureB := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	mustExec(`INSERT INTO employee_tenures (id, employee_id, employee_number, start_date) VALUES ($1, $2, $3, DATE '2026-01-01'), ($4, $5, $6, DATE '2026-01-01')`, tenureA, employeeA, employeeA.String(), tenureB, employeeB, employeeB.String())
 	mustExec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01'), ($5, $6, $3, $7, 'active', DATE '2026-01-01')`, relA, employeeA, employerID, tenureA, relB, employeeB, tenureB)
@@ -114,7 +114,7 @@ func seedOfficialSwapFixture(t *testing.T) (*pgxpool.Pool, context.Context, offi
 		}
 	}
 	exec(`INSERT INTO employers (id, name) VALUES ($1, 'atomic-swap-employer')`, fixture.employerID)
-	exec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'atomic-swap-a', DATE '2026-01-01', DATE '2026-01-01'), ($3, $4, 'atomic-swap-b', DATE '2026-01-01', DATE '2026-01-01')`, fixture.employeeA, fixture.employeeA.String(), fixture.employeeB, fixture.employeeB.String())
+	exec(`INSERT INTO employees (id, full_name) VALUES ($1, 'atomic-swap-a'), ($2, 'atomic-swap-b')`, fixture.employeeA, fixture.employeeB)
 	relA, relB, tenureA, tenureB := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	exec(`INSERT INTO employee_tenures (id, employee_id, employee_number, start_date) VALUES ($1, $2, $3, DATE '2026-01-01'), ($4, $5, $6, DATE '2026-01-01')`, tenureA, fixture.employeeA, fixture.employeeA.String(), tenureB, fixture.employeeB, fixture.employeeB.String())
 	exec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01'), ($5, $6, $3, $7, 'active', DATE '2026-01-01')`, relA, fixture.employeeA, fixture.employerID, tenureA, relB, fixture.employeeB, tenureB)

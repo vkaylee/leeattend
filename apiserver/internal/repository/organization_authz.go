@@ -47,10 +47,15 @@ func (a OrganizationAuthorizer) HasScopedPermission(ctx context.Context, userID 
 	var managed bool
 	err := a.DB.QueryRow(ctx, `SELECT EXISTS (
 		SELECT 1
-		FROM employees e
-		JOIN employments em ON em.employee_id = e.id
-		WHERE e.user_id = $1
-		  AND e.deleted_at IS NULL AND em.deleted_at IS NULL
+		FROM employee_tenures t
+		JOIN employees e ON e.id = t.employee_id
+		JOIN employment_relationships er ON er.tenure_id = t.id AND er.employee_id = t.employee_id AND er.deleted_at IS NULL
+		JOIN employments em ON em.relationship_id = er.id AND em.deleted_at IS NULL
+		WHERE t.user_id = $1
+		  AND t.deleted_at IS NULL
+		  AND e.deleted_at IS NULL
+		  AND t.start_date <= `+orgTodaySQL+`
+		  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
 		  AND em.department_id = $2
 	)`, userID, *targetDepartmentID).Scan(&managed)
 	return err == nil && managed
@@ -79,10 +84,15 @@ func (a OrganizationAuthorizer) GetManagedDepartmentIDs(ctx context.Context, use
 		return []uuid.UUID{}, nil
 	}
 	rows, err := a.DB.Query(ctx, `SELECT DISTINCT em.department_id
-		FROM employees e
-		JOIN employments em ON em.employee_id = e.id
-		WHERE e.user_id = $1
-		  AND e.deleted_at IS NULL AND em.deleted_at IS NULL
+		FROM employee_tenures t
+		JOIN employees e ON e.id = t.employee_id
+		JOIN employment_relationships er ON er.tenure_id = t.id AND er.employee_id = t.employee_id AND er.deleted_at IS NULL
+		JOIN employments em ON em.relationship_id = er.id AND em.deleted_at IS NULL
+		WHERE t.user_id = $1
+		  AND t.deleted_at IS NULL
+		  AND e.deleted_at IS NULL
+		  AND t.start_date <= `+orgTodaySQL+`
+		  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
 		  AND em.department_id IS NOT NULL`, userID)
 	if err != nil {
 		return nil, err

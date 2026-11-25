@@ -180,6 +180,8 @@ CREATE TABLE public.employee_documents (
 
     employee_id uuid NOT NULL,
 
+    tenure_id uuid,
+
     document_type character varying(50) NOT NULL,
 
     file_name character varying(255) NOT NULL,
@@ -356,36 +358,6 @@ CREATE TABLE public.employee_salary_components (
 
 --
 
--- Name: employee_tenure_reconciliation; Type: TABLE; Schema: public; Owner: -
-
---
-
-
-
-CREATE TABLE public.employee_tenure_reconciliation (
-
-    employee_id uuid NOT NULL,
-
-    status character varying(30) DEFAULT 'pending'::character varying NOT NULL,
-
-    reason character varying(100) NOT NULL,
-
-    notes text,
-
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-
-    CONSTRAINT employee_tenure_reconciliation_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'resolved'::character varying, 'blocked'::character varying])::text[])))
-
-);
-
-
-
-
-
---
-
 -- Name: employee_tenures; Type: TABLE; Schema: public; Owner: -
 
 --
@@ -400,11 +372,23 @@ CREATE TABLE public.employee_tenures (
 
     employee_number character varying(50) NOT NULL,
 
+    employee_number_normalized text GENERATED ALWAYS AS (upper(btrim((employee_number)::text))) STORED NOT NULL,
+
     user_id uuid,
+
+    hire_type character varying(20) DEFAULT 'initial'::character varying NOT NULL,
+
+    prior_service_credit_days integer DEFAULT 0 NOT NULL,
 
     start_date date NOT NULL,
 
     end_date date,
+
+    termination_reason text,
+
+    rehire_eligible boolean DEFAULT true NOT NULL,
+
+    notes text,
 
     created_at timestamp with time zone DEFAULT now() NOT NULL,
 
@@ -414,7 +398,11 @@ CREATE TABLE public.employee_tenures (
 
     CONSTRAINT employee_tenures_dates_check CHECK (((end_date IS NULL) OR (start_date <= end_date))),
 
-    CONSTRAINT employee_tenures_number_check CHECK ((length(btrim((employee_number)::text)) > 0))
+    CONSTRAINT employee_tenures_hire_type_check CHECK (((hire_type)::text = ANY ((ARRAY['initial'::character varying, 'rehire'::character varying])::text[]))),
+
+    CONSTRAINT employee_tenures_number_check CHECK ((length(btrim((employee_number)::text)) > 0)),
+
+    CONSTRAINT employee_tenures_prior_service_check CHECK ((prior_service_credit_days >= 0))
 
 );
 
@@ -434,10 +422,6 @@ CREATE TABLE public.employees (
 
     id uuid DEFAULT gen_random_uuid() NOT NULL,
 
-    user_id uuid,
-
-    employee_id_number character varying(50) NOT NULL,
-
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
 
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
@@ -449,14 +433,6 @@ CREATE TABLE public.employees (
     recruitment_source_id uuid,
 
     deleted_at timestamp with time zone,
-
-    hire_date date NOT NULL,
-
-    original_hire_date date NOT NULL,
-
-    termination_date date,
-
-    is_active boolean DEFAULT true NOT NULL,
 
     CONSTRAINT chk_employee_full_name CHECK ((length((full_name)::text) > 0))
 
@@ -654,7 +630,7 @@ CREATE TABLE public.employment_relationships (
 
     deleted_at timestamp with time zone,
 
-    tenure_id uuid,
+    tenure_id uuid NOT NULL,
 
     CONSTRAINT employment_relationships_dates_check CHECK (((end_date IS NULL) OR (start_date <= end_date)))
 
@@ -706,7 +682,9 @@ CREATE TABLE public.employments (
 
     termination_reason character varying(50),
 
-    relationship_id uuid
+    relationship_id uuid NOT NULL,
+
+    CONSTRAINT employments_dates_check CHECK (((end_date IS NULL) OR (start_date <= end_date)))
 
 );
 
@@ -1356,22 +1334,6 @@ ALTER TABLE ONLY public.employee_salary_components
 
 --
 
--- Name: employee_tenure_reconciliation employee_tenure_reconciliation_pkey; Type: CONSTRAINT; Schema: public; Owner: -
-
---
-
-
-
-ALTER TABLE ONLY public.employee_tenure_reconciliation
-
-    ADD CONSTRAINT employee_tenure_reconciliation_pkey PRIMARY KEY (employee_id);
-
-
-
-
-
---
-
 -- Name: employee_tenures employee_tenures_identity_key; Type: CONSTRAINT; Schema: public; Owner: -
 
 --
@@ -1388,7 +1350,7 @@ ALTER TABLE ONLY public.employee_tenures
 
 --
 
--- Name: employee_tenures employee_tenures_no_overlap_number; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: employee_tenures employee_tenures_permanent_code_owner; Type: CONSTRAINT; Schema: public; Owner: -
 
 --
 
@@ -1396,7 +1358,7 @@ ALTER TABLE ONLY public.employee_tenures
 
 ALTER TABLE ONLY public.employee_tenures
 
-    ADD CONSTRAINT employee_tenures_no_overlap_number EXCLUDE USING gist (employee_number WITH =, daterange(start_date, COALESCE((end_date + 1), 'infinity'::date), '[)'::text) WITH &&) WHERE ((deleted_at IS NULL));
+    ADD CONSTRAINT employee_tenures_permanent_code_owner EXCLUDE USING gist (employee_number_normalized WITH =, employee_id WITH <>);
 
 
 
@@ -2244,13 +2206,13 @@ CREATE INDEX idx_employee_salary_components_employment_id ON public.employee_sal
 
 --
 
--- Name: idx_employee_tenure_reconciliation_status; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_employee_documents_tenure_id; Type: INDEX; Schema: public; Owner: -
 
 --
 
 
 
-CREATE INDEX idx_employee_tenure_reconciliation_status ON public.employee_tenure_reconciliation USING btree (status, updated_at, employee_id);
+CREATE INDEX idx_employee_documents_tenure_id ON public.employee_documents USING btree (tenure_id) WHERE (tenure_id IS NOT NULL);
 
 
 
@@ -2264,7 +2226,7 @@ CREATE INDEX idx_employee_tenure_reconciliation_status ON public.employee_tenure
 
 
 
-CREATE UNIQUE INDEX idx_employee_tenures_active_user ON public.employee_tenures USING btree (user_id) WHERE ((user_id IS NOT NULL) AND (deleted_at IS NULL));
+CREATE UNIQUE INDEX idx_employee_tenures_active_user ON public.employee_tenures USING btree (user_id) WHERE ((user_id IS NOT NULL) AND (end_date IS NULL) AND (deleted_at IS NULL));
 
 
 
@@ -2300,13 +2262,27 @@ CREATE INDEX idx_employee_tenures_number ON public.employee_tenures USING btree 
 
 --
 
--- Name: idx_employees_id_number_search; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_employee_tenures_number_normalized; Type: INDEX; Schema: public; Owner: -
 
 --
 
 
 
-CREATE INDEX idx_employees_id_number_search ON public.employees USING gin (employee_id_number public.gin_trgm_ops);
+CREATE INDEX idx_employee_tenures_number_normalized ON public.employee_tenures USING btree (employee_number_normalized, start_date DESC, id DESC) WHERE (deleted_at IS NULL);
+
+
+
+
+
+--
+
+-- Name: idx_employee_tenures_number_search; Type: INDEX; Schema: public; Owner: -
+
+--
+
+
+
+CREATE INDEX idx_employee_tenures_number_search ON public.employee_tenures USING gin (employee_number public.gin_trgm_ops);
 
 
 
@@ -2321,34 +2297,6 @@ CREATE INDEX idx_employees_id_number_search ON public.employees USING gin (emplo
 
 
 CREATE INDEX idx_employees_name_search ON public.employees USING gin (full_name public.gin_trgm_ops);
-
-
-
-
-
---
-
--- Name: idx_employees_organization_employee_id; Type: INDEX; Schema: public; Owner: -
-
---
-
-
-
-CREATE UNIQUE INDEX idx_employees_organization_employee_id ON public.employees USING btree (employee_id_number) WHERE (deleted_at IS NULL);
-
-
-
-
-
---
-
--- Name: idx_employees_organization_user_id; Type: INDEX; Schema: public; Owner: -
-
---
-
-
-
-CREATE UNIQUE INDEX idx_employees_organization_user_id ON public.employees USING btree (user_id) WHERE (user_id IS NOT NULL);
 
 
 
@@ -2384,13 +2332,13 @@ CREATE INDEX idx_employees_tags ON public.employees USING gin (tags);
 
 --
 
--- Name: idx_employees_user_id; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_file_acknowledgements_tenure_id; Type: INDEX; Schema: public; Owner: -
 
 --
 
 
 
-CREATE INDEX idx_employees_user_id ON public.employees USING btree (user_id);
+CREATE INDEX idx_file_acknowledgements_tenure_id ON public.file_acknowledgements USING btree (tenure_id) WHERE (tenure_id IS NOT NULL);
 
 
 
@@ -2488,7 +2436,7 @@ CREATE INDEX idx_employment_relationships_employer ON public.employment_relation
 
 
 
-CREATE INDEX idx_employment_relationships_tenure_id ON public.employment_relationships USING btree (tenure_id, start_date DESC, id DESC) WHERE ((tenure_id IS NOT NULL) AND (deleted_at IS NULL));
+CREATE INDEX idx_employment_relationships_tenure_id ON public.employment_relationships USING btree (tenure_id, start_date DESC, id DESC) WHERE (deleted_at IS NULL);
 
 
 
@@ -3070,13 +3018,13 @@ CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.employee_salary_components
 
 --
 
--- Name: employee_tenure_reconciliation trg_updated_at; Type: TRIGGER; Schema: public; Owner: -
+-- Name: employee_tenures trg_roster_cache_invalidation_employee_tenures; Type: TRIGGER; Schema: public; Owner: -
 
 --
 
 
 
-CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.employee_tenure_reconciliation FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
+CREATE TRIGGER trg_roster_cache_invalidation_employee_tenures AFTER INSERT OR DELETE OR UPDATE ON public.employee_tenures FOR EACH ROW EXECUTE FUNCTION public.enqueue_roster_cache_invalidation('direct');
 
 
 
@@ -3091,6 +3039,20 @@ CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.employee_tenure_reconcilia
 
 
 CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.employee_tenures FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
+
+
+
+
+
+--
+
+-- Name: employee_tenures trg_validate_tenure_bounds_guard; Type: TRIGGER; Schema: public; Owner: -
+
+--
+
+
+
+CREATE TRIGGER trg_validate_tenure_bounds_guard BEFORE UPDATE OF start_date, end_date, deleted_at ON public.employee_tenures FOR EACH ROW EXECUTE FUNCTION public.fn_validate_tenure_bounds_guard();
 
 
 
@@ -3168,6 +3130,20 @@ CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.employment_relationships F
 
 --
 
+-- Name: employment_relationships trg_validate_relationship_tenure_bounds; Type: TRIGGER; Schema: public; Owner: -
+
+--
+
+
+
+CREATE TRIGGER trg_validate_relationship_tenure_bounds BEFORE INSERT OR UPDATE OF tenure_id, employee_id, start_date, end_date, deleted_at ON public.employment_relationships FOR EACH ROW EXECUTE FUNCTION public.fn_validate_relationship_tenure_bounds();
+
+
+
+
+
+--
+
 -- Name: employments trg_roster_cache_invalidation_employments; Type: TRIGGER; Schema: public; Owner: -
 
 --
@@ -3175,6 +3151,20 @@ CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.employment_relationships F
 
 
 CREATE TRIGGER trg_roster_cache_invalidation_employments AFTER INSERT OR DELETE OR UPDATE ON public.employments FOR EACH ROW EXECUTE FUNCTION public.enqueue_roster_cache_invalidation('direct');
+
+
+
+
+
+--
+
+-- Name: employments trg_validate_segment_relationship_bounds; Type: TRIGGER; Schema: public; Owner: -
+
+--
+
+
+
+CREATE TRIGGER trg_validate_segment_relationship_bounds BEFORE INSERT OR UPDATE OF relationship_id, employee_id, employer_id, start_date, end_date, deleted_at ON public.employments FOR EACH ROW EXECUTE FUNCTION public.fn_validate_segment_relationship_bounds();
 
 
 
@@ -3530,6 +3520,22 @@ ALTER TABLE ONLY public.employee_documents
 
 --
 
+-- Name: employee_documents employee_documents_tenure_identity_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+
+--
+
+
+
+ALTER TABLE ONLY public.employee_documents
+
+    ADD CONSTRAINT employee_documents_tenure_identity_fkey FOREIGN KEY (tenure_id, employee_id) REFERENCES public.employee_tenures(id, employee_id) ON DELETE RESTRICT;
+
+
+
+
+
+--
+
 -- Name: employee_emergency_contacts employee_emergency_contacts_employee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 
 --
@@ -3635,22 +3641,6 @@ ALTER TABLE ONLY public.employee_salary_components
 ALTER TABLE ONLY public.employee_salary_components
 
     ADD CONSTRAINT employee_salary_components_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE CASCADE;
-
-
-
-
-
---
-
--- Name: employee_tenure_reconciliation employee_tenure_reconciliation_employee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
-
---
-
-
-
-ALTER TABLE ONLY public.employee_tenure_reconciliation
-
-    ADD CONSTRAINT employee_tenure_reconciliation_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE RESTRICT;
 
 
 
@@ -3923,6 +3913,22 @@ ALTER TABLE ONLY public.employments
 ALTER TABLE ONLY public.file_acknowledgements
 
     ADD CONSTRAINT file_acknowledgements_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
+
+
+
+
+
+--
+
+-- Name: file_acknowledgements file_acknowledgements_tenure_identity_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+
+--
+
+
+
+ALTER TABLE ONLY public.file_acknowledgements
+
+    ADD CONSTRAINT file_acknowledgements_tenure_identity_fkey FOREIGN KEY (tenure_id, employee_id) REFERENCES public.employee_tenures(id, employee_id) ON DELETE RESTRICT;
 
 
 

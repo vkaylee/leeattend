@@ -18,6 +18,7 @@ import (
 type EmployeeImportRepository struct {
 	DB      DBTX
 	BeginTx func(context.Context) (TxBeginner, error)
+	Revoker SessionRevoker
 }
 
 func (r EmployeeImportRepository) db(ctx context.Context) (DBTX, error) {
@@ -240,12 +241,12 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 		}
 		var startDate time.Time
 		var currentStatus string
-		var relationshipID *uuid.UUID
-		err = tx.QueryRow(ctx, `SELECT status, start_date, relationship_id
+		var employeeID, employerID, relationshipID uuid.UUID
+		err = tx.QueryRow(ctx, `SELECT employee_id, employer_id, status, start_date, relationship_id
 				FROM employments
 				WHERE id = $1 AND deleted_at IS NULL
 				FOR UPDATE`,
-			row.EmploymentID).Scan(&currentStatus, &startDate, &relationshipID)
+			row.EmploymentID).Scan(&employeeID, &employerID, &currentStatus, &startDate, &relationshipID)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				continue
@@ -258,6 +259,9 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 		if currentStatus == "terminated" {
 			continue
 		}
+		if err := checkLockedPayrollForEmployeeDate(ctx, tx, employerID, row.TerminationDate); err != nil {
+			return successCount, err
+		}
 
 		_, err = tx.Exec(ctx, `UPDATE employments
 			SET status = 'terminated', end_date = $1::date, termination_reason = $2, notes = $3, updated_at = NOW()
@@ -267,16 +271,42 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 			return successCount, err
 		}
 
-		if relationshipID != nil {
-			if err := tx.QueryRow(ctx, `SELECT id FROM employment_relationships WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, *relationshipID).Scan(new(uuid.UUID)); err != nil {
+		var tenureID uuid.UUID
+		if err := tx.QueryRow(ctx, `SELECT tenure_id FROM employment_relationships WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, relationshipID).Scan(&tenureID); err != nil {
+			return successCount, err
+		}
+		_, err = tx.Exec(ctx, `UPDATE employment_relationships
+				SET status = 'terminated', end_date = $1::date, termination_reason = $2, notes = $3, updated_at = NOW()
+				WHERE id = $4 AND deleted_at IS NULL`,
+			row.TerminationDate, row.TerminationReason, row.TerminationNotes, relationshipID)
+		if err != nil {
+			return successCount, err
+		}
+
+		// Close parent tenure when its last open relationship ends, and revoke active sessions.
+		var remainingOpen int
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM employment_relationships WHERE tenure_id = $1 AND deleted_at IS NULL AND end_date IS NULL`, tenureID).Scan(&remainingOpen); err != nil {
+			return successCount, err
+		}
+		if remainingOpen == 0 {
+			var tenureUserID *uuid.UUID
+			var tenureEnd *time.Time
+			if err := tx.QueryRow(ctx, `SELECT user_id, end_date FROM employee_tenures WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, tenureID).Scan(&tenureUserID, &tenureEnd); err != nil {
 				return successCount, err
 			}
-			_, err = tx.Exec(ctx, `UPDATE employment_relationships
-					SET status = 'terminated', end_date = $1::date, termination_reason = $2, notes = $3, updated_at = NOW()
-					WHERE id = $4 AND deleted_at IS NULL`,
-				row.TerminationDate, row.TerminationReason, row.TerminationNotes, *relationshipID)
-			if err != nil {
-				return successCount, err
+			if tenureEnd == nil {
+				var effectiveTenureEnd string
+				if err := tx.QueryRow(ctx, `SELECT GREATEST($1::date, COALESCE(MAX(end_date), $1::date))::text FROM employment_relationships WHERE tenure_id = $2 AND deleted_at IS NULL`, row.TerminationDate, tenureID).Scan(&effectiveTenureEnd); err != nil {
+					return successCount, err
+				}
+				if _, err := tx.Exec(ctx, `UPDATE employee_tenures SET end_date = $1::date, termination_reason = COALESCE($2, termination_reason), notes = COALESCE($3, notes), updated_at = NOW() WHERE id = $4`, effectiveTenureEnd, row.TerminationReason, row.TerminationNotes, tenureID); err != nil {
+					return successCount, err
+				}
+				if tenureUserID != nil && *tenureUserID != uuid.Nil {
+					if err := revokeUserSessionsDBTX(ctx, tx, r.Revoker, *tenureUserID); err != nil {
+						return successCount, err
+					}
+				}
 			}
 		}
 

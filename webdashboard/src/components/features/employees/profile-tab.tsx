@@ -12,13 +12,13 @@ import UndoTerminationModal from "@/components/features/employees/undo-terminati
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
-import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
+import { fetchEmployeeEmployments, fetchEmployeeTenures, updateEmployeeEmployment } from "@/lib/api";
 import { createQueryKey, employeeKeys } from "@/lib/query-keys";
 import { maybeNull } from "@/types/api-overrides";
 
 import type { DeptHistoryEntry } from "./profile-sections";
 
-import { DepartmentSection, HireDatesSection, LocationSection, UserSection } from "./profile-sections";
+import { DepartmentSection, HireDatesSection, LocationSection, TenureHistorySection, UserSection } from "./profile-sections";
 
 export function ProfileActions({
     employee,
@@ -122,6 +122,11 @@ export default function ProfileTab({
 
     const { data: employments = [] } = useQuery({ queryKey: createQueryKey("employee-employments", employee.id), queryFn: () => fetchEmployeeEmployments(employee.id),
     enabled: !!employee.id, });
+    const { data: tenures = [] } = useQuery({
+        queryKey: createQueryKey("employee-tenures", employee.id),
+        queryFn: () => fetchEmployeeTenures(employee.id),
+        enabled: !!employee.id,
+    });
     const activeEmployment = employments.find(e => e.status === "active") ?? employments[0];
     const terminatedEmployment = employments.find(e => e.status === "terminated");
     const activeLocationId = maybeNull(activeEmployment)?.primary_location_id ?? "";
@@ -219,6 +224,12 @@ export default function ProfileTab({
                     t={t}
                 />
             </GridWrap>
+
+            <TenureHistorySection
+                formatDate={formatDate}
+                t={t}
+                tenures={tenures}
+            />
 
             <CustomFieldSection entityId={employee.id} entityType="employee" />
 

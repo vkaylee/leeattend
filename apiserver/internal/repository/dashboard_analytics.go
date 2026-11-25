@@ -1219,14 +1219,17 @@ func (r DashboardAnalyticsRepository) GetRecruitmentEffectiveness(ctx context.Co
         (rs.source_type = 'agency' AND rs.agency_fee_amount IS NOT NULL)
         OR (rs.source_type = 'referral' AND rs.referral_bonus_amount IS NOT NULL)
     ) AS cost_available
-FROM employees e
+FROM employee_tenures t
+JOIN employees e ON e.id = t.employee_id
 LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
+JOIN employment_relationships er ON er.tenure_id = t.id AND er.deleted_at IS NULL
 JOIN employments emp
-  ON emp.employee_id = e.id
+  ON emp.relationship_id = er.id
  AND emp.deleted_at IS NULL
- AND emp.start_date = e.hire_date
+ AND emp.start_date = t.start_date
 WHERE e.deleted_at IS NULL
-  AND e.hire_date >= $1::date AND e.hire_date <= $2::date
+  AND t.deleted_at IS NULL
+  AND t.start_date >= $1::date AND t.start_date <= $2::date
   AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
   AND ($4::uuid[] IS NULL OR emp.primary_location_id = ANY($4))
   AND ($5::text[] IS NULL OR emp.job_title = ANY($5))
@@ -1288,16 +1291,19 @@ ORDER BY hires DESC, source_name ASC`
     rs.id AS source_id,
     COALESCE(rs.source_type::text, 'unknown') AS source_type,
     COALESCE(rs.name, 'Unknown source') AS source_name,
-    COUNT(DISTINCT e.id)::bigint AS retained_90d
-FROM employees e
+    COUNT(DISTINCT t.id)::bigint AS retained_90d
+FROM employee_tenures t
+JOIN employees e ON e.id = t.employee_id
 LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
+JOIN employment_relationships er ON er.tenure_id = t.id AND er.deleted_at IS NULL
 JOIN employments emp
-  ON emp.employee_id = e.id
+  ON emp.relationship_id = er.id
  AND emp.deleted_at IS NULL
- AND emp.start_date = e.hire_date
+ AND emp.start_date = t.start_date
 WHERE e.deleted_at IS NULL
-  AND e.hire_date >= $1::date AND e.hire_date <= $2::date
-  AND (e.termination_date IS NULL OR e.termination_date > e.hire_date + 90)
+  AND t.deleted_at IS NULL
+  AND t.start_date >= $1::date AND t.start_date <= $2::date
+  AND (t.end_date IS NULL OR t.end_date > t.start_date + 90)
   AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
   AND ($4::uuid[] IS NULL OR emp.primary_location_id = ANY($4))
   AND ($5::text[] IS NULL OR emp.job_title = ANY($5))
@@ -1400,16 +1406,19 @@ GROUP BY rs.id, rs.source_type, rs.name`, startStr, endStr, deptFilter, locFilte
 ),
 hires AS (
     SELECT
-        date_trunc('month', e.hire_date)::date AS hire_month,
-        e.id
-    FROM employees e
+        date_trunc('month', t.start_date)::date AS hire_month,
+        t.id
+    FROM employee_tenures t
+    JOIN employees e ON e.id = t.employee_id
     LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
+    JOIN employment_relationships er ON er.tenure_id = t.id AND er.deleted_at IS NULL
     JOIN employments emp
-      ON emp.employee_id = e.id
+      ON emp.relationship_id = er.id
      AND emp.deleted_at IS NULL
-     AND emp.start_date = e.hire_date
+     AND emp.start_date = t.start_date
     WHERE e.deleted_at IS NULL
-      AND e.hire_date >= $1::date AND e.hire_date <= $2::date
+      AND t.deleted_at IS NULL
+      AND t.start_date >= $1::date AND t.start_date <= $2::date
       AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
       AND ($4::uuid[] IS NULL OR emp.primary_location_id = ANY($4))
       AND ($5::text[] IS NULL OR emp.job_title = ANY($5))
@@ -1570,10 +1579,12 @@ overtime AS (
     GROUP BY p.period
 ),
 terminations AS (
-    SELECT p.period, COUNT(DISTINCT e.id)::bigint AS termination_count
+    SELECT p.period, COUNT(DISTINCT t.id)::bigint AS termination_count
     FROM periods p
-    LEFT JOIN employees e ON e.deleted_at IS NULL
-      AND e.termination_date BETWEEN p.start_date AND p.end_date
+    LEFT JOIN employee_tenures t ON t.deleted_at IS NULL
+      AND t.end_date BETWEEN p.start_date AND p.end_date
+    LEFT JOIN employees e ON e.id = t.employee_id AND e.deleted_at IS NULL
+    WHERE t.id IS NULL OR e.id IS NOT NULL
     GROUP BY p.period
 ),
 actions AS (

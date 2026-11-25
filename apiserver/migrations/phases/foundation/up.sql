@@ -1254,6 +1254,270 @@ $$;
 
 --
 
+-- Name: fn_validate_relationship_tenure_bounds(); Type: FUNCTION; Schema: public; Owner: -
+
+--
+
+
+
+CREATE FUNCTION public.fn_validate_relationship_tenure_bounds() RETURNS trigger
+
+    LANGUAGE plpgsql
+
+    AS $$
+
+DECLARE
+
+    v_tenure_start date;
+
+    v_tenure_end date;
+
+    v_tenure_deleted_at timestamp with time zone;
+
+BEGIN
+
+    IF NEW.deleted_at IS NULL THEN
+
+        SELECT start_date, end_date, deleted_at
+
+        INTO v_tenure_start, v_tenure_end, v_tenure_deleted_at
+
+        FROM public.employee_tenures
+
+        WHERE id = NEW.tenure_id
+
+          AND employee_id = NEW.employee_id;
+
+
+
+        IF NOT FOUND THEN
+
+            RETURN NEW;
+
+        END IF;
+
+
+
+        IF v_tenure_deleted_at IS NOT NULL THEN
+
+            RAISE EXCEPTION
+
+                'employment relationship requires non-deleted tenure belonging to the same employee'
+
+                USING ERRCODE = '23514';
+
+        END IF;
+
+
+
+        IF NEW.start_date < v_tenure_start
+
+           OR (v_tenure_end IS NOT NULL AND (NEW.end_date IS NULL OR NEW.end_date > v_tenure_end)) THEN
+
+            RAISE EXCEPTION
+
+                'employment relationship dates must fit within parent tenure bounds'
+
+                USING ERRCODE = '23514';
+
+        END IF;
+
+
+
+        IF TG_OP = 'UPDATE'
+
+           AND (NEW.start_date IS DISTINCT FROM OLD.start_date OR NEW.end_date IS DISTINCT FROM OLD.end_date)
+
+           AND EXISTS (
+
+               SELECT 1
+
+               FROM public.employments segment
+
+               WHERE segment.relationship_id = NEW.id
+
+                 AND segment.deleted_at IS NULL
+
+                 AND (
+
+                     segment.start_date < NEW.start_date
+
+                     OR (NEW.end_date IS NOT NULL AND (segment.end_date IS NULL OR segment.end_date > NEW.end_date))
+
+                 )
+
+           ) THEN
+
+            RAISE EXCEPTION
+
+                'employment relationship bounds cannot exclude existing employment segments'
+
+                USING ERRCODE = '23514';
+
+        END IF;
+
+    END IF;
+
+
+
+    RETURN NEW;
+
+END;
+
+$$;
+
+
+
+
+
+--
+
+-- Name: fn_validate_segment_relationship_bounds(); Type: FUNCTION; Schema: public; Owner: -
+
+--
+
+
+
+CREATE FUNCTION public.fn_validate_segment_relationship_bounds() RETURNS trigger
+
+    LANGUAGE plpgsql
+
+    AS $$
+
+DECLARE
+
+    v_rel_start date;
+
+    v_rel_end date;
+
+    v_rel_deleted_at timestamp with time zone;
+
+BEGIN
+
+    IF NEW.deleted_at IS NULL THEN
+
+        SELECT start_date, end_date, deleted_at
+
+        INTO v_rel_start, v_rel_end, v_rel_deleted_at
+
+        FROM public.employment_relationships
+
+        WHERE id = NEW.relationship_id
+
+          AND employee_id = NEW.employee_id
+
+          AND employer_id = NEW.employer_id;
+
+
+
+        IF NOT FOUND THEN
+
+            RETURN NEW;
+
+        END IF;
+
+
+
+        IF v_rel_deleted_at IS NOT NULL THEN
+
+            RAISE EXCEPTION
+
+                'employment segment requires non-deleted relationship belonging to the same employee and employer'
+
+                USING ERRCODE = '23514';
+
+        END IF;
+
+
+
+        IF NEW.start_date < v_rel_start
+
+           OR (v_rel_end IS NOT NULL AND (NEW.end_date IS NULL OR NEW.end_date > v_rel_end)) THEN
+
+            RAISE EXCEPTION
+
+                'employment segment dates must fit within parent relationship bounds'
+
+                USING ERRCODE = '23514';
+
+        END IF;
+
+    END IF;
+
+
+
+    RETURN NEW;
+
+END;
+
+$$;
+
+
+
+
+
+--
+
+-- Name: fn_validate_tenure_bounds_guard(); Type: FUNCTION; Schema: public; Owner: -
+
+--
+
+
+
+CREATE FUNCTION public.fn_validate_tenure_bounds_guard() RETURNS trigger
+
+    LANGUAGE plpgsql
+
+    AS $$
+
+BEGIN
+
+    IF NEW.deleted_at IS NULL
+
+       AND (NEW.start_date IS DISTINCT FROM OLD.start_date OR NEW.end_date IS DISTINCT FROM OLD.end_date)
+
+       AND EXISTS (
+
+           SELECT 1
+
+           FROM public.employment_relationships rel
+
+           WHERE rel.tenure_id = NEW.id
+
+             AND rel.deleted_at IS NULL
+
+             AND (
+
+                 rel.start_date < NEW.start_date
+
+                 OR (NEW.end_date IS NOT NULL AND (rel.end_date IS NULL OR rel.end_date > NEW.end_date))
+
+             )
+
+       ) THEN
+
+        RAISE EXCEPTION
+
+            'employee tenure bounds cannot exclude existing employment relationships'
+
+            USING ERRCODE = '23514';
+
+    END IF;
+
+
+
+    RETURN NEW;
+
+END;
+
+$$;
+
+
+
+
+
+--
+
 -- Name: fn_validate_target_fk(); Type: FUNCTION; Schema: public; Owner: -
 
 --
@@ -3039,6 +3303,8 @@ CREATE TABLE public.file_acknowledgements (
     document_id uuid NOT NULL,
 
     employee_id uuid NOT NULL,
+
+    tenure_id uuid,
 
     status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
 

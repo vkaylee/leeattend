@@ -66,9 +66,6 @@ func (m *mockEmployeeRepoForAssignments) UpdateEmployee(context.Context, uuid.UU
 func (m *mockEmployeeRepoForAssignments) SoftDeleteEmployee(context.Context, uuid.UUID) error {
 	return nil
 }
-func (m *mockEmployeeRepoForAssignments) RehireEmployee(context.Context, uuid.UUID, RehireEmployeeRequest) (EmployeeRecord, error) {
-	return EmployeeRecord{}, nil
-}
 
 type mockEmployeeAssignmentRepo struct {
 	assignments      map[uuid.UUID]EmployeeAssignment

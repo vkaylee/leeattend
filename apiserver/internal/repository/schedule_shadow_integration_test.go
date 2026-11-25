@@ -17,12 +17,7 @@ func TestIntegrationScheduleShadowMismatchUpsertAndResolution(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'shadow-test-employer')`, employerID); err != nil {
 		t.Fatalf("insert employer: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'shadow-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
-		t.Fatalf("insert employee: %v", err)
-	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
-		t.Fatalf("insert employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "shadow-test-employee", "2026-01-01", "2026-01-01", "")
 	if _, err := pool.Exec(ctx, `INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test"); err != nil {
 		t.Fatalf("insert actor: %v", err)
 	}
@@ -70,12 +65,7 @@ func TestIntegrationLegacyUnverifiedRevisionHasUniqueEmploymentDayKey(t *testing
 	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'legacy-backfill-test-employer')`, employerID); err != nil {
 		t.Fatalf("insert employer: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'legacy-backfill-test-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
-		t.Fatalf("insert employee: %v", err)
-	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID); err != nil {
-		t.Fatalf("insert employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "legacy-backfill-test-employee", "2026-01-01", "2026-01-01", "")
 	insert := `INSERT INTO schedule_day_revisions (id, employment_id, employer_id, business_date, timezone, revision_number, state, source, source_snapshot, resolver_version, reason, published_actor_type) VALUES ($1, $2, $3, DATE '2026-11-20', 'UTC', 1, 'legacy_unverified', 'legacy_unverified', '{"provenance":"legacy_unverified"}', 'legacy-import-v1', 'backfill evidence', 'system')`
 	if _, err := pool.Exec(ctx, insert, uuid.New(), employmentID, employerID); err != nil {
 		t.Fatalf("insert legacy revision: %v", err)

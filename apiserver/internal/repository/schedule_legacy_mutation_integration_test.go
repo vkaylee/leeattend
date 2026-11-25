@@ -185,19 +185,9 @@ func createLegacyMutationGuardFixture(t *testing.T, ctx context.Context, tx dbtx
 	for _, employer := range []uuid.UUID{activeEmployer, inactiveEmployer, unrelatedEmployer} {
 		execFixture(`INSERT INTO employers (id, name) VALUES ($1, $2)`, employer, "guard-test-employer")
 	}
-	for _, employee := range []struct {
-		id   uuid.UUID
-		name string
-	}{
-		{activeEmployee, "guard-test-employee"},
-		{inactiveEmployee, "guard-test-employee"},
-		{unrelatedEmployee, "guard-test-employee"},
-	} {
-		execFixture(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, $3, DATE '2026-01-01', DATE '2026-01-01')`, employee.id, employee.id.String(), employee.name)
-	}
-	execFixture(`INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, fixture.activeEmployment, activeEmployee, activeEmployer)
-	execFixture(`INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, fixture.inactiveEmployment, inactiveEmployee, inactiveEmployer)
-	execFixture(`INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-01-01')`, fixture.unrelatedEmployment, unrelatedEmployee, unrelatedEmployer)
+	seedIntegrationEmployeeGraphWithRange(t, ctx, tx, activeEmployee, activeEmployer, fixture.activeEmployment, activeEmployee.String(), "guard-test-employee", "2026-01-01", "2026-01-01", "")
+	seedIntegrationEmployeeGraphWithRange(t, ctx, tx, inactiveEmployee, inactiveEmployer, fixture.inactiveEmployment, inactiveEmployee.String(), "guard-test-employee", "2026-01-01", "2026-01-01", "")
+	seedIntegrationEmployeeGraphWithRange(t, ctx, tx, unrelatedEmployee, unrelatedEmployer, fixture.unrelatedEmployment, unrelatedEmployee.String(), "guard-test-employee", "2026-01-01", "2026-01-01", "")
 	execFixture(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, fixture.actorID, fixture.actorID.String()+"@invalid.test")
 	execFixture(`INSERT INTO feature_flags (flag_key, enabled, description) VALUES ('schedule_lifecycle', true, 'guard integration test') ON CONFLICT (flag_key) DO UPDATE SET enabled = true`)
 	execFixture(`INSERT INTO config_entries (scope_type, scope_id, config_key, value_bool, effective_from) VALUES ('employer', $1, 'schedule.lifecycle.enabled', true, DATE '2026-01-01')`, activeEmployer)

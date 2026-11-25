@@ -46,6 +46,8 @@ FORBIDDEN_SCHEMA = re.compile(
 ROUTE_REQUEST_SCHEMAS = {
     ("POST", "/api/v1/employees/match"): "MatchEmployeeRequest",
     ("POST", "/api/v1/employees/{employee_id}/tenures"): "CreateEmployeeTenureRequest",
+    ("POST", "/api/v1/employees/{employee_id}/tenures/{tenure_id}/close"): "CloseEmployeeTenureRequest",
+    ("POST", "/api/v1/employees/{employee_id}/employments/{employment_id}/terminate"): "TerminateEmploymentRequest",
     ("POST", "/api/v1/files/presigned"): "CreateUploadUrlRequest",
 }
 
@@ -55,7 +57,10 @@ ROUTE_MULTIPART_REQUESTS = {
 
 ROUTE_RESPONSE_SCHEMAS = {
     ("POST", "/api/v1/employees/match"): ("200", "MatchEmployeeResponse"),
+    ("GET", "/api/v1/employees/{employee_id}/tenures"): ("200", "EmployeeTenureRecord"),
     ("POST", "/api/v1/employees/{employee_id}/tenures"): ("201", "EmployeeTenureCreated"),
+    ("POST", "/api/v1/employees/{employee_id}/tenures/{tenure_id}/close"): ("200", "EmployeeTenureClosed"),
+    ("POST", "/api/v1/employees/{employee_id}/employments/{employment_id}/terminate"): ("200", "TerminateEmploymentResult"),
     ("POST", "/api/v1/files/presigned"): ("200", "CreateUploadUrlResponse"),
     ("POST", "/api/v1/files/upload"): ("201", "FileRecord"),
 }

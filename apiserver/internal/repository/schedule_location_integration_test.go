@@ -15,12 +15,7 @@ func TestIntegrationResolverUsesAssignedLocationTimezoneAndHolidayOverlay(t *tes
 	if _, err := pool.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'timezone-resolver-employer')`, employerID); err != nil {
 		t.Fatalf("insert employer: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'timezone-resolver-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String()); err != nil {
-		t.Fatalf("insert employee: %v", err)
-	}
-	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date) VALUES ($1, $2, $3, 'active', DATE '2026-11-01')`, employmentID, employeeID, employerID); err != nil {
-		t.Fatalf("insert employment: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "timezone-resolver-employee", "2026-01-01", "2026-11-01", "")
 	if _, err := pool.Exec(ctx, `INSERT INTO work_locations (id, name, timezone, status) VALUES ($1, 'timezone-resolver-location', 'America/New_York', 'active')`, locationID); err != nil {
 		t.Fatalf("insert location: %v", err)
 	}

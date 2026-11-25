@@ -33,8 +33,11 @@ func TestIntegrationAdjacentNightShiftRestEffectiveVersionAndCrossEmployment(t *
 	}
 
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'h2-emp-a'), ($2, 'h2-emp-b')`, employerA, employerB)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'H2 Compliance Worker', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, "H2-"+employeeID.String()[:8])
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-11-01', DATE '2026-12-31'), ($4, $2, $5, 'active', DATE '2026-11-01', DATE '2026-12-31')`, empA, employeeID, employerA, empB, employerB)
+	tenureID, relA, relB := uuid.New(), uuid.New(), uuid.New()
+	mustExec(`INSERT INTO employees (id, full_name) VALUES ($1, 'H2 Compliance Worker')`, employeeID)
+	mustExec(`INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date) VALUES ($1, $2, $3, 'initial', DATE '2026-01-01')`, tenureID, employeeID, "H2-"+employeeID.String()[:8])
+	mustExec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01'), ($5, $2, $6, $4, 'active', DATE '2026-01-01')`, relA, employeeID, employerA, tenureID, relB, employerB)
+	mustExec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date, end_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-11-01', DATE '2026-12-31'), ($5, $2, $6, $7, 'active', DATE '2026-11-01', DATE '2026-12-31')`, empA, employeeID, employerA, relA, empB, employerB, relB)
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 
 	// Configure compliance rules with allow_manager_override = false and restore after test.

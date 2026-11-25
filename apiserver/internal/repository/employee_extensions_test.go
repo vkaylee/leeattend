@@ -185,6 +185,10 @@ func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
 						*(dest[0].(*uuid.UUID)) = empID
 						return nil
 					}
+					if strings.Contains(sql, "FROM payroll_periods") {
+						*(dest[0].(*bool)) = false
+						return nil
+					}
 					*(dest[0].(*bool)) = true
 					return nil
 				}}

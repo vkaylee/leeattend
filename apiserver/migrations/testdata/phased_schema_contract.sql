@@ -87,6 +87,36 @@ BEGIN
         RAISE EXCEPTION 'phased schema check failed: employee identity lookup hash columns, check, or non-unique partial indexes missing';
     END IF;
 
+    -- Employee Tenures v2 single-source-of-truth invariants
+    IF to_regclass('public.employee_tenure_reconciliation') IS NOT NULL THEN
+        RAISE EXCEPTION 'phased schema check failed: transitional employee_tenure_reconciliation table remains';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'employees'
+          AND column_name IN ('user_id', 'employee_id_number', 'hire_date', 'original_hire_date', 'termination_date', 'is_active')
+    ) THEN
+        RAISE EXCEPTION 'phased schema check failed: legacy dual-write columns remain on employees';
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employee_tenures' AND column_name = 'employee_number_normalized' AND is_nullable = 'NO')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employee_tenures' AND column_name = 'hire_type' AND is_nullable = 'NO')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employee_tenures' AND column_name = 'prior_service_credit_days' AND is_nullable = 'NO')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employee_tenures' AND column_name = 'rehire_eligible' AND is_nullable = 'NO')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employment_relationships' AND column_name = 'tenure_id' AND is_nullable = 'NO')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employments' AND column_name = 'relationship_id' AND is_nullable = 'NO')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employee_documents' AND column_name = 'tenure_id')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'file_acknowledgements' AND column_name = 'tenure_id')
+       OR NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.employee_tenures'::regclass AND conname = 'employee_tenures_permanent_code_owner' AND contype = 'x')
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.employment_relationships'::regclass AND tgname = 'trg_validate_relationship_tenure_bounds' AND NOT tgisinternal)
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.employments'::regclass AND tgname = 'trg_validate_segment_relationship_bounds' AND NOT tgisinternal)
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.employee_tenures'::regclass AND tgname = 'trg_validate_tenure_bounds_guard' AND NOT tgisinternal) THEN
+        RAISE EXCEPTION 'phased schema check failed: employee tenures v2 columns, constraints, or containment triggers missing';
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM public.feature_flags WHERE flag_key = 'ff_econtracts' AND enabled = false)
        OR NOT EXISTS (SELECT 1 FROM public.feature_flags WHERE flag_key = 'ff_ess' AND enabled = false) THEN
         RAISE EXCEPTION 'phased schema check failed: default feature flags missing';

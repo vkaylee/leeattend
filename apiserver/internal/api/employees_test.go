@@ -62,18 +62,26 @@ func (mockEmployeeRepo) UpdateEmployee(_ context.Context, empID uuid.UUID, req U
 	return EmployeeRecord{ID: empID, FullName: name}, nil
 }
 func (mockEmployeeRepo) SoftDeleteEmployee(context.Context, uuid.UUID) error { return nil }
-func (mockEmployeeRepo) RehireEmployee(_ context.Context, empID uuid.UUID, _ RehireEmployeeRequest) (EmployeeRecord, error) {
-	return EmployeeRecord{ID: empID, FullName: "Rehired"}, nil
+
+type captureTenureCreator struct {
+	request CreateEmployeeTenureRequest
 }
 
-type captureRehireRepo struct {
-	mockEmployeeRepo
-	request RehireEmployeeRequest
-}
-
-func (m *captureRehireRepo) RehireEmployee(_ context.Context, empID uuid.UUID, request RehireEmployeeRequest) (EmployeeRecord, error) {
+func (m *captureTenureCreator) CreateEmployeeTenure(_ context.Context, empID uuid.UUID, request CreateEmployeeTenureRequest) (EmployeeTenureCreated, error) {
 	m.request = request
-	return EmployeeRecord{ID: empID, FullName: "Rehired"}, nil
+	code := "EMP-REUSED"
+	if request.EmployeeNumber != nil {
+		code = *request.EmployeeNumber
+	}
+	return EmployeeTenureCreated{
+		TenureID:     uuid.New(),
+		EmployeeID:   empID,
+		EmployeeCode: code,
+		HireType:     "rehire",
+		StartDate:    request.StartDate,
+		EmployerID:   request.EmployerID,
+		Status:       MatchStatusActive,
+	}, nil
 }
 
 func TestEmployeeHandler_CreatePreservesOptionalUserID(t *testing.T) {
@@ -93,50 +101,54 @@ func TestEmployeeHandler_CreatePreservesOptionalUserID(t *testing.T) {
 	}
 }
 
-func TestEmployeeHandler_RehireAcceptsOptionalEmployeeNumber(t *testing.T) {
-	repo := &captureRehireRepo{}
+func TestEmployeeHandler_CreateTenureAcceptsOptionalEmployeeNumber(t *testing.T) {
+	creator := &captureTenureCreator{}
 	employeeID := uuid.New()
-	h := EmployeeHandler{Repository: repo, Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"employees:rehire": true}}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+employeeID.String()+"/rehire", bytes.NewBufferString(`{"hire_date":"2026-02-01","employee_id_number":"1541","employer_id":"11111111-1111-1111-1111-111111111111"}`))
-	req.SetPathValue("id", employeeID.String())
+	h := EmployeeHandler{TenureCreator: creator, Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"employees:rehire": true}}}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+employeeID.String()+"/tenures", bytes.NewBufferString(`{"start_date":"2026-02-01","employee_number":"1541","employer_id":"11111111-1111-1111-1111-111111111111","prior_service_credit_days":90}`))
+	req.SetPathValue("employee_id", employeeID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
-	h.Rehire(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	h.CreateTenure(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if repo.request.EmployeeIDNumber == nil || *repo.request.EmployeeIDNumber != "1541" {
-		t.Fatalf("rehire employee number = %v, want 1541", repo.request.EmployeeIDNumber)
+	if creator.request.EmployeeNumber == nil || *creator.request.EmployeeNumber != "1541" {
+		t.Fatalf("rehire employee number = %v, want 1541", creator.request.EmployeeNumber)
+	}
+	if creator.request.PriorServiceCreditDays == nil || *creator.request.PriorServiceCreditDays != 90 {
+		t.Fatalf("prior_service_credit_days = %v, want 90", creator.request.PriorServiceCreditDays)
 	}
 }
 
-func TestEmployeeHandler_RehireAllowsOmittedEmployeeNumber(t *testing.T) {
-	repo := &captureRehireRepo{}
+func TestEmployeeHandler_CreateTenureAllowsOmittedEmployeeNumber(t *testing.T) {
+	creator := &captureTenureCreator{}
 	employeeID := uuid.New()
-	h := EmployeeHandler{Repository: repo, Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"employees:rehire": true}}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+employeeID.String()+"/rehire", bytes.NewBufferString(`{"hire_date":"2026-02-01","employer_id":"11111111-1111-1111-1111-111111111111"}`))
-	req.SetPathValue("id", employeeID.String())
+	h := EmployeeHandler{TenureCreator: creator, Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"employees:rehire": true}}}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+employeeID.String()+"/tenures", bytes.NewBufferString(`{"start_date":"2026-02-01","employer_id":"11111111-1111-1111-1111-111111111111"}`))
+	req.SetPathValue("employee_id", employeeID.String())
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
-	h.Rehire(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	h.CreateTenure(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if repo.request.EmployeeIDNumber != nil {
-		t.Fatalf("rehire employee number = %v, want omitted", repo.request.EmployeeIDNumber)
+	if creator.request.EmployeeNumber != nil {
+		t.Fatalf("rehire employee number = %v, want omitted", creator.request.EmployeeNumber)
 	}
 }
 
-func TestEmployeeHandler_RehireRequiresEmployer(t *testing.T) {
-	h := EmployeeHandler{Repository: &captureRehireRepo{}, Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"employees:rehire": true}}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+uuid.NewString()+"/rehire", bytes.NewBufferString(`{"hire_date":"2026-02-01"}`))
-	req.SetPathValue("id", uuid.NewString())
+func TestEmployeeHandler_CreateTenureRequiresEmployer(t *testing.T) {
+	h := EmployeeHandler{TenureCreator: &captureTenureCreator{}, Authorizer: employeeSliceAuthorizer{perms: map[string]bool{"employees:rehire": true}}}
+	employeeID := uuid.NewString()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+employeeID+"/tenures", bytes.NewBufferString(`{"start_date":"2026-02-01"}`))
+	req.SetPathValue("employee_id", employeeID)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 
-	h.Rehire(rec, req)
+	h.CreateTenure(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
 	}

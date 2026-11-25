@@ -18,6 +18,11 @@ export type MatchEmployeeResponse = components["schemas"]["MatchEmployeeResponse
 export type EmployeeMatchCandidate = components["schemas"]["EmployeeMatchCandidate"];
 export type CreateEmployeeTenureRequest = components["schemas"]["CreateEmployeeTenureRequest"];
 export type EmployeeTenureCreated = components["schemas"]["EmployeeTenureCreated"];
+export type EmployeeTenureRecord = components["schemas"]["EmployeeTenureRecord"];
+export type CloseEmployeeTenureRequest = components["schemas"]["CloseEmployeeTenureRequest"];
+export type EmployeeTenureClosed = components["schemas"]["EmployeeTenureClosed"];
+export type TerminateEmploymentRequest = components["schemas"]["TerminateEmploymentRequest"];
+export type TerminateEmploymentResult = components["schemas"]["TerminateEmploymentResult"];
 
 // Employment is already exported from types.ts; re-exporting here causes
 // a duplicate when both modules are barrel-re-exported together.
@@ -94,21 +99,40 @@ export async function fetchEmploymentHistory(_id: string): Promise<EmploymentPer
   return Promise.resolve([]);
 }
 
-export type RehireEmployeeRequest = components["schemas"]["RehireEmployeeRequest"] & {
-  employee_id_number?: string;
-};
-
-export async function rehireEmployee(
-  id: string,
-  data: RehireEmployeeRequest,
-): Promise<Employee> {
-  const { data: result } = await client.POST<Employee>("/api/v1/employees/{id}/rehire", {
-    params: {
-      path: { id },
-    },
-    body: data,
+export async function fetchEmployeeTenures(
+  employeeId: string,
+): Promise<EmployeeTenureRecord[]> {
+  const { data } = await client.GET<EmployeeTenureRecord[]>("/api/v1/employees/{employee_id}/tenures", {
+    params: { path: { employee_id: employeeId } },
   });
-  return result;
+  return data;
+}
+
+export async function closeEmployeeTenure(
+  employeeId: string,
+  tenureId: string,
+  body: CloseEmployeeTenureRequest,
+): Promise<EmployeeTenureClosed> {
+  const { data } = await client.POST<EmployeeTenureClosed>("/api/v1/employees/{employee_id}/tenures/{tenure_id}/close", {
+    params: { path: { employee_id: employeeId, tenure_id: tenureId } },
+    body,
+  });
+  return data;
+}
+
+export async function terminateEmployeeEmployment(
+  employeeId: string,
+  employmentId: string,
+  body: TerminateEmploymentRequest,
+): Promise<TerminateEmploymentResult> {
+  const { data } = await client.POST<TerminateEmploymentResult>(
+    "/api/v1/employees/{employee_id}/employments/{employment_id}/terminate",
+    {
+      params: { path: { employee_id: employeeId, employment_id: employmentId } },
+      body,
+    },
+  );
+  return data;
 }
 
 export async function createEmployee(

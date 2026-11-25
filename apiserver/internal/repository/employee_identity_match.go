@@ -21,35 +21,27 @@ const (
 const employeeMatchCandidateColumnsSQL = `
 	e.id,
 	e.full_name,
-	COALESCE(latest_tenure.employee_number, e.employee_id_number, '') AS employee_code,
+	COALESCE(latest_tenure.employee_number, '') AS employee_code,
 	CASE
 		WHEN e.deleted_at IS NOT NULL THEN 'terminated'
-		WHEN NOT e.is_active THEN 'terminated'
-		WHEN e.termination_date IS NOT NULL AND e.termination_date <= CURRENT_DATE THEN 'terminated'
+		WHEN EXISTS (
+			SELECT 1 FROM employee_tenures t
+			WHERE t.employee_id = e.id
+			  AND t.deleted_at IS NULL
+			  AND (t.end_date IS NULL OR t.end_date >= ` + orgTodaySQL + `)
+		) THEN 'active'
 		WHEN EXISTS (
 			SELECT 1 FROM employments emp
 			WHERE emp.employee_id = e.id
 			  AND emp.deleted_at IS NULL
 			  AND emp.status = 'active'
-			  AND emp.start_date <= CURRENT_DATE
-			  AND (emp.end_date IS NULL OR emp.end_date >= CURRENT_DATE)
-		) THEN 'active'
-		WHEN EXISTS (
-			SELECT 1 FROM employments emp
-			WHERE emp.employee_id = e.id AND emp.deleted_at IS NULL
-		) THEN 'terminated'
-		WHEN EXISTS (
-			SELECT 1 FROM employee_tenures t
-			WHERE t.employee_id = e.id
-			  AND t.deleted_at IS NULL
-			  AND t.start_date <= CURRENT_DATE
-			  AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE)
+			  AND (emp.end_date IS NULL OR emp.end_date >= ` + orgTodaySQL + `)
 		) THEN 'active'
 		WHEN EXISTS (
 			SELECT 1 FROM employee_tenures t
 			WHERE t.employee_id = e.id AND t.deleted_at IS NULL
 		) THEN 'terminated'
-		ELSE 'active'
+		ELSE 'terminated'
 	END AS status`
 
 const employeeMatchFromSQL = `

@@ -319,7 +319,7 @@ func (r LeaveRepository) ResolveEmployeeForUser(ctx context.Context, userID uuid
 		return uuid.Nil, err
 	}
 	var empID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT t.employee_id FROM employee_tenures t JOIN employees e ON e.id = t.employee_id WHERE t.user_id = $1 AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) AND e.deleted_at IS NULL ORDER BY t.start_date DESC, t.id DESC LIMIT 1`, userID).Scan(&empID)
+	err = db.QueryRow(ctx, `SELECT t.employee_id FROM employee_tenures t JOIN employees e ON e.id = t.employee_id WHERE t.user_id = $1 AND t.deleted_at IS NULL AND t.start_date <= `+orgTodaySQL+` AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`) AND e.deleted_at IS NULL ORDER BY t.start_date DESC, t.id DESC LIMIT 1`, userID).Scan(&empID)
 	return empID, err
 }
 
@@ -810,7 +810,14 @@ func (r LeaveRepository) GetOrganizationLeaveBalances(ctx context.Context, year,
 			CROSS JOIN employees e_inner
 			WHERE e_inner.deleted_at IS NULL
 			  AND (
-				(a.assignee_type = 'user' AND a.assignee_id = e_inner.user_id) OR
+				(a.assignee_type = 'user' AND a.assignee_id = (
+					SELECT t.user_id FROM employee_tenures t
+					WHERE t.employee_id = e_inner.id
+					  AND t.deleted_at IS NULL
+					  AND t.start_date <= ` + orgTodaySQL + `
+					  AND (t.end_date IS NULL OR t.end_date >= ` + orgTodaySQL + `)
+					ORDER BY t.start_date DESC, t.id DESC LIMIT 1
+				)) OR
 				(a.assignee_type = 'employee' AND a.assignee_id = e_inner.id) OR
 				(a.assignee_type = 'department' AND a.assignee_id = (
 					SELECT department_id FROM employments

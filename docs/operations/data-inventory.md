@@ -1,12 +1,15 @@
-# Payroll Data Inventory
+# HRM & Payroll Data Inventory
 
-Owner: Payroll platform
+Owner: HRM & Payroll platform
 Runtime: Go `net/http` + PostgreSQL
 Scope: one implicit organization
-Last reviewed: 2026-11-14
+Last reviewed: 2026-11-25
 
 | Table | Classification | Retention | Owner | Notes |
 |---|---|---:|---|---|
+| `employee_tenures` | T3 | Employment legal retention | HRM | Hiring episodes (`hire_type`, `prior_service_credit_days`), normalized HR numbers (permanent single-person ownership), effective dates, termination metadata, and tenure-scoped `user_id` account links. Linked person profiles/payroll keep T2 controls. |
+| `employee_documents` | T2/T3 | Employment legal retention | HRM | Employee document metadata scoped by `(tenure_id, employee_id)` for ESS isolation. |
+| `file_acknowledgements` | T3 | Employment legal retention | HRM | Policy/document acknowledgement records scoped by `(tenure_id, employee_id)` for ESS isolation. |
 | `payroll_metric_definitions` | T4/T3 | Configuration lifetime | Production/Payroll | Canonical metric code, unit, source, employee scope. No salary amount. |
 | `payroll_input_batches` | T2 | Payroll legal retention | Production/HR | Source batch, period, lifecycle status, actor IDs, idempotency hash. |
 | `payroll_inputs` | T2 | Payroll legal retention | Production/Payroll | Employment-linked metric values. Never log raw values. Locked rows feed KPI calculation. |

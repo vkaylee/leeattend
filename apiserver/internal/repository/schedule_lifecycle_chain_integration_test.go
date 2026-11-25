@@ -22,8 +22,7 @@ func TestIntegrationFullScheduleLifecycleChain(t *testing.T) {
 	}
 
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'full-lifecycle-employer')`, employerID)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'full-lifecycle-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, employeeID.String())
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-11-20', DATE '2026-11-20')`, employmentID, employeeID, employerID)
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "full-lifecycle-employee", "2026-01-01", "2026-11-20", "2026-11-20")
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	mustExec(`INSERT INTO payroll_periods (id, employer_id, period_year, period_month, status, version) VALUES ($1, $2, 2026, 11, 'open', 1)`, uuid.New(), employerID)
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'full-lifecycle-template')`, templateID)

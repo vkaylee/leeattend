@@ -192,10 +192,15 @@ func (r ScheduleRepository) AuthorizeScheduleEmployer(ctx context.Context, userI
 		  AND role.scope_type = 'global'
 		UNION ALL
 		SELECT 1
-		FROM employees manager
+		FROM employee_tenures manager_tenure
+		JOIN employees manager ON manager.id = manager_tenure.employee_id AND manager.deleted_at IS NULL
 		JOIN departments managed ON managed.manager_id = manager.id AND managed.deleted_at IS NULL
 		JOIN employments target ON target.department_id = managed.id AND target.employer_id = $2
-		WHERE manager.user_id = $1 AND manager.deleted_at IS NULL AND target.deleted_at IS NULL
+		WHERE manager_tenure.user_id = $1
+		  AND manager_tenure.deleted_at IS NULL
+		  AND manager_tenure.start_date <= `+orgTodaySQL+`
+		  AND (manager_tenure.end_date IS NULL OR manager_tenure.end_date >= `+orgTodaySQL+`)
+		  AND target.deleted_at IS NULL
 		  AND target.start_date <= $4::date
 		  AND (target.end_date IS NULL OR target.end_date >= $3::date)
 	)`, userID, employerID, startDate, endDate).Scan(&allowed)
@@ -220,7 +225,13 @@ func (r ScheduleRepository) AuthorizeScheduleShadowMismatch(ctx context.Context,
 		FROM schedule_shadow_mismatches sm
 		JOIN employments target ON target.id = sm.employment_id AND target.deleted_at IS NULL
 		JOIN departments managed ON managed.id = target.department_id AND managed.deleted_at IS NULL
-		JOIN employees manager ON manager.id = managed.manager_id AND manager.user_id = $1 AND manager.deleted_at IS NULL
+		JOIN employees manager ON manager.id = managed.manager_id AND manager.deleted_at IS NULL
+		JOIN employee_tenures manager_tenure
+		  ON manager_tenure.employee_id = manager.id
+		 AND manager_tenure.user_id = $1
+		 AND manager_tenure.deleted_at IS NULL
+		 AND manager_tenure.start_date <= `+orgTodaySQL+`
+		 AND (manager_tenure.end_date IS NULL OR manager_tenure.end_date >= `+orgTodaySQL+`)
 		JOIN user_roles ur ON ur.user_id = $1
 		JOIN role_permissions rp ON rp.role_id = ur.role_id
 		WHERE sm.id = $2 AND rp.permission_name = 'schedules:evidence:export'
@@ -235,9 +246,13 @@ func (r ScheduleRepository) AuthorizeScheduleHistory(ctx context.Context, userID
 	}
 	var allowed bool
 	err = db.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM employees e
-		JOIN employments em ON em.employee_id = e.id
-		WHERE em.id = $1 AND em.deleted_at IS NULL AND e.user_id = $2
+		SELECT 1 FROM employments em
+		JOIN employment_relationships er ON er.id = em.relationship_id AND er.deleted_at IS NULL
+		JOIN employee_tenures t ON t.id = er.tenure_id AND t.deleted_at IS NULL
+		WHERE em.id = $1 AND em.deleted_at IS NULL
+		  AND t.user_id = $2
+		  AND t.start_date <= `+orgTodaySQL+`
+		  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
 		UNION ALL
 		SELECT 1 FROM user_roles ur
 		JOIN roles role ON role.id = ur.role_id
@@ -255,17 +270,28 @@ func (r ScheduleRepository) AuthorizeScheduleEmployment(ctx context.Context, use
 	var allowed bool
 	err = db.QueryRow(ctx, `SELECT EXISTS (
 		SELECT 1
-		FROM employees e
-		JOIN employments em ON em.employee_id = e.id
+		FROM employments em
+		JOIN employment_relationships er ON er.id = em.relationship_id AND er.deleted_at IS NULL
+		JOIN employee_tenures t ON t.id = er.tenure_id AND t.deleted_at IS NULL
 		WHERE em.id = $1 AND em.deleted_at IS NULL
 		  AND em.start_date <= $2::date
 		  AND (em.end_date IS NULL OR em.end_date >= $2::date)
-		  AND (e.user_id = $3 OR EXISTS (
+		  AND (
+		      (t.user_id = $3 AND t.start_date <= `+orgTodaySQL+` AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`))
+		      OR EXISTS (
 			SELECT 1 FROM user_roles ur
 			JOIN roles role ON role.id = ur.role_id
 			JOIN role_permissions rp ON rp.role_id = role.id
 			JOIN employments manager_em ON manager_em.employee_id = (
-				SELECT manager.id FROM employees manager WHERE manager.user_id = ur.user_id AND manager.deleted_at IS NULL LIMIT 1
+				SELECT mt.employee_id
+				FROM employee_tenures mt
+				JOIN employees manager ON manager.id = mt.employee_id AND manager.deleted_at IS NULL
+				WHERE mt.user_id = ur.user_id
+				  AND mt.deleted_at IS NULL
+				  AND mt.start_date <= `+orgTodaySQL+`
+				  AND (mt.end_date IS NULL OR mt.end_date >= `+orgTodaySQL+`)
+				ORDER BY mt.start_date DESC, mt.id DESC
+				LIMIT 1
 			)
 			WHERE ur.user_id = $3
 			  AND rp.permission_name = 'schedules:evidence:export'

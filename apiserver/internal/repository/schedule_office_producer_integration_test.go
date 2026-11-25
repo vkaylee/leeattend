@@ -29,14 +29,8 @@ func TestIntegrationScheduleOfficeProducerFiltersCoveredDaysAndApprovedPolicy(t 
 			t.Fatalf("insert employer: %v", err)
 		}
 	}
-	for _, employee := range []uuid.UUID{approvedEmployee, rejectedEmployee} {
-		if _, err := tx.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'office-producer-employee', DATE '2026-01-01', DATE '2026-01-01')`, employee, employee.String()); err != nil {
-			t.Fatalf("insert employee: %v", err)
-		}
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-11-15', DATE '2026-11-30'), ($4, $5, $6, 'active', DATE '2026-11-15', DATE '2026-11-30')`, approvedEmployment, approvedEmployee, approvedEmployer, rejectedEmployment, rejectedEmployee, rejectedEmployer); err != nil {
-		t.Fatalf("insert employments: %v", err)
-	}
+	seedIntegrationEmployeeGraphWithRange(t, ctx, tx, approvedEmployee, approvedEmployer, approvedEmployment, approvedEmployee.String(), "office-producer-employee", "2026-01-01", "2026-11-15", "2026-11-30")
+	seedIntegrationEmployeeGraphWithRange(t, ctx, tx, rejectedEmployee, rejectedEmployer, rejectedEmployment, rejectedEmployee.String(), "office-producer-employee", "2026-01-01", "2026-11-15", "2026-11-30")
 	for _, instance := range []uuid.UUID{approvedInstance, rejectedInstance} {
 		if _, err := tx.Exec(ctx, `INSERT INTO approval_workflow_instances (id, entity_type, entity_id, status) VALUES ($1, 'schedule_policy', $1, $2)`, instance, map[bool]string{true: "approved", false: "pending"}[instance == approvedInstance]); err != nil {
 			t.Fatalf("insert approval instance: %v", err)

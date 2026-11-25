@@ -53,7 +53,9 @@ vi.mock("../../lib/api", async (importOriginal) => {
         fetchEmployeeDepartmentHistory: vi.fn(),
         transferEmployee: vi.fn(),
         fetchEmploymentHistory: vi.fn(),
-        rehireEmployee: vi.fn(),
+        fetchEmployeeTenures: vi.fn().mockResolvedValue([]),
+        createEmployeeTenure: vi.fn(),
+        terminateEmployeeEmployment: vi.fn(() => Promise.resolve({ employment: {}, relationship_closed: true, tenure_closed: true, sessions_revoked: false })),
         fetchMyPermissions: vi.fn(),
         fetchOrganizationMembers: vi.fn().mockResolvedValue([]),
         fetchEmployeeEmployments: vi.fn((empId) => Promise.resolve([
@@ -351,10 +353,10 @@ describe("EmployeesPage", () => {
         fireEvent.click(confirmModalButton);
 
         await waitFor(() => {
-            expect(api.updateEmployeeEmployment).toHaveBeenCalledWith(
+            expect(api.terminateEmployeeEmployment).toHaveBeenCalledWith(
                 "1",
                 "employment-id-1",
-                expect.objectContaining({ status: "terminated" })
+                expect.objectContaining({ termination_reason: "voluntary_resignation", rehire_eligible: true })
             );
         });
     });

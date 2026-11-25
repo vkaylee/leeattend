@@ -1,7 +1,7 @@
 # Employee Tenures and Historical HR Numbers
 
-Status: Approved
-Date: 2026-11-15
+Status: Superseded by Employee Tenures v2 (`docs/plans/employee-tenures-v2-refactor.md`)
+Date: 2026-11-15 (Superseded 2026-11-25 pre-go-live)
 
 ## Goal and confirmed decisions
 One persistent employee, multiple recruitment tenures, one HR number per tenure shared across employers. User confirmed: only one effective HR number per person at a time; rehire may reuse the previous number or choose a new number; a newly linked employee account sees only its current tenure; preserve all existing data. HR access remains permission/department scoped, not unrestricted.

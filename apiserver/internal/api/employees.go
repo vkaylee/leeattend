@@ -28,6 +28,9 @@ type EmployeeRecord struct {
 	ActiveEmploymentID *uuid.UUID `json:"active_employment_id"`
 	EmployerID         *uuid.UUID `json:"employer_id"`
 	PrimaryLocationID  *uuid.UUID `json:"primary_location_id"`
+	TenureID           *uuid.UUID `json:"tenure_id,omitempty"`
+	TenureStatus       *string    `json:"tenure_status,omitempty"`
+	HireType           *string    `json:"hire_type,omitempty"`
 }
 
 type UpdateEmployeeRequest struct {
@@ -55,12 +58,6 @@ type CreateEmployeeRequest struct {
 	PhoneLookupHash      *string    `json:"-"`
 	NationalIDLookupHash *string    `json:"-"`
 }
-type RehireEmployeeRequest struct {
-	HireDate          string     `json:"hire_date"`
-	EmployeeIDNumber  *string    `json:"employee_id_number,omitempty"`
-	EmployerID        *uuid.UUID `json:"employer_id"`
-	PrimaryLocationID *uuid.UUID `json:"primary_location_id"`
-}
 type EmployeeListResponse struct {
 	Data      []EmployeeRecord `json:"data"`
 	Total     int64            `json:"total"`
@@ -75,12 +72,12 @@ type EmployeeRepository interface {
 	GetEmployee(context.Context, uuid.UUID) (EmployeeRecord, error)
 	UpdateEmployee(context.Context, uuid.UUID, UpdateEmployeeRequest) (EmployeeRecord, error)
 	SoftDeleteEmployee(context.Context, uuid.UUID) error
-	RehireEmployee(context.Context, uuid.UUID, RehireEmployeeRequest) (EmployeeRecord, error)
 }
 
 type EmployeeHandler struct {
 	Repository      EmployeeRepository
 	TenureCreator   EmployeeTenureCreator
+	TenureManager   EmployeeTenureManager
 	IdentityMatcher EmployeeIdentityMatcher
 	IdentityHasher  identity.Hasher
 	Authorizer      Authorizer
@@ -276,25 +273,6 @@ func (h *EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *EmployeeHandler) Rehire(w http.ResponseWriter, r *http.Request) {
-	employeeID, employeeOK := pathUUID(r, "id")
-	if !employeeOK || !h.allowed(r, "employees:rehire") {
-		h.forbidden(w, r)
-		return
-	}
-	request, err := DecodeJSON[RehireEmployeeRequest](r, 1<<20)
-	if err != nil || request.HireDate == "" || request.EmployerID == nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	employee, err := h.Repository.RehireEmployee(r.Context(), employeeID, request)
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	apperror.WriteJSON(w, http.StatusOK, employee)
 }
 
 func (h *EmployeeHandler) allowed(r *http.Request, permission string) bool {

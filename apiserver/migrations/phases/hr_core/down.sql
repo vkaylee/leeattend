@@ -46,8 +46,6 @@ DROP TABLE IF EXISTS public.employees CASCADE;
 
 DROP TABLE IF EXISTS public.employee_tenures CASCADE;
 
-DROP TABLE IF EXISTS public.employee_tenure_reconciliation CASCADE;
-
 DROP TABLE IF EXISTS public.employee_salary_components CASCADE;
 
 DROP TABLE IF EXISTS public.employee_profiles CASCADE;

@@ -42,15 +42,15 @@ func TestIntegrationEmployeeTenuresReuseNumberSequentially(t *testing.T) {
 
 	firstEmployee, secondEmployee := uuid.New(), uuid.New()
 	for _, id := range []uuid.UUID{firstEmployee, secondEmployee} {
-		if _, err := tx.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'tenure-integration', DATE '2026-01-01', DATE '2026-01-01')`, id, id.String()); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO employees (id, full_name) VALUES ($1, 'tenure-integration')`, id); err != nil {
 			t.Fatalf("insert employee: %v", err)
 		}
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO employee_tenures (id, employee_id, employee_number, start_date, end_date) VALUES ($1, $2, '1541', DATE '2026-01-01', DATE '2026-06-30'), ($3, $2, '1541', DATE '2026-07-01', NULL)`, uuid.New(), firstEmployee, uuid.New()); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date, end_date) VALUES ($1, $2, '1541', 'initial', DATE '2026-01-01', DATE '2026-06-30'), ($3, $2, '1541', 'rehire', DATE '2026-07-01', NULL)`, uuid.New(), firstEmployee, uuid.New()); err != nil {
 		t.Fatalf("reuse number for one employee: %v", err)
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO employee_tenures (id, employee_id, employee_number, start_date, end_date) VALUES ($1, $2, '1541', DATE '2026-01-01', NULL)`, uuid.New(), secondEmployee); err == nil {
-		t.Fatal("expected overlapping number across people to fail")
+		t.Fatal("expected cross-person number reuse to fail")
 	}
 }
 
@@ -63,17 +63,17 @@ func TestIntegrationEmployeeTenuresKeepHistoricalNumbersDateBound(t *testing.T) 
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	employeeID, relationshipID, employmentID := uuid.New(), uuid.New(), uuid.New()
-	if _, err := tx.Exec(ctx, `INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, 'current', 'tenure-history-integration', DATE '2026-01-01', DATE '2026-01-01')`, employeeID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO employees (id, full_name) VALUES ($1, 'tenure-history-integration')`, employeeID); err != nil {
 		t.Fatalf("insert employee: %v", err)
 	}
 	employerID := uuid.New()
 	if _, err := tx.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'tenure-history-employer')`, employerID); err != nil {
 		t.Fatalf("insert employer: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO employee_tenures (id, employee_id, employee_number, start_date, end_date) VALUES ($1, $2, 'old-1541', DATE '2026-01-01', DATE '2026-06-30'), ($3, $2, 'new-1541', DATE '2026-07-01', NULL)`, uuid.New(), employeeID, uuid.New()); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date, end_date) VALUES ($1, $2, 'old-1541', 'initial', DATE '2026-01-01', DATE '2026-06-30'), ($3, $2, 'new-1541', 'rehire', DATE '2026-07-01', NULL)`, uuid.New(), employeeID, uuid.New()); err != nil {
 		t.Fatalf("insert tenures: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, (SELECT id FROM employee_tenures WHERE employee_id = $2 AND employee_number = 'old-1541'), 'terminated', DATE '2026-01-01')`, relationshipID, employeeID, employerID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date, end_date) VALUES ($1, $2, $3, (SELECT id FROM employee_tenures WHERE employee_id = $2 AND employee_number = 'old-1541'), 'terminated', DATE '2026-01-01', DATE '2026-06-30')`, relationshipID, employeeID, employerID); err != nil {
 		t.Fatalf("insert relationship: %v", err)
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date, end_date) VALUES ($1, $2, $3, $4, 'terminated', DATE '2026-01-01', DATE '2026-06-30')`, employmentID, employeeID, employerID, relationshipID); err != nil {

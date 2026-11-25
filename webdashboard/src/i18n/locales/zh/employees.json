@@ -374,12 +374,29 @@
       "subtitle": "激活档案",
       "confirm_msg": "确认员工开始新工作期间的日期",
       "rehire_date": "重新入职日期",
-      "employee_number": "新员工编号（留空则沿用旧编号）",
+      "employee_number": "新员工编号（可选）",
+      "employee_number_placeholder": "留空则沿用旧编号",
+      "prior_service_credit_days": "工龄折算天数",
+      "employer_required": "请选择所属法人单位",
       "previous_tenure": "上一段任职",
       "account_reset_notice": "新账户访问权限从本次任职开始。",
       "cancel": "取消",
       "confirm": "确认",
       "processing": "正在处理..."
+    },
+    "tenures": {
+      "title": "任职历史",
+      "empty": "暂无任职记录。",
+      "present": "至今",
+      "hire_type": {
+        "initial": "首次入职",
+        "rehire": "重新入职"
+      },
+      "status": {
+        "planned": "计划中",
+        "active": "在职",
+        "closed": "已结束"
+      }
     },
     "terminate": {
       "title": "终止雇佣",
@@ -390,6 +407,7 @@
       "termination_reason_placeholder": "请选择原因...",
       "termination_notes_label": "备注（可选）",
       "termination_notes_placeholder": "提供离职的附加信息...",
+      "rehire_eligible_label": "允许未来重新录用",
       "cancel": "取消",
       "confirm": "终止",
       "processing": "处理中...",

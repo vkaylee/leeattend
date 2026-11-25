@@ -167,9 +167,9 @@ func insertMatchEmployee(
 	t.Helper()
 	empID := uuid.New()
 	if _, err := tx.Exec(ctx,
-		`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date, is_active)
-		 VALUES ($1, $2, $3, DATE '2025-01-01', DATE '2025-01-01', $4)`,
-		empID, code, fullName, active,
+		`INSERT INTO employees (id, full_name)
+		 VALUES ($1, $2)`,
+		empID, fullName,
 	); err != nil {
 		t.Fatalf("insert employee %s: %v", code, err)
 	}

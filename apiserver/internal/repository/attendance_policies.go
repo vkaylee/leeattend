@@ -391,7 +391,7 @@ func (r AttendancePolicyRepository) ListMyBehalfTargets(ctx context.Context, use
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT DISTINCT e.id, e.user_id, e.full_name, tenure.employee_number, e.tags, e.created_at, e.updated_at, d.name, em.id, em.employer_id, em.primary_location_id FROM employees e JOIN employments em ON em.employee_id = e.id LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE AND em.status = 'active' AND em.deleted_at IS NULL LEFT JOIN departments d ON d.id = em.department_id LEFT JOIN behalf_assignments ba ON ba.assignee_user_id = $1 AND ba.assignment_type = $2 AND (ba.target_employee_id = e.id OR ba.target_department_id = em.department_id) WHERE e.deleted_at IS NULL AND ba.id IS NOT NULL ORDER BY e.full_name, e.id`, userID, assignmentType)
+	rows, err := db.Query(ctx, `SELECT DISTINCT e.id, tenure.user_id, e.full_name, COALESCE(tenure.employee_number, ''), e.tags, e.created_at, e.updated_at, d.name, em.id, em.employer_id, em.primary_location_id FROM employees e JOIN employments em ON em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL `+sqlEffectiveTenureLateral+` LEFT JOIN departments d ON d.id = em.department_id LEFT JOIN behalf_assignments ba ON ba.assignee_user_id = $1 AND ba.assignment_type = $2 AND (ba.target_employee_id = e.id OR ba.target_department_id = em.department_id) WHERE e.deleted_at IS NULL AND ba.id IS NOT NULL ORDER BY e.full_name, e.id`, userID, assignmentType)
 	if err != nil {
 		return nil, err
 	}

@@ -92,35 +92,41 @@ BEGIN
     JOIN roles ON roles.name = expected.role_name
     ON CONFLICT (user_id) DO UPDATE SET role_id = EXCLUDED.role_id;
 
-    INSERT INTO employees (id, user_id, employee_id_number, full_name, hire_date, original_hire_date, is_active)
+    INSERT INTO employees (id, full_name)
     VALUES
-        ('f0000000-0000-0000-0000-000000000001', 'e80200c2-eec3-4fc1-8135-de9f8f264396', 'EMP001', 'System Administrator', CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE - INTERVAL '365 days', true),
-        ('f0000000-0000-0000-0000-000000000005', 'e80200c2-0000-0000-0000-000000000005', 'EMP005', 'HR Manager', CURRENT_DATE - INTERVAL '200 days', CURRENT_DATE - INTERVAL '200 days', true),
-        ('f0000000-0000-0000-0000-000000000006', 'e80200c2-0000-0000-0000-000000000006', 'EMP006', 'Shift Operations Manager', CURRENT_DATE - INTERVAL '180 days', CURRENT_DATE - INTERVAL '180 days', true),
-        ('f0000000-0000-0000-0000-000000000007', 'e80200c2-0000-0000-0000-000000000007', 'EMP007', 'Technical Team Lead', CURRENT_DATE - INTERVAL '150 days', CURRENT_DATE - INTERVAL '150 days', true),
-        ('f0000000-0000-0000-0000-000000000008', 'e80200c2-0000-0000-0000-000000000008', 'EMP008', 'Standard Staff Member', CURRENT_DATE - INTERVAL '120 days', CURRENT_DATE - INTERVAL '120 days', true)
-    ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, employee_id_number = EXCLUDED.employee_id_number;
+        ('f0000000-0000-0000-0000-000000000001', 'System Administrator'),
+        ('f0000000-0000-0000-0000-000000000005', 'HR Manager'),
+        ('f0000000-0000-0000-0000-000000000006', 'Shift Operations Manager'),
+        ('f0000000-0000-0000-0000-000000000007', 'Technical Team Lead'),
+        ('f0000000-0000-0000-0000-000000000008', 'Standard Staff Member')
+    ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
 
-    INSERT INTO employments (id, employee_id, employer_id, department_id, status, start_date, job_title, employment_type)
+    INSERT INTO employee_tenures (id, employee_id, employee_number, user_id, hire_type, start_date)
     VALUES
-        ('b0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', v_employer_id, v_dept_exec, 'active', CURRENT_DATE - INTERVAL '365 days', 'Chief Executive Officer', 'full_time'),
-        ('b0000000-0000-0000-0000-000000000005', 'f0000000-0000-0000-0000-000000000005', v_employer_id, v_dept_hr, 'active', CURRENT_DATE - INTERVAL '200 days', 'HR Director', 'full_time'),
-        ('b0000000-0000-0000-0000-000000000006', 'f0000000-0000-0000-0000-000000000006', v_employer_id, v_dept_tech, 'active', CURRENT_DATE - INTERVAL '180 days', 'Shift Planning Lead', 'full_time'),
-        ('b0000000-0000-0000-0000-000000000007', 'f0000000-0000-0000-0000-000000000007', v_employer_id, v_dept_tech, 'active', CURRENT_DATE - INTERVAL '150 days', 'Tech Lead', 'full_time'),
-        ('b0000000-0000-0000-0000-000000000008', 'f0000000-0000-0000-0000-000000000008', v_employer_id, v_dept_tech, 'active', CURRENT_DATE - INTERVAL '120 days', 'Software Engineer', 'full_time')
+        ('c0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', 'EMP001', 'e80200c2-eec3-4fc1-8135-de9f8f264396', 'initial', (CURRENT_DATE - INTERVAL '365 days')::date),
+        ('c0000000-0000-0000-0000-000000000005', 'f0000000-0000-0000-0000-000000000005', 'EMP005', 'e80200c2-0000-0000-0000-000000000005', 'initial', (CURRENT_DATE - INTERVAL '200 days')::date),
+        ('c0000000-0000-0000-0000-000000000006', 'f0000000-0000-0000-0000-000000000006', 'EMP006', 'e80200c2-0000-0000-0000-000000000006', 'initial', (CURRENT_DATE - INTERVAL '180 days')::date),
+        ('c0000000-0000-0000-0000-000000000007', 'f0000000-0000-0000-0000-000000000007', 'EMP007', 'e80200c2-0000-0000-0000-000000000007', 'initial', (CURRENT_DATE - INTERVAL '150 days')::date),
+        ('c0000000-0000-0000-0000-000000000008', 'f0000000-0000-0000-0000-000000000008', 'EMP008', 'e80200c2-0000-0000-0000-000000000008', 'initial', (CURRENT_DATE - INTERVAL '120 days')::date)
+    ON CONFLICT (id) DO UPDATE SET employee_number = EXCLUDED.employee_number, user_id = EXCLUDED.user_id;
+
+    INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date)
+    VALUES
+        ('d1000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', v_employer_id, 'c0000000-0000-0000-0000-000000000001', 'active', (CURRENT_DATE - INTERVAL '365 days')::date),
+        ('d1000000-0000-0000-0000-000000000005', 'f0000000-0000-0000-0000-000000000005', v_employer_id, 'c0000000-0000-0000-0000-000000000005', 'active', (CURRENT_DATE - INTERVAL '200 days')::date),
+        ('d1000000-0000-0000-0000-000000000006', 'f0000000-0000-0000-0000-000000000006', v_employer_id, 'c0000000-0000-0000-0000-000000000006', 'active', (CURRENT_DATE - INTERVAL '180 days')::date),
+        ('d1000000-0000-0000-0000-000000000007', 'f0000000-0000-0000-0000-000000000007', v_employer_id, 'c0000000-0000-0000-0000-000000000007', 'active', (CURRENT_DATE - INTERVAL '150 days')::date),
+        ('d1000000-0000-0000-0000-000000000008', 'f0000000-0000-0000-0000-000000000008', v_employer_id, 'c0000000-0000-0000-0000-000000000008', 'active', (CURRENT_DATE - INTERVAL '120 days')::date)
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO employments (id, employee_id, employer_id, relationship_id, department_id, status, start_date, job_title, employment_type)
+    VALUES
+        ('b0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', v_employer_id, 'd1000000-0000-0000-0000-000000000001', v_dept_exec, 'active', (CURRENT_DATE - INTERVAL '365 days')::date, 'Chief Executive Officer', 'full_time'),
+        ('b0000000-0000-0000-0000-000000000005', 'f0000000-0000-0000-0000-000000000005', v_employer_id, 'd1000000-0000-0000-0000-000000000005', v_dept_hr, 'active', (CURRENT_DATE - INTERVAL '200 days')::date, 'HR Director', 'full_time'),
+        ('b0000000-0000-0000-0000-000000000006', 'f0000000-0000-0000-0000-000000000006', v_employer_id, 'd1000000-0000-0000-0000-000000000006', v_dept_tech, 'active', (CURRENT_DATE - INTERVAL '180 days')::date, 'Shift Planning Lead', 'full_time'),
+        ('b0000000-0000-0000-0000-000000000007', 'f0000000-0000-0000-0000-000000000007', v_employer_id, 'd1000000-0000-0000-0000-000000000007', v_dept_tech, 'active', (CURRENT_DATE - INTERVAL '150 days')::date, 'Tech Lead', 'full_time'),
+        ('b0000000-0000-0000-0000-000000000008', 'f0000000-0000-0000-0000-000000000008', v_employer_id, 'd1000000-0000-0000-0000-000000000008', v_dept_tech, 'active', (CURRENT_DATE - INTERVAL '120 days')::date, 'Software Engineer', 'full_time')
     ON CONFLICT (id) DO UPDATE SET department_id = EXCLUDED.department_id, job_title = EXCLUDED.job_title;
-
-    -- ESS account fixtures need current tenure rows for tenure-aware profile resolution.
-    INSERT INTO employee_tenures (employee_id, employee_number, user_id, start_date)
-    SELECT e.id, e.employee_id_number, e.user_id, e.hire_date
-    FROM employees e
-    WHERE e.user_id IS NOT NULL
-      AND e.employee_id_number IN ('EMP001', 'EMP005', 'EMP006', 'EMP007', 'EMP008')
-      AND NOT EXISTS (
-          SELECT 1
-          FROM employee_tenures t
-          WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.end_date IS NULL
-      );
 
     UPDATE departments SET manager_id = 'f0000000-0000-0000-0000-000000000005' WHERE id = v_dept_hr;
     UPDATE departments SET manager_id = 'f0000000-0000-0000-0000-000000000007' WHERE id = v_dept_tech;

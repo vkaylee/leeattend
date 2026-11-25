@@ -3322,6 +3322,49 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  "/api/v1/employees/{employee_id}/employments/{employment_id}/terminate":
+    parameters:
+      - name: employee_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: employment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: post_api_v1_employees_employee_id_employments_employment_id_terminate
+      summary: Atomically terminate an employment segment, its relationship, and parent tenure when last open
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TerminateEmploymentRequest'
+      responses:
+        '200':
+          description: Employment terminated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminateEmploymentResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Already terminated or locked payroll period conflict
+        '500':
+          $ref: '#/components/responses/InternalError'
   "/api/v1/employees/{employee_id}/payslips":
     parameters:
       - name: employee_id
@@ -3359,9 +3402,32 @@ paths:
         schema:
           type: string
           format: uuid
+    get:
+      operationId: get_api_v1_employees_employee_id_tenures
+      summary: List all non-deleted tenures and employer relationships for an employee
+      tags: [runtime]
+      responses:
+        '200':
+          description: Employee tenure history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeTenureRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
     post:
       operationId: post_api_v1_employees_employee_id_tenures
-      summary: Reuse an existing terminated employee by creating a new non-overlapping tenure
+      summary: Rehire an existing terminated employee by creating a new non-overlapping tenure
       tags: [runtime]
       requestBody:
         required: true
@@ -3386,6 +3452,49 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           description: Active employee, stale candidate, or date/code overlap conflict
+        '500':
+          $ref: '#/components/responses/InternalError'
+  "/api/v1/employees/{employee_id}/tenures/{tenure_id}/close":
+    parameters:
+      - name: employee_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: tenure_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: post_api_v1_employees_employee_id_tenures_tenure_id_close
+      summary: Atomically close an open tenure, all open child relationships/segments, and revoke HRM sessions
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseEmployeeTenureRequest'
+      responses:
+        '200':
+          description: Employee tenure closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeTenureClosed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Already closed, child date conflict, or locked payroll period
         '500':
           $ref: '#/components/responses/InternalError'
   "/api/v1/employees/{id}":
@@ -3831,35 +3940,6 @@ paths:
           $ref: '#/components/responses/InternalError'
     post:
       operationId: post_api_v1_employees_id_payroll_config
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/employees/{id}/rehire":
-    parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-    post:
-      operationId: post_api_v1_employees_id_rehire
       tags: [runtime]
       responses:
         '200':
@@ -12483,6 +12563,23 @@ components:
         user_id:
           type: string
           nullable: true
+    CloseEmployeeTenureRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        end_date:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        rehire_eligible:
+          type: boolean
+          nullable: true
+        termination_reason:
+          type: string
+          nullable: true
+      required:
+        - end_date
     CreateEmployeeTenureRequest:
       type: object
       additionalProperties: false
@@ -12490,6 +12587,9 @@ components:
         department_id:
           type: string
           format: uuid
+          nullable: true
+        employee_number:
+          type: string
           nullable: true
         employer_id:
           type: string
@@ -12502,9 +12602,15 @@ components:
           enum:
             - terminated
           nullable: true
+        notes:
+          type: string
+          nullable: true
         primary_location_id:
           type: string
           format: uuid
+          nullable: true
+        prior_service_credit_days:
+          type: integer
           nullable: true
         start_date:
           type: string
@@ -14736,6 +14842,31 @@ components:
         - employment_id
         - full_name
         - schedules
+    EmployeeTenureClosed:
+      type: object
+      additionalProperties: false
+      properties:
+        closed_relationships:
+          type: integer
+        closed_segments:
+          type: integer
+        employee_id:
+          type: string
+          format: uuid
+        end_date:
+          type: string
+        sessions_revoked:
+          type: boolean
+        tenure_id:
+          type: string
+          format: uuid
+      required:
+        - closed_relationships
+        - closed_segments
+        - employee_id
+        - end_date
+        - sessions_revoked
+        - tenure_id
     EmployeeTenureCreated:
       type: object
       additionalProperties: false
@@ -14751,6 +14882,13 @@ components:
         employment_id:
           type: string
           format: uuid
+        hire_type:
+          type: string
+          enum:
+            - initial
+            - rehire
+        prior_service_credit_days:
+          type: integer
         relationship_id:
           type: string
           format: uuid
@@ -14759,6 +14897,7 @@ components:
         status:
           type: string
           enum:
+            - planned
             - active
         tenure_id:
           type: string
@@ -14768,10 +14907,136 @@ components:
         - employee_id
         - employer_id
         - employment_id
+        - hire_type
+        - prior_service_credit_days
         - relationship_id
         - start_date
         - status
         - tenure_id
+    EmployeeTenureRelationshipSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        employer_id:
+          type: string
+          format: uuid
+        employer_name:
+          type: string
+        end_date:
+          type: string
+          nullable: true
+        id:
+          type: string
+          format: uuid
+        start_date:
+          type: string
+        status:
+          type: string
+        termination_reason:
+          type: string
+          nullable: true
+      required:
+        - employer_id
+        - employer_name
+        - id
+        - start_date
+        - status
+    EmployeeTenureRecord:
+      type: object
+      additionalProperties: false
+      properties:
+        created_at:
+          type: string
+        employee_id:
+          type: string
+          format: uuid
+        employee_number:
+          type: string
+        end_date:
+          type: string
+          nullable: true
+        hire_type:
+          type: string
+          enum:
+            - initial
+            - rehire
+        id:
+          type: string
+          format: uuid
+        notes:
+          type: string
+          nullable: true
+        prior_service_credit_days:
+          type: integer
+        rehire_eligible:
+          type: boolean
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmployeeTenureRelationshipSummary'
+        start_date:
+          type: string
+        status:
+          type: string
+          enum:
+            - planned
+            - active
+            - closed
+        termination_reason:
+          type: string
+          nullable: true
+        updated_at:
+          type: string
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+        - created_at
+        - employee_id
+        - employee_number
+        - hire_type
+        - id
+        - prior_service_credit_days
+        - rehire_eligible
+        - relationships
+        - start_date
+        - status
+        - updated_at
+    TerminateEmploymentRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        notes:
+          type: string
+          nullable: true
+        rehire_eligible:
+          type: boolean
+          nullable: true
+        termination_date:
+          type: string
+        termination_reason:
+          type: string
+          nullable: true
+      required:
+        - termination_date
+    TerminateEmploymentResult:
+      type: object
+      additionalProperties: false
+      properties:
+        employment:
+          $ref: '#/components/schemas/Employment'
+        relationship_closed:
+          type: boolean
+        sessions_revoked:
+          type: boolean
+        tenure_closed:
+          type: boolean
+      required:
+        - employment
+        - relationship_closed
+        - sessions_revoked
+        - tenure_closed
     EmployeeWorkingPattern:
       properties:
         anchor_date:
@@ -18816,19 +19081,6 @@ components:
     RegisterRequest:
       allOf:
         - $ref: '#/components/schemas/registerRequest'
-    RehireEmployeeRequest:
-      properties:
-        employee_id_number:
-          type: string
-          nullable: true
-        employer_id:
-          type: string
-          nullable: true
-        hire_date:
-          type: string
-        primary_location_id:
-          type: string
-          nullable: true
     RenameFolderRequest:
       properties:
         name:

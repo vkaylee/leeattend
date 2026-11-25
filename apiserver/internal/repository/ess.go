@@ -44,7 +44,7 @@ func (r ESSRepository) ResolveEmployeeForUser(ctx context.Context, userID uuid.U
 		return uuid.Nil, err
 	}
 	var empID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT t.employee_id FROM employee_tenures t JOIN employees e ON e.id = t.employee_id WHERE t.user_id = $1 AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) AND e.deleted_at IS NULL ORDER BY t.start_date DESC, t.id DESC LIMIT 1`, userID).Scan(&empID)
+	err = db.QueryRow(ctx, `SELECT t.employee_id FROM employee_tenures t JOIN employees e ON e.id = t.employee_id WHERE t.user_id = $1 AND t.deleted_at IS NULL AND t.start_date <= `+orgTodaySQL+` AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`) AND e.deleted_at IS NULL ORDER BY t.start_date DESC, t.id DESC LIMIT 1`, userID).Scan(&empID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, api.ErrESSNoEmployeeRecord
 	}
@@ -58,7 +58,7 @@ func (r ESSRepository) GetMyProfile(ctx context.Context, employeeID uuid.UUID) (
 	}
 	var emp api.EmployeeRecord
 	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `SELECT e.id, e.user_id, e.full_name, COALESCE(tenure.employee_number, ''), e.tags, e.created_at, e.updated_at FROM employees e LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE e.id = $1 AND e.deleted_at IS NULL`, employeeID).Scan(
+	err = db.QueryRow(ctx, `SELECT e.id, tenure.user_id, e.full_name, COALESCE(tenure.employee_number, ''), e.tags, e.created_at, e.updated_at FROM employees e `+sqlEffectiveTenureLateral+` WHERE e.id = $1 AND e.deleted_at IS NULL`, employeeID).Scan(
 		&emp.ID, &emp.UserID, &emp.FullName, &emp.EmployeeIDNumber, &emp.Tags, &createdAt, &updatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -184,7 +184,29 @@ func (r ESSRepository) GetPendingDocuments(ctx context.Context, employeeID uuid.
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, document_id, employee_id, status FROM file_acknowledgements WHERE employee_id = $1 AND status = 'pending' ORDER BY created_at DESC`, employeeID)
+	// Scope pending acknowledgements strictly to the employee's current effective tenure.
+	// Legacy NULL tenure_id rows are bounded by the current tenure start_date; prior-tenure rows are never exposed.
+	rows, err := db.Query(ctx, `
+		SELECT fa.id, fa.document_id, fa.employee_id, fa.status
+		FROM file_acknowledgements fa
+		JOIN LATERAL (
+			SELECT t.id, t.start_date, t.end_date
+			FROM employee_tenures t
+			WHERE t.employee_id = fa.employee_id
+			  AND t.deleted_at IS NULL
+			  AND t.start_date <= `+orgTodaySQL+`
+			  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
+			ORDER BY t.start_date DESC, t.id DESC
+			LIMIT 1
+		) cur ON TRUE
+		WHERE fa.employee_id = $1
+		  AND fa.status = 'pending'
+		  AND (
+		      fa.tenure_id = cur.id
+		      OR (fa.tenure_id IS NULL AND fa.created_at::date >= cur.start_date)
+		  )
+		ORDER BY fa.created_at DESC
+	`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -205,8 +227,29 @@ func (r ESSRepository) AcknowledgeDocument(ctx context.Context, employeeID, docI
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `UPDATE file_acknowledgements SET status = 'acknowledged', acknowledged_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND employee_id = $2 AND status = 'pending'`, docID, employeeID)
-	return err
+	tag, err := db.Exec(ctx, `
+		UPDATE file_acknowledgements fa
+		SET status = 'acknowledged', acknowledged_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+		FROM employee_tenures cur
+		WHERE fa.id = $1
+		  AND fa.employee_id = $2
+		  AND fa.status = 'pending'
+		  AND cur.employee_id = fa.employee_id
+		  AND cur.deleted_at IS NULL
+		  AND cur.start_date <= `+orgTodaySQL+`
+		  AND (cur.end_date IS NULL OR cur.end_date >= `+orgTodaySQL+`)
+		  AND (
+		      fa.tenure_id = cur.id
+		      OR (fa.tenure_id IS NULL AND fa.created_at::date >= cur.start_date)
+		  )
+	`, docID, employeeID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return api.ErrESSNotFound
+	}
+	return nil
 }
 
 func (r ESSRepository) GetEmployeeDocuments(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeDocumentRecord, error) {
@@ -214,7 +257,26 @@ func (r ESSRepository) GetEmployeeDocuments(ctx context.Context, employeeID uuid
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, employee_id, document_type, file_name, file_path, file_size, mime_type, expires_at::text, is_active, uploaded_by, created_at FROM employee_documents WHERE employee_id = $1 ORDER BY created_at DESC`, employeeID)
+	rows, err := db.Query(ctx, `
+		SELECT d.id, d.employee_id, d.document_type, d.file_name, d.file_path, d.file_size, d.mime_type, d.expires_at::text, d.is_active, d.uploaded_by, d.created_at
+		FROM employee_documents d
+		JOIN LATERAL (
+			SELECT t.id, t.start_date, t.end_date
+			FROM employee_tenures t
+			WHERE t.employee_id = d.employee_id
+			  AND t.deleted_at IS NULL
+			  AND t.start_date <= `+orgTodaySQL+`
+			  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
+			ORDER BY t.start_date DESC, t.id DESC
+			LIMIT 1
+		) cur ON TRUE
+		WHERE d.employee_id = $1
+		  AND (
+		      d.tenure_id = cur.id
+		      OR (d.tenure_id IS NULL AND d.created_at::date >= cur.start_date)
+		  )
+		ORDER BY d.created_at DESC
+	`, employeeID)
 	if err != nil {
 		return nil, err
 	}

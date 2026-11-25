@@ -321,26 +321,24 @@ func TestEmployeeIdentityMatchFeatureFlagGate(t *testing.T) {
 		})
 		registerEmployeeRoutes(router, gate, &api.EmployeeHandler{}, &api.EmployeeImportHandler{}, &api.EmployeeConditionHandler{}, &api.EmployeeDepartmentHandler{}, &api.CompensationHistoryHandler{})
 
-		for _, path := range []string{"/api/v1/employees/match", "/api/v1/employees/" + uuid.NewString() + "/tenures"} {
-			rec := httptest.NewRecorder()
-			router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, bytes.NewBufferString(`{}`)))
-			if !enabled {
-				if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "FEATURE_DISABLED") {
-					t.Fatalf("flag=false %s got %d %s, want 403 FEATURE_DISABLED", path, rec.Code, rec.Body.String())
-				}
-				continue
+		// Identity match preflight is gated by ff_employee_identity_match.
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/employees/match", bytes.NewBufferString(`{}`)))
+		if !enabled {
+			if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "FEATURE_DISABLED") {
+				t.Fatalf("flag=false /api/v1/employees/match got %d %s, want 403 FEATURE_DISABLED", rec.Code, rec.Body.String())
 			}
-			// Handler runs when flag is enabled (no auth context -> 401 from handler, not 403 feature_disabled).
-			if rec.Code != http.StatusUnauthorized {
-				t.Fatalf("flag=true %s got %d %s, want 401 from handler", path, rec.Code, rec.Body.String())
-			}
+		} else if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("flag=true /api/v1/employees/match got %d %s, want 401 from handler", rec.Code, rec.Body.String())
 		}
 
-		// Legacy create path stays ungated while flag is off.
-		createRec := httptest.NewRecorder()
-		router.ServeHTTP(createRec, httptest.NewRequest(http.MethodPost, "/api/v1/employees", bytes.NewBufferString(`{}`)))
-		if createRec.Code != http.StatusUnauthorized {
-			t.Fatalf("flag=%v POST /api/v1/employees got %d %s, want 401 from handler", enabled, createRec.Code, createRec.Body.String())
+		// Canonical tenure and create endpoints stay ungated while identity match flag is off.
+		for _, path := range []string{"/api/v1/employees", "/api/v1/employees/" + uuid.NewString() + "/tenures"} {
+			createRec := httptest.NewRecorder()
+			router.ServeHTTP(createRec, httptest.NewRequest(http.MethodPost, path, bytes.NewBufferString(`{}`)))
+			if createRec.Code != http.StatusUnauthorized {
+				t.Fatalf("flag=%v POST %s got %d %s, want 401 from handler", enabled, path, createRec.Code, createRec.Body.String())
+			}
 		}
 	}
 

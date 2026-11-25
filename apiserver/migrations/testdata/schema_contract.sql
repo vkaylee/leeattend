@@ -93,8 +93,8 @@ BEGIN
     END IF;
 
     IF to_regclass('public.employee_tenures') IS NULL
-       OR to_regclass('public.employee_tenure_reconciliation') IS NULL THEN
-        RAISE EXCEPTION 'schema check failed: employee tenure tables are missing';
+       OR to_regclass('public.employee_tenure_reconciliation') IS NOT NULL THEN
+        RAISE EXCEPTION 'schema check failed: employee tenure table state mismatch';
     END IF;
 
     IF NOT EXISTS (
@@ -113,10 +113,10 @@ BEGIN
         SELECT 1
         FROM pg_constraint
         WHERE conrelid = 'public.employee_tenures'::regclass
-          AND conname = 'employee_tenures_no_overlap_number'
+          AND conname = 'employee_tenures_permanent_code_owner'
           AND contype = 'x'
     ) THEN
-        RAISE EXCEPTION 'schema check failed: employee tenure temporal constraints are missing';
+        RAISE EXCEPTION 'schema check failed: employee tenure temporal/ownership constraints are missing';
     END IF;
 
     IF NOT EXISTS (
@@ -231,12 +231,12 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: employee tenure migration marker is missing';
     END IF;
 
-    IF EXISTS (
-        SELECT 1
-        FROM public.employee_tenure_reconciliation
-        WHERE status NOT IN ('pending', 'resolved', 'blocked')
-    ) THEN
-        RAISE EXCEPTION 'schema check failed: invalid tenure reconciliation status exists';
+    SELECT count(*) INTO v_marker_count
+    FROM public.schema_migrations
+    WHERE version = '20261126010000_employee_tenures_v2_standardization';
+
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: employee tenures v2 migration marker is missing';
     END IF;
 
     IF EXISTS (

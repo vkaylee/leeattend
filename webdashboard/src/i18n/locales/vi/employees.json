@@ -374,12 +374,29 @@
       "subtitle": "Kích hoạt hồ sơ",
       "confirm_msg": "Xác nhận ngày nhân viên bắt đầu giai đoạn làm việc mới",
       "rehire_date": "Ngày vào làm lại",
-      "employee_number": "Mã nhân viên mới (để trống để dùng mã cũ)",
+      "employee_number": "Mã nhân viên mới (tùy chọn)",
+      "employee_number_placeholder": "Để trống để giữ nguyên mã cũ",
+      "prior_service_credit_days": "Thâm niên cộng dồn (ngày)",
+      "employer_required": "Vui lòng chọn pháp nhân trực thuộc",
       "previous_tenure": "Đợt tuyển dụng trước",
       "account_reset_notice": "Quyền truy cập tài khoản mới bắt đầu từ đợt tuyển dụng này.",
       "cancel": "Hủy",
       "confirm": "Xác nhận",
       "processing": "Đang xử lý..."
+    },
+    "tenures": {
+      "title": "Lịch sử đợt tuyển dụng",
+      "empty": "Chưa có dữ liệu đợt tuyển dụng.",
+      "present": "Hiện tại",
+      "hire_type": {
+        "initial": "Tuyển mới",
+        "rehire": "Tái tuyển dụng"
+      },
+      "status": {
+        "planned": "Dự kiến",
+        "active": "Đang hoạt động",
+        "closed": "Đã kết thúc"
+      }
     },
     "terminate": {
       "title": "Cho thôi việc",
@@ -390,6 +407,7 @@
       "termination_reason_placeholder": "Chọn lý do...",
       "termination_notes_label": "Ghi chú thêm (Tùy chọn)",
       "termination_notes_placeholder": "Ghi thêm thông tin về lý do nghỉ việc...",
+      "rehire_eligible_label": "Cho phép tái tuyển dụng trong tương lai",
       "cancel": "Hủy",
       "confirm": "Thôi việc",
       "processing": "Đang xử lý...",

@@ -22,9 +22,14 @@ func TestIntegrationSignedDocumentCannotBeDeletedOrVersioned(t *testing.T) {
 	fileID := uuid.New()
 	signatureID := uuid.New()
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date)
-		VALUES ($1, 'signed-doc-employee', 'signed-document-employee', DATE '2026-01-01', DATE '2026-01-01')`, employeeID); err != nil {
+		INSERT INTO employees (id, full_name)
+		VALUES ($1, 'signed-document-employee')`, employeeID); err != nil {
 		t.Fatalf("insert signer employee: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date)
+		VALUES ($1, $2, $3, 'initial', DATE '2026-01-01')`, uuid.New(), employeeID, "signed-doc-"+employeeID.String()[:8]); err != nil {
+		t.Fatalf("insert signer tenure: %v", err)
 	}
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO files (id, file_name, storage_key, file_size, mime_type, category, owner_type, owner_id, scan_status, version, is_latest)

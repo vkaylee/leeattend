@@ -138,9 +138,11 @@ type officialComplianceKey struct {
 
 func loadPersonEmploymentsForCompliance(ctx context.Context, db DBTX, employeeID uuid.UUID, startStr, endStr string) ([]compliancePersonEmployment, []uuid.UUID, error) {
 	empRows, err := db.Query(ctx, `
-		SELECT emp.id, emp.employee_id, e.employee_id_number, emp.primary_location_id, emp.start_date, emp.end_date, COALESCE(e.tags, '{}')
+		SELECT emp.id, emp.employee_id, COALESCE(t.employee_number, ''), emp.primary_location_id, emp.start_date, emp.end_date, COALESCE(e.tags, '{}')
 		FROM employments emp
 		JOIN employees e ON e.id = emp.employee_id
+		JOIN employment_relationships er ON er.id = emp.relationship_id AND er.deleted_at IS NULL
+		JOIN employee_tenures t ON t.id = er.tenure_id AND t.deleted_at IS NULL
 		WHERE emp.employee_id = $1
 		  AND emp.deleted_at IS NULL
 		  AND e.deleted_at IS NULL

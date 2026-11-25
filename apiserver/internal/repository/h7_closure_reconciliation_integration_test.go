@@ -129,8 +129,7 @@ func TestIntegrationClosureC4ConcurrentCloseAndReplanSerializesCleanly(t *testin
 		}
 	}
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'c4-employer')`, employerID)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'C4 Worker', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, "C4-"+employeeID.String()[:8])
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-11-01', DATE '2026-11-01')`, employmentID, employeeID, employerID)
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, "C4-"+employeeID.String()[:8], "C4 Worker", "2026-01-01", "2026-11-01", "2026-11-01")
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	mustExec(`INSERT INTO payroll_periods (id, employer_id, period_year, period_month, status) VALUES ($1, $2, 2026, 11, 'open')`, uuid.New(), employerID)
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'c4-shift')`, templateID)
@@ -256,8 +255,7 @@ func TestIntegrationN1LatePunchPreservesClosureAndCreatesReconciliationSignal(t 
 		}
 	}
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'n1-employer')`, employerID)
-	mustExec(`INSERT INTO employees (id, employee_id_number, full_name, hire_date, original_hire_date) VALUES ($1, $2, 'N1 Worker', DATE '2026-01-01', DATE '2026-01-01')`, employeeID, "N1-"+employeeID.String()[:8])
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, status, start_date, end_date) VALUES ($1, $2, $3, 'active', DATE '2026-11-01', DATE '2026-11-01')`, employmentID, employeeID, employerID)
+	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, "N1-"+employeeID.String()[:8], "N1 Worker", "2026-01-01", "2026-11-01", "2026-11-01")
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	mustExec(`INSERT INTO payroll_periods (id, employer_id, period_year, period_month, status) VALUES ($1, $2, 2026, 11, 'open')`, uuid.New(), employerID)
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'n1-shift')`, templateID)
