@@ -166,6 +166,77 @@ CREATE TRIGGER trg_validate_tenure_bounds_guard
     FOR EACH ROW EXECUTE FUNCTION public.fn_validate_tenure_bounds_guard();
 
 -- 3. Strict parent links & temporal bounds on relationships and segments
+-- Backfill any pre-v2 relationships missing tenure_id
+UPDATE public.employment_relationships er
+SET tenure_id = (
+    SELECT et.id
+    FROM public.employee_tenures et
+    WHERE et.employee_id = er.employee_id
+      AND et.deleted_at IS NULL
+      AND er.start_date >= et.start_date
+      AND (et.end_date IS NULL OR er.start_date <= et.end_date)
+    ORDER BY et.start_date DESC, et.id DESC
+    LIMIT 1
+)
+WHERE er.tenure_id IS NULL;
+
+-- Backfill missing employment_relationships for pre-v2 employments with NULL relationship_id
+WITH orphan_groups AS (
+    SELECT
+        em.employee_id,
+        em.employer_id,
+        t.id AS tenure_id,
+        MIN(em.start_date) AS start_date,
+        CASE WHEN bool_or(em.end_date IS NULL) THEN NULL ELSE MAX(em.end_date) END AS end_date,
+        CASE WHEN bool_or(em.status = 'active') THEN 'active' ELSE 'terminated' END AS status
+    FROM public.employments em
+    JOIN LATERAL (
+        SELECT et.id
+        FROM public.employee_tenures et
+        WHERE et.employee_id = em.employee_id
+          AND et.deleted_at IS NULL
+          AND em.start_date >= et.start_date
+          AND (et.end_date IS NULL OR em.start_date <= et.end_date)
+        ORDER BY et.start_date DESC, et.id DESC
+        LIMIT 1
+    ) t ON TRUE
+    WHERE em.relationship_id IS NULL
+      AND em.deleted_at IS NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM public.employment_relationships er
+          WHERE er.employee_id = em.employee_id
+            AND er.employer_id = em.employer_id
+            AND er.tenure_id = t.id
+            AND er.deleted_at IS NULL
+      )
+    GROUP BY em.employee_id, em.employer_id, t.id
+)
+INSERT INTO public.employment_relationships (
+    employee_id,
+    employer_id,
+    tenure_id,
+    start_date,
+    end_date,
+    status
+)
+SELECT employee_id, employer_id, tenure_id, start_date, end_date, status
+FROM orphan_groups;
+
+UPDATE public.employments em
+SET relationship_id = (
+    SELECT r.id
+    FROM public.employment_relationships r
+    WHERE r.employee_id = em.employee_id
+      AND r.employer_id = em.employer_id
+      AND r.deleted_at IS NULL
+      AND em.start_date >= r.start_date
+      AND (r.end_date IS NULL OR em.start_date <= r.end_date)
+    ORDER BY r.start_date DESC, r.id DESC
+    LIMIT 1
+)
+WHERE em.relationship_id IS NULL;
+
 ALTER TABLE public.employment_relationships
     ALTER COLUMN tenure_id SET NOT NULL;
 

@@ -91,7 +91,7 @@ export default function RehireEmployeeModal({
         <form className="space-y-8" onSubmit={handleRehireSubmit}>
           <div className="space-y-3 px-1">
             <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="rehire-form-employer-combobox">
-              Pháp nhân trực thuộc
+              {t("employees.form.employer")}
             </label>
             <Combobox
               clearOnEscape
@@ -103,7 +103,7 @@ export default function RehireEmployeeModal({
                 label: emp.name,
                 description: emp.tax_code ? `MST: ${emp.tax_code}` : undefined,
               }))}
-              placeholder="Chọn pháp nhân trực thuộc"
+              placeholder={t("employees.form.select_employer")}
               value={selectedEmployerId}
             />
           </div>

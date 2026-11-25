@@ -58,8 +58,58 @@ func (r ESSRepository) GetMyProfile(ctx context.Context, employeeID uuid.UUID) (
 	}
 	var emp api.EmployeeRecord
 	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `SELECT e.id, tenure.user_id, e.full_name, COALESCE(tenure.employee_number, ''), e.tags, e.created_at, e.updated_at FROM employees e `+sqlEffectiveTenureLateral+` WHERE e.id = $1 AND e.deleted_at IS NULL`, employeeID).Scan(
-		&emp.ID, &emp.UserID, &emp.FullName, &emp.EmployeeIDNumber, &emp.Tags, &createdAt, &updatedAt,
+	err = db.QueryRow(ctx, `
+		SELECT
+			e.id,
+			tenure.user_id,
+			e.full_name,
+			COALESCE(tenure.employee_number, ''),
+			e.tags,
+			e.created_at,
+			e.updated_at,
+			d.name AS department_name,
+			emp.id AS active_employment_id,
+			emp.employer_id,
+			emp.primary_location_id,
+			tenure.id AS tenure_id,
+			CASE WHEN tenure.id IS NOT NULL THEN 'active' END AS tenure_status,
+			tenure.hire_type
+		FROM employees e
+		`+sqlEffectiveTenureLateral+`
+		LEFT JOIN LATERAL (
+			SELECT em.id, em.employer_id, em.department_id, em.primary_location_id
+			FROM employments em
+			JOIN employment_relationships rel ON rel.id = em.relationship_id AND rel.deleted_at IS NULL
+			WHERE em.employee_id = e.id
+			  AND em.deleted_at IS NULL
+			  AND em.status = 'active'
+			  AND (tenure.id IS NULL OR rel.tenure_id = tenure.id)
+			ORDER BY
+				CASE
+					WHEN em.start_date <= `+orgTodaySQL+` AND (em.end_date IS NULL OR em.end_date >= `+orgTodaySQL+`) THEN 0
+					WHEN em.start_date > `+orgTodaySQL+` AND em.end_date IS NULL THEN 1
+					ELSE 2
+				END ASC,
+				em.start_date DESC,
+				em.id DESC
+			LIMIT 1
+		) emp ON TRUE
+		LEFT JOIN departments d ON d.id = emp.department_id
+		WHERE e.id = $1 AND e.deleted_at IS NULL`, employeeID).Scan(
+		&emp.ID,
+		&emp.UserID,
+		&emp.FullName,
+		&emp.EmployeeIDNumber,
+		&emp.Tags,
+		&createdAt,
+		&updatedAt,
+		&emp.DepartmentName,
+		&emp.ActiveEmploymentID,
+		&emp.EmployerID,
+		&emp.PrimaryLocationID,
+		&emp.TenureID,
+		&emp.TenureStatus,
+		&emp.HireType,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.MyProfileResponse{}, api.ErrESSNotFound
