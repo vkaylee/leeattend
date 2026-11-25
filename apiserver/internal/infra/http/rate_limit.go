@@ -138,30 +138,19 @@ func rateLimitTier(method string) string {
 }
 
 func resolveRateLimitIdentity(r *http.Request, jwtSecret string) string {
-	if authHeader := r.Header.Get("Authorization"); strings.HasPrefix(authHeader, "Bearer ") {
-		token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
-		if token != "" && jwtSecret != "" {
-			if userID, err := auth.VerifyToken(token, jwtSecret); err == nil {
-				return "u:" + userID.String()
-			}
+	if token := bearerToken(r); token != "" && jwtSecret != "" {
+		if userID, err := auth.VerifyToken(token, jwtSecret); err == nil {
+			return "u:" + userID.String()
 		}
 	}
 
+	// Never trust caller-supplied forwarding headers (X-Forwarded-For, X-Real-IP, Forwarded) as rate-limit identity.
 	if r.RemoteAddr != "" {
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err == nil && host != "" {
 			return "ip:" + host
 		}
 		return "ip:" + r.RemoteAddr
-	}
-	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
-		parts := strings.Split(forwarded, ",")
-		if len(parts) > 0 {
-			ip := strings.TrimSpace(parts[0])
-			if ip != "" {
-				return "ip:" + ip
-			}
-		}
 	}
 	return "ip:unknown"
 }

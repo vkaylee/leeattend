@@ -1,15 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	"github.com/vkaylee/leeattend/apiserver/internal/config"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -241,5 +247,59 @@ func TestBuildRouterReadinessNilDependenciesRemainDegradedOnlyByRedis(t *testing
 	}
 	if body.Checks["database"] != "ok" || body.Checks["redis"] != "disabled" {
 		t.Fatalf("readiness checks = %#v, want database=ok redis=disabled", body.Checks)
+	}
+}
+
+func TestBuildRouterEmployeeMatchAuthAndRateLimit(t *testing.T) {
+	const jwtSecret = "test-secret-at-least-32-chars-long-for-jwt!!"
+	cfg := &config.Config{
+		JWTSecret:                config.JWTSecret(jwtSecret),
+		IdentityLookupHMACSecret: config.Secret("0123456789abcdef0123456789abcdef"),
+		S3EndpointURL:            "://invalid",
+		RateLimitMaxRead:         120,
+		RateLimitMaxWrite:        30,
+		RateLimitWindowSecs:      60,
+	}
+	router := buildRouter(cfg, nil, nil, &api.AuthHandler{}, slog.Default())
+
+	unauthRec := httptest.NewRecorder()
+	router.ServeHTTP(unauthRec, httptest.NewRequest(http.MethodPost, "/api/v1/employees/match", bytes.NewBufferString(`{}`)))
+	if unauthRec.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated match status = %d, want 401", unauthRec.Code)
+	}
+
+	assertActorMatchRateLimit(t, router, jwtSecret, false)
+	assertActorMatchRateLimit(t, router, jwtSecret, true)
+}
+
+func assertActorMatchRateLimit(t *testing.T, router http.Handler, jwtSecret string, useCookie bool) {
+	t.Helper()
+	token, err := auth.GenerateToken(ids.UserID(uuid.New()), jwtSecret, 15*time.Minute)
+	if err != nil {
+		t.Fatalf("GenerateToken: %v", err)
+	}
+	for i := 1; i <= 31; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/employees/match", bytes.NewBufferString(`{}`))
+		if useCookie {
+			req.AddCookie(&http.Cookie{Name: "access_token", Value: token})
+		} else {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		// Rotate spoofed forwarding headers on every attempt to prove identity cannot be forged.
+		req.Header.Set("X-Forwarded-For", fmt.Sprintf("203.0.113.%d", i))
+		req.Header.Set("X-Real-IP", fmt.Sprintf("198.51.100.%d", i))
+		req.Header.Set("Forwarded", fmt.Sprintf("for=192.0.2.%d", i))
+
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if i <= 30 && rec.Code == http.StatusTooManyRequests {
+			t.Fatalf("useCookie=%v request %d hit 429 early", useCookie, i)
+		}
+		if i == 31 && rec.Code != http.StatusTooManyRequests {
+			t.Fatalf("useCookie=%v request 31 status = %d, want 429", useCookie, rec.Code)
+		}
+		if i == 31 && rec.Header().Get("Retry-After") != "60" {
+			t.Fatalf("useCookie=%v Retry-After = %q, want 60", useCookie, rec.Header().Get("Retry-After"))
+		}
 	}
 }

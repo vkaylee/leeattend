@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/config"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/identity"
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/crypto"
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/external"
 	"github.com/vkaylee/leeattend/apiserver/internal/infra/health"
@@ -67,7 +68,15 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	recruitmentHandler := &api.RecruitmentSourceHandler{Repository: recruitmentRepo, Authorizer: organizationAuthorizer}
 	registerPeopleRoutes(protectedRouter, departmentHandler, locationHandler, employerHandler, recruitmentHandler)
 	employeeRepo := repository.EmployeeRepository{DB: db}
-	employeeHandler := &api.EmployeeHandler{Repository: employeeRepo, Authorizer: organizationAuthorizer}
+	employeeIdentityRepo := repository.EmployeeIdentityRepository{DB: db}
+	identityHasher, _ := identity.NewHasher(cfg.IdentityLookupHMACSecret.Expose())
+	employeeHandler := &api.EmployeeHandler{
+		Repository:      employeeRepo,
+		IdentityMatcher: employeeIdentityRepo,
+		IdentityHasher:  identityHasher,
+		Authorizer:      organizationAuthorizer,
+		Audit:           repository.AuditLogWriter{DB: db},
+	}
 	employeeImportRepo := repository.EmployeeImportRepository{DB: db}
 	employeeImportHandler := &api.EmployeeImportHandler{
 		Repository: employeeImportRepo,

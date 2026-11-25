@@ -99,23 +99,35 @@ func TestRateLimitMiddleware_IdentityResolution(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	// 1. Authenticated via JWT
+	// 1. Authenticated via Bearer JWT ignores spoofed forwarding headers.
 	reqAuth := httptest.NewRequest(http.MethodGet, "/api/v1/data", nil)
 	reqAuth.Header.Set("Authorization", "Bearer "+token)
+	reqAuth.Header.Set("X-Forwarded-For", "203.0.113.195, 10.0.0.1")
+	reqAuth.Header.Set("X-Real-IP", "198.51.100.2")
 	recAuth := httptest.NewRecorder()
 	handler.ServeHTTP(recAuth, reqAuth)
 	if backend.counts["rate:u:"+userID.String()+":r:/api/v1/data"] != 1 {
 		t.Fatalf("expected key for authenticated user, got %+v", backend.counts)
 	}
 
-	// 2. Unauthenticated with X-Forwarded-For
+	// 2. Authenticated via HttpOnly access_token cookie resolves to actor ID and ignores forwarding headers.
+	reqCookie := httptest.NewRequest(http.MethodPost, "/api/v1/employees/match", nil)
+	reqCookie.AddCookie(&http.Cookie{Name: "access_token", Value: token})
+	reqCookie.Header.Set("X-Forwarded-For", "198.51.100.77")
+	recCookie := httptest.NewRecorder()
+	handler.ServeHTTP(recCookie, reqCookie)
+	if backend.counts["rate:u:"+userID.String()+":w:/api/v1/employees/match"] != 1 {
+		t.Fatalf("expected actor write key for cookie auth, got %+v", backend.counts)
+	}
+
+	// 3. Unauthenticated request never trusts spoofed X-Forwarded-For as identity.
 	reqXFF := httptest.NewRequest(http.MethodPost, "/api/v1/data", nil)
 	reqXFF.RemoteAddr = ""
 	reqXFF.Header.Set("X-Forwarded-For", "203.0.113.195, 10.0.0.1")
 	recXFF := httptest.NewRecorder()
 	handler.ServeHTTP(recXFF, reqXFF)
-	if backend.counts["rate:ip:203.0.113.195:w:/api/v1/data"] != 1 {
-		t.Fatalf("expected key for XFF IP, got %+v", backend.counts)
+	if backend.counts["rate:ip:unknown:w:/api/v1/data"] != 1 {
+		t.Fatalf("expected untrusted X-Forwarded-For to fall back to ip:unknown, got %+v", backend.counts)
 	}
 }
 

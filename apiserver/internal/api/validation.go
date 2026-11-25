@@ -26,7 +26,7 @@ func DecodeJSON[T any](r *http.Request, limit int64) (T, error) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&value); err != nil {
-		return value, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return value, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {

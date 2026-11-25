@@ -166,3 +166,36 @@ func TestHasherPhoneAndDomainSeparation(t *testing.T) {
 		t.Fatal("national_id and phone hashes must be domain separated")
 	}
 }
+
+func TestNormalizePartialPhoneAndSoftSuffix(t *testing.T) {
+	valid := []struct {
+		raw  string
+		want string
+	}{
+		{"", ""},
+		{"   ", ""},
+		{"345-678", "345678"},
+		{"(091) 234.5678", "0912345678"},
+		{"5678", "5678"},
+	}
+	for _, tc := range valid {
+		got, err := NormalizePartialPhone(tc.raw)
+		if err != nil || got != tc.want {
+			t.Fatalf("NormalizePartialPhone(%q) = (%q, %v), want (%q, nil)", tc.raw, got, err, tc.want)
+		}
+	}
+	for _, bad := range []string{"123", "+84912345678", "345678 ext 1", "abcd", "1234567890123456"} {
+		if _, err := NormalizePartialPhone(bad); !errors.Is(err, ErrInvalidPartialPhone) {
+			t.Fatalf("NormalizePartialPhone(%q) err = %v, want ErrInvalidPartialPhone", bad, err)
+		}
+	}
+	if got := PhoneSoftSuffix("+84912345678"); got != "345678" {
+		t.Fatalf("PhoneSoftSuffix = %q, want 345678", got)
+	}
+	if got := PhoneSoftSuffix("+12345"); got != "12345" {
+		t.Fatalf("PhoneSoftSuffix short = %q, want 12345", got)
+	}
+	if got := PhoneSoftSuffix("+12"); got != "" {
+		t.Fatalf("PhoneSoftSuffix too short = %q, want empty", got)
+	}
+}

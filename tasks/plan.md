@@ -547,20 +547,23 @@ Identity policy + privacy + permission
 #### Task D3 — Implement redacted read-only match endpoint
 
 **Acceptance criteria:**
-- [ ] `POST /api/v1/employees/match` validates typed request and rejects unknown fields.
-- [ ] Exact hash matching produces hard candidates; name/DOB or partial-phone produces soft candidates.
-- [ ] Response contains only candidate ID, safe name/code/status, and non-sensitive reason labels.
-- [ ] No raw phone, national ID, DOB, lookup hash, or PII query string appears in response/log/audit details.
-- [ ] 401/403 fail closed; rate limit and audit lookup outcome/type exist.
+- [x] `POST /api/v1/employees/match` validates typed request and rejects unknown fields (`apiserver/internal/api/employee_match.go`, 4 KiB body cap returning 413, rejects non-`lang` query params, strict `internal/domain/identity` normalization).
+- [x] Exact hash matching produces hard candidates (`national_id_exact`, `phone_exact`); normalized name+DOB (`name_dob_review`) or name+partial-phone (`name_phone_review`) produces bounded soft review candidates (`apiserver/internal/repository/employee_identity_match.go`).
+- [x] Response contains only candidate ID, sanitized display name, employee code, status (`active`/`terminated`), tier, and allowlisted non-sensitive reason labels.
+- [x] No raw phone, national ID, DOB, lookup hash, or PII query string appears in response/log/audit details.
+- [x] 401/403 fail closed with `employees:identity:match` (`admin` + `hr_manager` only); missing/short `IDENTITY_LOOKUP_HMAC_SECRET` fails closed (503); audit emits actor/action/outcome tier/candidate count only and blocks response on failure; existing 30 req/actor/60s write limiter resolves Bearer and HttpOnly cookie actors and ignores spoofed forwarding headers.
 
 **Files likely touched:**
-- `apiserver/internal/api/employees.go`
-- `apiserver/internal/repository/employees.go` or `employee_identity.go`
-- `apiserver/routes_employees.go`
-- `apiserver/openapi.yaml`
-- API/repository tests
+- `apiserver/internal/auth/permissions.go`, `permissions_test.go`
+- `apiserver/internal/standalone/catalog.go`, `bootstrap_test.go`
+- `apiserver/internal/domain/identity/identity.go`, `identity_test.go`
+- `apiserver/internal/infra/http/rate_limit.go`, `rate_limit_test.go`
+- `apiserver/internal/api/employee_match.go`, `employee_match_test.go`, `employees.go`, `validation.go`
+- `apiserver/internal/repository/employee_identity_match.go`, `employee_identity_match_integration_test.go`
+- `apiserver/routes.go`, `routes_employees.go`, `router_test.go`
+- `apiserver/openapi.yaml`, `scripts/generate_openapi.py`
 
-**Verification:** handler auth/validation tests, hard/soft/none cases, redaction, rate-limit, OpenAPI contract.
+**Verification:** `scripts/validate_openapi_contract.py`, `scripts/_go-gates.sh --lint-only --base-ref HEAD` on touched packages (plus `--build-tags=integration` check), `scripts/_go-gates.sh --unit-only` (`-race`), and `scripts/_go-gates.sh --integration` on disposable DB (`TestIntegrationEmployeeIdentity*`, `TestIntegrationEmployeeTenures*`) all passed.
 
 **Dependencies:** D2
 

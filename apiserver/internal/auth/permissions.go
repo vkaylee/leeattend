@@ -26,12 +26,13 @@ const (
 	PermissionRolesManage              Permission = "roles:manage"
 
 	// Employees
-	PermissionEmployeesRead   Permission = "employees:read"
-	PermissionEmployeesCreate Permission = "employees:create"
-	PermissionEmployeesUpdate Permission = "employees:update"
-	PermissionEmployeesDelete Permission = "employees:delete"
-	PermissionEmployeesRehire Permission = "employees:rehire"
-	PermissionEmployeesUpload Permission = "employees:upload"
+	PermissionEmployeesRead          Permission = "employees:read"
+	PermissionEmployeesCreate        Permission = "employees:create"
+	PermissionEmployeesUpdate        Permission = "employees:update"
+	PermissionEmployeesDelete        Permission = "employees:delete"
+	PermissionEmployeesRehire        Permission = "employees:rehire"
+	PermissionEmployeesUpload        Permission = "employees:upload"
+	PermissionEmployeesIdentityMatch Permission = "employees:identity:match"
 
 	// Departments
 	PermissionDepartmentsRead     Permission = "departments:read"
@@ -203,6 +204,7 @@ var allCanonicalPermissions = []Permission{
 	PermissionEmployeesDelete,
 	PermissionEmployeesRehire,
 	PermissionEmployeesUpload,
+	PermissionEmployeesIdentityMatch,
 	PermissionDepartmentsRead,
 	PermissionDepartmentsCreate,
 	PermissionDepartmentsUpdate,

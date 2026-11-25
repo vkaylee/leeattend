@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/identity"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -70,8 +71,11 @@ type EmployeeRepository interface {
 }
 
 type EmployeeHandler struct {
-	Repository EmployeeRepository
-	Authorizer Authorizer
+	Repository      EmployeeRepository
+	IdentityMatcher EmployeeIdentityMatcher
+	IdentityHasher  identity.Hasher
+	Authorizer      Authorizer
+	Audit           EmployeeIdentityMatchAudit
 }
 
 func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {

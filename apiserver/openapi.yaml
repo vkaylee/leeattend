@@ -2795,6 +2795,38 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  "/api/v1/employees/match":
+    post:
+      operationId: post_api_v1_employees_match
+      summary: Redacted read-only duplicate employee identity preflight
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchEmployeeRequest'
+      responses:
+        '200':
+          description: Redacted match outcome and candidates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchEmployeeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          description: Request payload too large
+        '429':
+          description: Rate limit exceeded
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          description: Identity matching unavailable
   "/api/v1/employees/upload":
     post:
       operationId: post_api_v1_employees_upload
@@ -14405,6 +14437,43 @@ components:
         - limit
         - page
         - total
+    EmployeeMatchCandidate:
+      type: object
+      additionalProperties: false
+      properties:
+        display_name:
+          type: string
+        employee_code:
+          type: string
+        employee_id:
+          type: string
+          format: uuid
+        reasons:
+          type: array
+          items:
+            type: string
+            enum:
+              - national_id_exact
+              - phone_exact
+              - name_dob_review
+              - name_phone_review
+        status:
+          type: string
+          enum:
+            - active
+            - terminated
+        tier:
+          type: string
+          enum:
+            - hard
+            - soft
+      required:
+        - display_name
+        - employee_code
+        - employee_id
+        - reasons
+        - status
+        - tier
     EmployeePayrollConfig:
       properties:
         created_at:
@@ -15995,6 +16064,42 @@ components:
         - segment_id
         - start
         - status
+    MatchEmployeeRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        date_of_birth:
+          type: string
+          maxLength: 32
+        full_name:
+          type: string
+          maxLength: 255
+        national_id:
+          type: string
+          maxLength: 128
+        partial_phone:
+          type: string
+          maxLength: 32
+        phone:
+          type: string
+          maxLength: 64
+    MatchEmployeeResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmployeeMatchCandidate'
+        tier:
+          type: string
+          enum:
+            - hard
+            - soft
+            - none
+      required:
+        - candidates
+        - tier
     MemberDetail:
       properties:
         avatar_url:

@@ -14,7 +14,10 @@ import (
 )
 
 const (
-	MinHMACSecretLen = 32
+	MinHMACSecretLen      = 32
+	MinPartialPhoneDigits = 4
+	MaxPartialPhoneDigits = 15
+	PhoneSoftSuffixDigits = 6
 
 	nationalIDDomainPrefix = "employee_profile:national_id:v1:"
 	phoneDomainPrefix      = "employee_profile:phone:v1:"
@@ -24,6 +27,7 @@ var (
 	ErrIdentityHashSecretMissing = errors.New("identity lookup hmac secret must be configured and at least 32 bytes")
 	ErrInvalidDOB                = errors.New("date_of_birth must be a valid ISO YYYY-MM-DD date")
 	ErrInvalidPhone              = errors.New("phone must be valid E.164 with explicit country calling code")
+	ErrInvalidPartialPhone       = errors.New("partial_phone must contain 4 to 15 digits")
 )
 
 // NormalizeName applies Unicode NFC, trims and collapses Unicode whitespace runs,
@@ -122,6 +126,32 @@ func isPhoneFormattingSeparator(r rune) bool {
 	default:
 		return false
 	}
+}
+
+// NormalizePartialPhone strips phone formatting separators and validates 4..15 ASCII digits
+// for soft review matching only. Empty/whitespace-only input returns "", nil.
+func NormalizePartialPhone(raw string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", nil
+	}
+	digits, ok := extractE164Digits(trimmed)
+	if !ok || len(digits) < MinPartialPhoneDigits || len(digits) > MaxPartialPhoneDigits {
+		return "", ErrInvalidPartialPhone
+	}
+	return string(digits), nil
+}
+
+// PhoneSoftSuffix extracts trailing digits from a normalized E.164 phone for soft name+phone fallback.
+func PhoneSoftSuffix(e164 string) string {
+	digits := strings.TrimPrefix(e164, "+")
+	if len(digits) < MinPartialPhoneDigits {
+		return ""
+	}
+	if len(digits) <= PhoneSoftSuffixDigits {
+		return digits
+	}
+	return digits[len(digits)-PhoneSoftSuffixDigits:]
 }
 
 // NormalizeEmployeeCode trims outer whitespace and uppercases while preserving

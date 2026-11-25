@@ -109,8 +109,8 @@
 
 ## Phase D2 — Match API
 
-- [ ] **D2.1** Add `POST /api/v1/employees/match` with `employees:identity:match`, exact hard matching, soft candidates, redacted response, audit, and rate limit.
-- [ ] **D2.2** Add API/repository/OpenAPI tests for auth, validation, hard/soft/none, redaction, and rate limit.
+- [x] **D2.1** Add `POST /api/v1/employees/match` with `employees:identity:match`, exact hard matching, soft candidates, redacted response, audit, and rate limit.
+- [x] **D2.2** Add API/repository/OpenAPI tests for auth, validation, hard/soft/none, redaction, and rate limit.
 
 ## Phase D3 — Atomic write paths
 

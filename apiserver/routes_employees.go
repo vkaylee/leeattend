@@ -14,6 +14,7 @@ func registerEmployeeRoutes(
 	compensation *api.CompensationHistoryHandler,
 ) {
 	registerRoute(router, "POST /api/v1/employees", employee.Create)
+	registerRoute(router, "POST /api/v1/employees/match", employee.Match)
 	registerRoute(router, "GET /api/v1/employees", employee.List)
 	registerRoute(router, "GET /api/v1/employees/{id}", employee.Get)
 	registerRoute(router, "PUT /api/v1/employees/{id}", employee.Update)

@@ -14,8 +14,8 @@ func TestCanonicalPermissionsCatalog(t *testing.T) {
 	all := AllPermissions()
 
 	// Canonical permissions exclude retired workspace, edge-agent, and device controls.
-	if len(all) != 118 {
-		t.Fatalf("expected exactly 118 permissions, got %d", len(all))
+	if len(all) != 119 {
+		t.Fatalf("expected exactly 119 permissions, got %d", len(all))
 	}
 
 	// 2. Check no duplicates
@@ -38,6 +38,7 @@ func TestCanonicalPermissionsCatalog(t *testing.T) {
 		PermissionMembersRolesAssign,
 		PermissionMembersPermissionsManage,
 		PermissionRolesManage,
+		PermissionEmployeesIdentityMatch,
 	} {
 		if _, ok := ParsePermission(string(permission)); !ok {
 			t.Errorf("expected split RBAC permission %s to be accepted", permission)
