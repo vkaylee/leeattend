@@ -297,10 +297,56 @@
       "link_user": "Liên kết tài khoản",
       "select_user": "Chọn người dùng...",
       "location": "Địa điểm làm việc",
+      "select_location": "Chọn địa điểm làm việc",
+      "employer": "Pháp nhân trực thuộc",
+      "select_employer": "Chọn pháp nhân trực thuộc",
+      "national_id": "CCCD / CMND",
+      "national_id_placeholder": "VD: 001234567890",
+      "phone": "Số điện thoại (E.164)",
+      "phone_placeholder": "+84912345678",
+      "date_of_birth": "Ngày sinh",
       "cancel": "Hủy bỏ",
       "save": "Lưu hồ sơ",
       "update": "Cập nhật",
       "location_unavailable": "Tài khoản của bạn không được truy cập địa điểm làm việc."
+    },
+    "preflight": {
+      "title": "Kiểm tra trùng hồ sơ nhân viên",
+      "retry": "Kiểm tra lại",
+      "loading": "Đang kiểm tra hồ sơ trùng...",
+      "stale": "Thông tin định danh đã thay đổi. Đang chờ kiểm tra lại...",
+      "none": "Chưa phát hiện hồ sơ trùng khớp. Bạn có thể tạo nhân viên mới.",
+      "hard_warning": "Phát hiện hồ sơ trùng định danh chính xác. Không thể tạo mới trùng lặp — hãy chọn dùng lại hồ sơ hiện có hoặc chỉnh lại thông tin.",
+      "soft_warning": "Có hồ sơ gần giống cần đối chiếu. Hệ thống không tự động gộp — vui lòng kiểm tra trước khi tiếp tục.",
+      "not_this_person": "Không phải người này — tiếp tục tạo mới",
+      "soft_acknowledged": "Đã xác nhận khác người — tiếp tục tạo mới",
+      "reuse_existing": "Dùng lại nhân viên hiện có",
+      "selected_for_reuse": "Đã chọn dùng lại",
+      "cancel_reuse": "Hủy dùng lại",
+      "confirm_reuse_submit": "Tạo giai đoạn mới",
+      "reuse_mode_title": "Đang tái sử dụng hồ sơ: {{name}} ({{code}})",
+      "reuse_mode_hint": "Lưu sẽ giữ nguyên mã và hồ sơ nhân viên, chỉ tạo giai đoạn công tác mới.",
+      "active_cannot_duplicate": "Nhân viên đang hoạt động, không thể tạo trùng",
+      "assign_staging": "Gán bản ghi chấm công",
+      "staging_notice": "Mã chấm công chỉ dùng để điền sẵn mã nhân viên, không phải bằng chứng định danh. Vui lòng nhập số điện thoại, ngày sinh hoặc CCCD/CMND để kiểm tra hồ sơ trùng trước khi tạo mới.",
+      "status": {
+        "active": "Đang làm việc",
+        "terminated": "Đã nghỉ việc"
+      },
+      "reasons": {
+        "national_id_exact": "Trùng CCCD / CMND",
+        "phone_exact": "Trùng số điện thoại",
+        "name_dob_review": "Trùng họ tên và ngày sinh",
+        "name_phone_review": "Trùng họ tên và số điện thoại gần đúng"
+      },
+      "errors": {
+        "rate_limited": "Bạn kiểm tra quá nhanh. Vui lòng chờ một chút rồi thử lại.",
+        "unavailable": "Dịch vụ kiểm tra trùng nhân viên tạm thời không khả dụng.",
+        "forbidden": "Bạn không có quyền kiểm tra trùng danh tính.",
+        "generic": "Không thể kiểm tra trùng nhân viên lúc này.",
+        "conflict": "Dữ liệu trùng lặp hoặc trạng thái hồ sơ đã thay đổi. Vui lòng kiểm tra lại kết quả khớp.",
+        "employer_required_for_reuse": "Vui lòng chọn pháp nhân trực thuộc để tạo giai đoạn mới."
+      }
     },
     "transfer": {
       "title": "Điều chuyển phòng ban",

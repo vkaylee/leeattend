@@ -297,10 +297,56 @@
       "link_user": "关联用户账户",
       "select_user": "选择用户...",
       "location": "工作地点",
+      "select_location": "选择工作地点",
+      "employer": "所属雇主",
+      "select_employer": "选择所属雇主",
+      "national_id": "身份证号",
+      "national_id_placeholder": "例如: 001234567890",
+      "phone": "手机号码 (E.164)",
+      "phone_placeholder": "+84912345678",
+      "date_of_birth": "出生日期",
       "cancel": "取消",
       "save": "保存档案",
       "update": "更新",
       "location_unavailable": "您的账户无法访问工作地点。"
+    },
+    "preflight": {
+      "title": "重复员工预检",
+      "retry": "重新检查",
+      "loading": "正在检查重复员工...",
+      "stale": "身份信息已更改，等待重新检查...",
+      "none": "未发现重复档案，可以创建新员工。",
+      "hard_warning": "检测到精确身份匹配，已阻止重复创建 — 请复用现有员工或更正输入。",
+      "soft_warning": "发现疑似匹配档案需要核对。系统不会自动复用 — 请确认后再继续。",
+      "not_this_person": "不是同一人 — 继续创建",
+      "soft_acknowledged": "已确认不同人员 — 可继续创建",
+      "reuse_existing": "复用现有员工",
+      "selected_for_reuse": "已选择复用",
+      "cancel_reuse": "取消复用",
+      "confirm_reuse_submit": "创建新任职期",
+      "reuse_mode_title": "正在复用员工档案: {{name}} ({{code}})",
+      "reuse_mode_hint": "保存将保留员工编号与档案，仅创建新的任职期。",
+      "active_cannot_duplicate": "在职员工 — 无法重复创建",
+      "assign_staging": "分配考勤记录",
+      "staging_notice": "考勤编号仅用于预填员工编号，不作为身份证明。请填写电话、出生日期或身份证号进行重复预检。",
+      "status": {
+        "active": "在职",
+        "terminated": "已离职"
+      },
+      "reasons": {
+        "national_id_exact": "身份证号精确匹配",
+        "phone_exact": "手机号码精确匹配",
+        "name_dob_review": "姓名与出生日期核对",
+        "name_phone_review": "姓名与部分号码核对"
+      },
+      "errors": {
+        "rate_limited": "查询过于频繁，请稍后重试。",
+        "unavailable": "身份查重服务暂时不可用。",
+        "forbidden": "您没有权限执行员工身份查重。",
+        "generic": "暂时无法检查重复员工。",
+        "conflict": "检测到重复身份/编号或候选状态已过期，请重新检查。",
+        "employer_required_for_reuse": "请选择所属雇主以创建新的任职期。"
+      }
     },
     "transfer": {
       "title": "部门调动",

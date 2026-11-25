@@ -610,21 +610,26 @@ Identity policy + privacy + permission
 #### Task D6 — Add preflight identity step to `/employees/new`
 
 **Acceptance criteria:**
-- [ ] Form collects phone, DOB, and national ID under role policy.
-- [ ] Debounced match displays loading, none, hard, soft, stale, conflict, and error states.
-- [ ] Hard candidate requires explicit `Reuse existing` or safe correction; no silent reuse.
-- [ ] Soft candidate warns and permits explicit `Not this person — continue create`; never auto-reuses.
-- [ ] Reuse calls tenure endpoint; new create calls create-new path; duplicate click blocked.
-- [ ] Keyboard/focus/aria, vi/en/zh strings, responsive layout, and PII-safe artifacts pass.
+- [x] Form collects phone, DOB, and national ID under role policy (`employees:identity:match`, fail-closed when absent).
+- [x] Debounced match (`useEmployeeIdentityPreflight` + `EmployeeIdentityPreflightPanel`) displays loading, none, hard, soft, stale, conflict, and error states.
+- [x] Hard candidate blocks duplicate creation and requires explicit `Reuse existing` (for terminated candidates with `employees:rehire`) or input correction; no silent reuse.
+- [x] Soft candidate warns and permits explicit `Not this person — continue create`; never auto-reuses.
+- [x] Reuse calls `POST /api/v1/employees/{employee_id}/tenures`; new create calls `POST /api/v1/employees`; duplicate submit blocked while pending.
+- [x] Keyboard/focus/aria (`aria-live`, `role="alert"/"status"`, `aria-pressed`), vi/en/zh strings, responsive layout, regenerated OpenAPI TS types (`api-generated.ts`), and PII-safe URL/artifacts pass.
 
 **Files likely touched:**
-- `webdashboard/src/pages/employees/employee-create-page.tsx`
-- `webdashboard/src/components/features/employees/employee-form-inputs.tsx`
+- `webdashboard/src/types/api-generated.ts` (regenerated via `bun run gen-api`)
 - `webdashboard/src/lib/api/employees.ts`
-- locale employee files
-- page/component tests
+- `webdashboard/src/routes/_authenticated/_organization/employees_.new.tsx`
+- `webdashboard/src/pages/employees/hooks/use-employee-identity-preflight.ts`
+- `webdashboard/src/components/features/employees/employee-identity-preflight-panel.tsx`
+- `webdashboard/src/components/features/employees/employee-form-inputs.tsx`
+- `webdashboard/src/pages/employees/employee-create-page.tsx`
+- `webdashboard/src/i18n/locales/{en,vi,zh}/{employees,permissions}.json`
+- `webdashboard/scripts/check-budget.mjs`
+- `webdashboard/src/pages/employees/__tests__/employee-create-page.test.tsx`
 
-**Verification:** hard/soft/none, reuse/create, stale result, API failure, keyboard/a11y, route tests.
+**Verification:** `tsc --noEmit`, ESLint on touched files, `bun run build:fast`, `node scripts/check-budget.mjs`, and `leedevkit test web --unit-only` (all 329 test files / 2942 tests) passed.
 
 **Dependencies:** D5
 
@@ -633,17 +638,17 @@ Identity policy + privacy + permission
 #### Task D7 — Integrate attendance staging
 
 **Acceptance criteria:**
-- [ ] Staging unknown log uses same preflight path.
-- [ ] Existing employee can be assigned; create-new uses safe enrollment prefill.
-- [ ] `raw_user_id` is never treated as proof of identity.
-- [ ] Staging row identity and refresh/resolve behavior remain intact.
+- [x] Staging unknown log routes `Create` through `/employees/new` preflight with safe non-PII `enrollment_id` + `staging_log_id` (`staging-logs-table.tsx`, `use-attendance-logs-page.ts`).
+- [x] Existing employee can be assigned directly from staging table or from preflight match candidate; create-new uses safe enrollment prefill and resolves staging log on completion.
+- [x] `raw_user_id` is never sent to `/api/v1/employees/match` or treated as proof of identity.
+- [x] Staging row identity, Assign, and Dismiss behavior remain intact.
 
 **Files likely touched:**
 - `webdashboard/src/components/features/attendance/staging-logs-table.tsx`
 - `webdashboard/src/pages/attendance/hooks/use-attendance-logs-page.ts`
-- staging tests
+- `webdashboard/src/components/features/attendance/__tests__/staging-logs-table.test.tsx`
 
-**Verification:** staging component/hook tests and disposable E2E flow.
+**Verification:** `staging-logs-table.test.tsx` and staging flow in `employee-create-page.test.tsx` passed.
 
 **Dependencies:** D6
 
@@ -651,8 +656,8 @@ Identity policy + privacy + permission
 
 ### Checkpoint D-D
 
-- [ ] Search-before-create works from employee page and attendance staging.
-- [ ] Hard match cannot accidentally duplicate; soft match never auto-reuses.
+- [x] Search-before-create works from employee page and attendance staging.
+- [x] Hard match cannot accidentally duplicate; soft match never auto-reuses.
 
 ### Phase 5 — Rollout and final verification
 

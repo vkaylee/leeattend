@@ -126,15 +126,15 @@
 
 ## Phase D4 — UX integration
 
-- [ ] **D4.1** Add phone/DOB/national-ID fields and debounced preflight to `/employees/new`.
-- [ ] **D4.2** Implement explicit hard reuse/create and soft review states; never auto-reuse; keep PII out of URL/artifacts; localize/a11y.
-- [ ] **D4.3** Route attendance staging through same preflight; raw user ID is not identity proof.
-- [ ] **D4.4** Add page/component/staging tests for match states, stale/error, reuse/create, keyboard/focus, and duplicate submit.
+- [x] **D4.1** Add phone/DOB/national-ID fields and debounced preflight to `/employees/new`.
+- [x] **D4.2** Implement explicit hard reuse/create and soft review states; never auto-reuse; keep PII out of URL/artifacts; localize/a11y.
+- [x] **D4.3** Route attendance staging through same preflight; raw user ID is not identity proof.
+- [x] **D4.4** Add page/component/staging tests for match states, stale/error, reuse/create, keyboard/focus, and duplicate submit.
 
 ### Checkpoint D-D
 
-- [ ] Search-before-create works from employee page and attendance staging.
-- [ ] Hard match cannot accidentally duplicate; soft match never auto-reuses.
+- [x] Search-before-create works from employee page and attendance staging.
+- [x] Hard match cannot accidentally duplicate; soft match never auto-reuses.
 
 ## Phase D5 — Rollout and final verification
 

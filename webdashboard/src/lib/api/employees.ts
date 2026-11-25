@@ -13,6 +13,11 @@ import type {
 
 export type CreateEmployeeRequest = components["schemas"]["CreateEmployeeRequest"];
 export type UpdateEmployeeRequest = components["schemas"]["UpdateEmployeeRequest"];
+export type MatchEmployeeRequest = components["schemas"]["MatchEmployeeRequest"];
+export type MatchEmployeeResponse = components["schemas"]["MatchEmployeeResponse"];
+export type EmployeeMatchCandidate = components["schemas"]["EmployeeMatchCandidate"];
+export type CreateEmployeeTenureRequest = components["schemas"]["CreateEmployeeTenureRequest"];
+export type EmployeeTenureCreated = components["schemas"]["EmployeeTenureCreated"];
 
 // Employment is already exported from types.ts; re-exporting here causes
 // a duplicate when both modules are barrel-re-exported together.
@@ -110,6 +115,24 @@ export async function createEmployee(
   employee: CreateEmployeeRequest,
 ): Promise<Employee> {
   const { data } = await client.POST<Employee>("/api/v1/employees", { body: employee });
+  return data;
+}
+
+export async function matchEmployeeIdentity(
+  body: MatchEmployeeRequest,
+): Promise<MatchEmployeeResponse> {
+  const { data } = await client.POST<MatchEmployeeResponse>("/api/v1/employees/match", { body });
+  return data;
+}
+
+export async function createEmployeeTenure(
+  employeeId: string,
+  body: CreateEmployeeTenureRequest,
+): Promise<EmployeeTenureCreated> {
+  const { data } = await client.POST<EmployeeTenureCreated>("/api/v1/employees/{employee_id}/tenures", {
+    params: { path: { employee_id: employeeId } },
+    body,
+  });
   return data;
 }
 

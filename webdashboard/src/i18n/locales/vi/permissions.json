@@ -33,6 +33,10 @@
     "dashboard:employee_absence:read": {
       "name": "Xem vắng mặt theo nhân viên",
       "desc": "Xem chi tiết vắng không phép theo từng nhân viên trên bảng điều khiển"
+    },
+    "employees:identity:match": {
+      "name": "Kiểm tra trùng danh tính nhân viên",
+      "desc": "Thực hiện kiểm tra trùng hồ sơ trước khi tạo mới hoặc dùng lại nhân viên"
     }
   }
 }

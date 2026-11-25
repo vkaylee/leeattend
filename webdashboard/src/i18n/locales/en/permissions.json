@@ -33,6 +33,10 @@
     "dashboard:employee_absence:read": {
       "name": "View Employee Absences",
       "desc": "See per-employee unexcused absence details on the dashboard"
+    },
+    "employees:identity:match": {
+      "name": "Check Duplicate Employee Identity",
+      "desc": "Run redacted identity preflight before creating or reusing an employee"
     }
   }
 }

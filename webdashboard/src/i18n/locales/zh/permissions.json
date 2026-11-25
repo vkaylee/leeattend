@@ -33,6 +33,10 @@
     "dashboard:employee_absence:read": {
       "name": "查看员工缺勤",
       "desc": "在仪表板查看每位员工的无故缺勤详情"
+    },
+    "employees:identity:match": {
+      "name": "员工身份查重",
+      "desc": "在创建或复用员工前执行脱敏身份重复预检"
     }
   }
 }

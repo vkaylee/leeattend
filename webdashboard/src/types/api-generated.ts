@@ -1441,6 +1441,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/employees/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redacted read-only duplicate employee identity preflight */
+        post: operations["post_api_v1_employees_match"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employees/upload": {
         parameters: {
             query?: never;
@@ -1617,6 +1634,25 @@ export interface paths {
         get: operations["get_api_v1_employees_employee_id_payslips"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{employee_id}/tenures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reuse an existing terminated employee by creating a new non-overlapping tenure */
+        post: operations["post_api_v1_employees_employee_id_tenures"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5960,14 +5996,29 @@ export interface components {
             type_?: string;
         };
         CreateEmployeeRequest: {
+            date_of_birth?: string | null;
             department_id?: string | null;
             employee_id_number?: string;
             employer_id?: string | null;
             full_name?: string;
             hire_date?: string;
+            national_id?: string | null;
+            phone?: string | null;
             primary_location_id?: string | null;
             tags?: string[];
             user_id?: string | null;
+        };
+        CreateEmployeeTenureRequest: {
+            /** Format: uuid */
+            department_id?: string | null;
+            /** Format: uuid */
+            employer_id: string;
+            expected_employee_code?: string | null;
+            /** @enum {string|null} */
+            expected_status?: "terminated" | null;
+            /** Format: uuid */
+            primary_location_id?: string | null;
+            start_date: string;
         };
         CreateEmployerRequest: {
             business_type?: string | null;
@@ -6752,6 +6803,17 @@ export interface components {
             total: number;
             truncated?: boolean | null;
         };
+        EmployeeMatchCandidate: {
+            display_name: string;
+            employee_code: string;
+            /** Format: uuid */
+            employee_id: string;
+            reasons: ("national_id_exact" | "phone_exact" | "name_dob_review" | "name_phone_review")[];
+            /** @enum {string} */
+            status: "active" | "terminated";
+            /** @enum {string} */
+            tier: "hard" | "soft";
+        };
         EmployeePayrollConfig: {
             created_at: string;
             effective_date: string;
@@ -6821,6 +6883,22 @@ export interface components {
             employment_id: string;
             full_name: string;
             schedules: components["schemas"]["EffectiveSchedule"][];
+        };
+        EmployeeTenureCreated: {
+            employee_code: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: uuid */
+            employer_id: string;
+            /** Format: uuid */
+            employment_id: string;
+            /** Format: uuid */
+            relationship_id: string;
+            start_date: string;
+            /** @enum {string} */
+            status: "active";
+            /** Format: uuid */
+            tenure_id: string;
         };
         EmployeeWorkingPattern: {
             anchor_date?: string | null;
@@ -7332,6 +7410,18 @@ export interface components {
             segment_id: string;
             start: string;
             status: string;
+        };
+        MatchEmployeeRequest: {
+            date_of_birth?: string;
+            full_name?: string;
+            national_id?: string;
+            partial_phone?: string;
+            phone?: string;
+        };
+        MatchEmployeeResponse: {
+            candidates: components["schemas"]["EmployeeMatchCandidate"][];
+            /** @enum {string} */
+            tier: "hard" | "soft" | "none";
         };
         MemberDetail: {
             avatar_url?: string | null;
@@ -13304,6 +13394,55 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    post_api_v1_employees_match: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchEmployeeRequest"];
+            };
+        };
+        responses: {
+            /** @description Redacted match outcome and candidates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchEmployeeResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Request payload too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            500: components["responses"]["InternalError"];
+            /** @description Identity matching unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     post_api_v1_employees_upload: {
         parameters: {
             query?: never;
@@ -13989,6 +14128,44 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    post_api_v1_employees_employee_id_tenures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEmployeeTenureRequest"];
+            };
+        };
+        responses: {
+            /** @description New employee tenure and employment created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeTenureCreated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description Active employee, stale candidate, or date/code overlap conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             500: components["responses"]["InternalError"];
         };
     };

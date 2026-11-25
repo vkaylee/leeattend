@@ -22,7 +22,7 @@ interface StagingLogsTableProps {
   isLoading: boolean;
   loadMoreRef: React.RefObject<HTMLTableRowElement | null>;
   logs: StagingLog[];
-  onCreateEmployee: (rawUserId: string) => void;
+  onCreateEmployee: (rawUserId: string, logId?: string) => void;
   onDismiss: (logId: string) => void;
   onResolve: (logId: string, employeeId: string) => void;
 }
@@ -57,7 +57,7 @@ function AssignmentActions({ assigningLogId, departments, isDismissing, log, onC
   return (
     <div className="flex flex-wrap gap-2">
       <Button onClick={() => { setAssigningLogId(log.id); }} variant="ghost"><Link2 size={12} /> {t('attendance_logs.assign')}</Button>
-      <Button onClick={() => { onCreateEmployee(log.raw_user_id); }} variant="ghost"><UserPlus size={12} /> {t('attendance_logs.create_employee')}</Button>
+      <Button onClick={() => { onCreateEmployee(log.raw_user_id, log.id); }} variant="ghost"><UserPlus size={12} /> {t('attendance_logs.create_employee')}</Button>
       <Button disabled={isDismissing} onClick={() => { onDismiss(log.id); }} variant="ghost"><Trash2 size={12} /> {t('common.delete')}</Button>
     </div>
   );
