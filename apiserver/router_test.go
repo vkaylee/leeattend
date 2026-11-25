@@ -268,6 +268,12 @@ func TestBuildRouterEmployeeMatchAuthAndRateLimit(t *testing.T) {
 		t.Fatalf("unauthenticated match status = %d, want 401", unauthRec.Code)
 	}
 
+	unauthTenureRec := httptest.NewRecorder()
+	router.ServeHTTP(unauthTenureRec, httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+uuid.NewString()+"/tenures", bytes.NewBufferString(`{}`)))
+	if unauthTenureRec.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated create tenure status = %d, want 401", unauthTenureRec.Code)
+	}
+
 	assertActorMatchRateLimit(t, router, jwtSecret, false)
 	assertActorMatchRateLimit(t, router, jwtSecret, true)
 }

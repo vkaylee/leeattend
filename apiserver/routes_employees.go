@@ -20,6 +20,7 @@ func registerEmployeeRoutes(
 	registerRoute(router, "PUT /api/v1/employees/{id}", employee.Update)
 	registerRoute(router, "DELETE /api/v1/employees/{id}", employee.Delete)
 	registerRoute(router, "POST /api/v1/employees/{id}/rehire", employee.Rehire)
+	registerRoute(router, "POST /api/v1/employees/{employee_id}/tenures", employee.CreateTenure)
 	registerRoute(router, "POST /api/v1/employees/upload", employeeImport.Upload)
 	registerRoute(router, "POST /api/v1/employees/import-termination/preview", employeeImport.PreviewTermination)
 	registerRoute(router, "POST /api/v1/employees/import-termination/confirm", employeeImport.ConfirmTermination)

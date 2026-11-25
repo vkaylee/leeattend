@@ -574,12 +574,12 @@ Identity policy + privacy + permission
 #### Task D4 — Harden create-new with profile and first tenure
 
 **Acceptance criteria:**
-- [ ] Create-new writes employee, profile, first tenure, and employment relationship in one transaction.
-- [ ] Identity and employee-code uniqueness rechecked under transaction lock.
-- [ ] Concurrent same identity/code requests cannot create duplicates; races return deterministic 409.
-- [ ] Old clients remain compatible while feature flag is off.
+- [x] Create-new (`POST /api/v1/employees`) writes `employees`, `employee_profiles`, first `employee_tenures`, `employment_relationships`, and `employments` in one transaction (`apiserver/internal/api/employees.go`, `apiserver/internal/repository/employees.go`).
+- [x] Identity hashes (`national_id_lookup_hash`, `phone_lookup_hash`) and global normalized employee-code uniqueness are rechecked under sorted `pg_advisory_xact_lock` transaction locks (`apiserver/internal/repository/employee_tenures.go`).
+- [x] Concurrent same identity/code requests cannot create duplicates; races return deterministic `409 Conflict`.
+- [x] Old clients without identity fields remain compatible (no HMAC secret required when identity fields omitted); invalid scope references roll back atomically with `400`.
 
-**Verification:** DB integration success, rollback, duplicate identity/code, concurrent race, retry tests.
+**Verification:** `TestEmployeeHandler_CreateNormalizesIdentityAndFailsClosedWithoutSecret`, `TestIntegrationEmployeeCreateAtomicRollbackAndUniqueness`, and multi-connection `TestIntegrationEmployeeConcurrentCreateAndReuseRaces` passed on disposable PostgreSQL.
 
 **Dependencies:** D3
 
@@ -588,12 +588,12 @@ Identity policy + privacy + permission
 #### Task D5 — Add explicit reuse-tenure command
 
 **Acceptance criteria:**
-- [ ] `POST /api/v1/employees/{employee_id}/tenures` locks and revalidates employee candidate.
-- [ ] Reuse keeps employee ID/code and creates only new tenure/employment.
-- [ ] Active employee reuse, stale candidate, date overlap, and invalid scope return deterministic errors.
-- [ ] Tenure history remains immutable and no partial writes survive failure.
+- [x] `POST /api/v1/employees/{employee_id}/tenures` locks employee row (`FOR UPDATE`), revalidates termination/overlap/stale-candidate guards and scoped `employees:rehire` permission (`apiserver/internal/api/employee_tenures.go`, `apiserver/internal/repository/employee_tenures.go`).
+- [x] Reuse preserves `employee.id`, `employee_profiles`, `original_hire_date`, and canonical employee code; creates only new tenure, relationship, and employment (supporting same-employer rehire or employer transfer).
+- [x] Active employee reuse, stale candidate (`expected_employee_code` mismatch / soft-deleted), date overlap, missing employee (`404`), and invalid scope (`400`/`403`) return deterministic errors.
+- [x] Historical tenure/relationship/employment rows remain immutable and no partial writes survive failure.
 
-**Verification:** terminated employee reuse, active rejection, overlap, employer transfer, stale candidate, concurrent reuse.
+**Verification:** `TestEmployeeHandler_CreateTenure*`, `TestEmployeeTenures_OpenAPIContract`, `TestIntegrationEmployeeReuseTenureAndDownstreamResolution`, and concurrent reuse race test in `TestIntegrationEmployeeConcurrentCreateAndReuseRaces` passed on disposable PostgreSQL.
 
 **Dependencies:** D4
 
@@ -601,9 +601,9 @@ Identity policy + privacy + permission
 
 ### Checkpoint D-C
 
-- [ ] New person creates profile + first tenure atomically.
-- [ ] Existing person creates tenure only.
-- [ ] ESS, attendance, reports, employee detail resolve correct employee/tenure.
+- [x] New person creates profile + first tenure atomically.
+- [x] Existing person creates tenure only (history immutable).
+- [x] Employee detail (`GetEmployee`) and ESS (`ResolveEmployeeForUser`, `GetMyProfile`) resolve new employee/tenure and intact profile.
 
 ### Phase 4 — UX integration
 

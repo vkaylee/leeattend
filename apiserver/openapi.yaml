@@ -3351,6 +3351,43 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  "/api/v1/employees/{employee_id}/tenures":
+    parameters:
+      - name: employee_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: post_api_v1_employees_employee_id_tenures
+      summary: Reuse an existing terminated employee by creating a new non-overlapping tenure
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployeeTenureRequest'
+      responses:
+        '201':
+          description: New employee tenure and employment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeTenureCreated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Active employee, stale candidate, or date/code overlap conflict
+        '500':
+          $ref: '#/components/responses/InternalError'
   "/api/v1/employees/{id}":
     parameters:
       - name: id
@@ -12415,6 +12452,9 @@ components:
           type: string
     CreateEmployeeRequest:
       properties:
+        date_of_birth:
+          type: string
+          nullable: true
         department_id:
           type: string
           nullable: true
@@ -12427,6 +12467,12 @@ components:
           type: string
         hire_date:
           type: string
+        national_id:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
         primary_location_id:
           type: string
           nullable: true
@@ -12437,6 +12483,34 @@ components:
         user_id:
           type: string
           nullable: true
+    CreateEmployeeTenureRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        department_id:
+          type: string
+          format: uuid
+          nullable: true
+        employer_id:
+          type: string
+          format: uuid
+        expected_employee_code:
+          type: string
+          nullable: true
+        expected_status:
+          type: string
+          enum:
+            - terminated
+          nullable: true
+        primary_location_id:
+          type: string
+          format: uuid
+          nullable: true
+        start_date:
+          type: string
+      required:
+        - employer_id
+        - start_date
     CreateEmployerRequest:
       properties:
         business_type:
@@ -14671,6 +14745,42 @@ components:
         - employment_id
         - full_name
         - schedules
+    EmployeeTenureCreated:
+      type: object
+      additionalProperties: false
+      properties:
+        employee_code:
+          type: string
+        employee_id:
+          type: string
+          format: uuid
+        employer_id:
+          type: string
+          format: uuid
+        employment_id:
+          type: string
+          format: uuid
+        relationship_id:
+          type: string
+          format: uuid
+        start_date:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+        tenure_id:
+          type: string
+          format: uuid
+      required:
+        - employee_code
+        - employee_id
+        - employer_id
+        - employment_id
+        - relationship_id
+        - start_date
+        - status
+        - tenure_id
     EmployeeWorkingPattern:
       properties:
         anchor_date:

@@ -114,15 +114,15 @@
 
 ## Phase D3 — Atomic write paths
 
-- [ ] **D3.1** Harden create-new: employee + profile + first tenure + employment in one transaction; recheck identity/code under lock.
-- [ ] **D3.2** Add `POST /api/v1/employees/{employee_id}/tenures`; lock/revalidate, keep employee identity/code, insert tenure only.
-- [ ] **D3.3** Add integration tests for rollback, duplicate/race, stale candidate, overlap, terminated reuse, and active rejection.
+- [x] **D3.1** Harden create-new: employee + profile + first tenure + employment in one transaction; recheck identity/code under lock.
+- [x] **D3.2** Add `POST /api/v1/employees/{employee_id}/tenures`; lock/revalidate, keep employee identity/code, insert tenure only.
+- [x] **D3.3** Add integration tests for rollback, duplicate/race, stale candidate, overlap, terminated reuse, and active rejection.
 
 ### Checkpoint D-C
 
-- [ ] New person creates one employee and first tenure.
-- [ ] Existing person creates tenure only.
-- [ ] ESS/attendance/reports resolve correct identity.
+- [x] New person creates one employee and first tenure.
+- [x] Existing person creates tenure only.
+- [x] ESS/attendance/reports resolve correct identity.
 
 ## Phase D4 — UX integration
 

@@ -72,6 +72,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	identityHasher, _ := identity.NewHasher(cfg.IdentityLookupHMACSecret.Expose())
 	employeeHandler := &api.EmployeeHandler{
 		Repository:      employeeRepo,
+		TenureCreator:   employeeRepo,
 		IdentityMatcher: employeeIdentityRepo,
 		IdentityHasher:  identityHasher,
 		Authorizer:      organizationAuthorizer,
