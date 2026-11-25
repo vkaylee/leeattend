@@ -465,6 +465,39 @@ BEGIN
         RAISE EXCEPTION 'schema check failed: attendance policy snapshot columns missing';
     END IF;
 
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'employee_profiles'
+          AND column_name = 'national_id_lookup_hash' AND is_nullable = 'YES'
+    ) OR NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'employee_profiles'
+          AND column_name = 'phone_lookup_hash' AND is_nullable = 'YES'
+    ) OR NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.employee_profiles'::regclass
+          AND conname = 'employee_profiles_identity_lookup_hash_check'
+          AND contype = 'c'
+    ) OR NOT EXISTS (
+        SELECT 1 FROM pg_index
+        WHERE indexrelid = to_regclass('public.idx_employee_profiles_national_id_lookup_hash')
+          AND NOT indisunique
+    ) OR NOT EXISTS (
+        SELECT 1 FROM pg_index
+        WHERE indexrelid = to_regclass('public.idx_employee_profiles_phone_lookup_hash')
+          AND NOT indisunique
+    ) THEN
+        RAISE EXCEPTION 'schema check failed: employee identity lookup hash columns, check, or non-unique partial indexes missing';
+    END IF;
+
+    SELECT count(*) INTO v_marker_count
+    FROM public.schema_migrations
+    WHERE version = '20261125000000_employee_identity_matching';
+
+    IF v_marker_count <> 1 THEN
+        RAISE EXCEPTION 'schema check failed: employee identity matching migration marker is missing';
+    END IF;
+
     RAISE NOTICE 'schema contract check: PASS';
 END;
 $$;

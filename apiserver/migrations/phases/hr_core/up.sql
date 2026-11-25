@@ -310,7 +310,13 @@ CREATE TABLE public.employee_profiles (
 
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
 
-    avatar_file_id uuid
+    avatar_file_id uuid,
+
+    national_id_lookup_hash character(64),
+
+    phone_lookup_hash character(64),
+
+    CONSTRAINT employee_profiles_identity_lookup_hash_check CHECK (((national_id_lookup_hash IS NULL) OR ((national_id_lookup_hash)::text ~ '^[0-9a-f]{64}$'::text)) AND ((phone_lookup_hash IS NULL) OR ((phone_lookup_hash)::text ~ '^[0-9a-f]{64}$'::text)))
 
 );
 
@@ -2185,6 +2191,10 @@ CREATE INDEX idx_employee_phases_status ON public.employee_phases USING btree (s
 
 
 CREATE INDEX idx_employee_profiles_employee_id ON public.employee_profiles USING btree (employee_id);
+
+CREATE INDEX idx_employee_profiles_national_id_lookup_hash ON public.employee_profiles USING btree (national_id_lookup_hash) WHERE (national_id_lookup_hash IS NOT NULL);
+
+CREATE INDEX idx_employee_profiles_phone_lookup_hash ON public.employee_profiles USING btree (phone_lookup_hash) WHERE (phone_lookup_hash IS NOT NULL);
 
 
 

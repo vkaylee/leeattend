@@ -452,14 +452,15 @@ Target flow: **Search existing → explicitly reuse existing employee or create 
 
 ## Decisions
 
-- Hard match: exact normalized national ID or exact normalized phone. Empty values never match. DOB alone never hard-matches.
-- Soft match: normalized name + DOB, or name + partial phone. Warning only; never automatic reuse.
-- Global employee code policy: normalize uppercase/trim; do not reuse historical codes; no `MAX()+1` allocation in V1.
-- New endpoint: `POST /api/v1/employees/match`; PII stays in POST body, never query string.
-- Reuse endpoint: `POST /api/v1/employees/{employee_id}/tenures`.
-- New permission: `employees:identity:match`, granted to `admin` and `hr_manager`; server enforces authorization and scope.
-- Raw profile fields remain existing restricted fields. Add deterministic HMAC lookup hashes using configured secret; never use plaintext or unsalted indexes.
-- Feature flag defaults off. Rollback disables new behavior; additive schema remains until all readers are removed.
+- **Approved at checkpoint D-A (user approval, 2026-11-24) — field normalization:** name uses Unicode NFC, trims and collapses whitespace, then Unicode case-folds; punctuation remains significant. DOB parses strictly as ISO `YYYY-MM-DD`; no timezone conversion. National ID uses Unicode NFKC, trims, uppercases, and removes documented visual separators only; leading zeroes remain, and empty-after-normalization never matches. Phone must parse to E.164 with an explicit country calling code; reject extensions/ambiguous national-only input rather than infer a country. Employee code trims outer whitespace and uppercases; preserve leading zeroes, punctuation, and internal whitespace.
+- **Approved hard match:** exact normalized national ID or exact E.164 phone; empty values never match; DOB alone never hard-matches. **Soft match:** normalized full name + DOB, or normalized name + partial phone; review warning only, never auto-reuse. Never fuzzy-auto-merge.
+- **Approved employee-code policy:** normalized code cannot identify different employees, including across historical tenures; same employee may reuse its historical code only on non-overlapping tenures, consistent with `docs/plans/employee-tenures.md`. No `MAX()+1` allocation in V1. Existing case-sensitive overlap constraint is not sufficient for this normalized policy; enforcement design must handle normalized collisions before any uniqueness constraint is activated.
+- New endpoint proposal: `POST /api/v1/employees/match`; identity PII stays in POST body, never URL/query. Reuse endpoint proposal: `POST /api/v1/employees/{employee_id}/tenures`.
+- **Approved permission:** dedicated `employees:identity:match`, granted only to `admin` and `hr_manager`; API enforces org/object scope and existing PII access policy. Deny by default.
+- Keep raw profile fields under existing restricted access. Lookup uses keyed HMAC over canonical field value with configured secret; never plaintext/unsalted indexes. Do not include PII, lookup hashes, or candidate identifiers in logs/metrics/audit detail. Audit actor, action, outcome tier, and aggregate candidate count only; audit write failure blocks the match response.
+- **Approved rate limit:** reuse existing authenticated write limiter, 30 requests per actor per 60 seconds. Enforce bounded input/body and constant-shape responses. Do not trust caller-supplied forwarding headers as identity.
+- **Approved flag policy:** default off; shadow mode may compute only aggregate tier/count metrics and must not disclose candidates or mutate data; pilot only admin/HR. Kill switch disables endpoint/UI behavior; additive schema remains until readers are retired. Owner/removal date must be set before rollout.
+- Policy approval clears the D-A policy gate only. D0.2 currently covers empty disposable-schema baseline, not populated target-data prevalence. No migration, API, or UI work is started by this approval alone.
 
 ## Dependency graph
 
@@ -479,11 +480,11 @@ Identity policy + privacy + permission
 #### Task D0 — Freeze matching policy and inventory duplicates
 
 **Acceptance criteria:**
-- [ ] Normalize rules defined for phone, national ID, name, DOB, and employee code.
-- [ ] Hard/soft match rules, global code reuse policy, permission, audit, rate limit, and feature flag documented.
-- [ ] Disposable DB report counts duplicate profiles, duplicate codes, tenure overlaps, profile mismatches, and reconciliation rows without printing PII.
+- [x] Proposed normalization rules recorded for phone, national ID, name, DOB, and employee code; D0.1 awaits human approval at D-A.
+- [x] Proposed hard/soft match rules, global code reuse policy, permission, privacy, audit, rate limit, and feature flag documented; D0.1 remains pending D-A.
+- [x] Disposable DB report counted duplicate profiles, duplicate codes, tenure overlaps, profile/code mismatches, orphan profiles, and reconciliation rows without PII output.
 
-**Verification:** inspect `employee_profiles`, `employees`, `employee_tenures` on disposable DB; record aggregate counts only.
+**Verification:** Applied repository schema phases to isolated disposable PostgreSQL (`leeattend-duplicate-d0-20261124`); aggregate report returned zero for all ten counters on empty schema. These are schema/bootstrap baseline counts, not production or populated-fixture data. No PII-bearing output or artifacts created. Disposable container/network removed after report.
 
 **Dependencies:** None
 
@@ -491,24 +492,27 @@ Identity policy + privacy + permission
 
 ### Checkpoint D-A
 
-- [ ] Human approves identity matching, code reuse, privacy, and rollout policy.
+- [x] Human approved identity normalization, hard/soft matching, global code identity/reuse, permission, privacy, audit-failure behavior, rate limit, and feature-flag default/shadow/pilot policy on 2026-11-24. Feature-flag owner/removal date remains a pre-rollout prerequisite.
+- [ ] Confirm populated disposable duplicate report is required/provisioned; current result covers empty disposable schema only, not target-data prevalence.
 
 ### Phase 1 — Lookup foundation
 
 #### Task D1 — Add reversible identity lookup migration
 
 **Acceptance criteria:**
-- [ ] Add nullable `national_id_lookup_hash` and `phone_lookup_hash` to `employee_profiles`.
-- [ ] Add indexes/partial uniqueness only after duplicate report is clean; NULL/empty values never collide.
-- [ ] Existing raw identity columns and historical rows remain unchanged.
-- [ ] `up.sql` and `down.sql` work on fresh and upgraded disposable DB.
+- [x] Add nullable `national_id_lookup_hash` and `phone_lookup_hash` (`character(64)` + lowercase 64-hex CHECK) to `employee_profiles` (`apiserver/migrations/20261125000000_employee_identity_matching/{up,down}.sql` and `apiserver/migrations/phases/hr_core/up.sql`).
+- [x] Add non-unique partial lookup indexes (`WHERE ... IS NOT NULL`); unique indexes remain deferred until populated duplicate report / collision queue is clean; NULL/empty values never collide.
+- [x] Existing raw identity columns and historical rows remain unchanged.
+- [x] `up.sql` and `down.sql` verified on fresh phased and upgraded numeric disposable DBs (`schema_contract.sql` + `phased_schema_contract.sql` PASS).
 
 **Files likely touched:**
-- `apiserver/migrations/<timestamp>_employee_identity_matching/up.sql`
-- `apiserver/migrations/<timestamp>_employee_identity_matching/down.sql`
-- schema/data inventory contract files
+- `apiserver/migrations/20261125000000_employee_identity_matching/up.sql`
+- `apiserver/migrations/20261125000000_employee_identity_matching/down.sql`
+- `apiserver/migrations/phases/hr_core/up.sql`
+- `apiserver/migrations/testdata/schema_contract.sql`
+- `apiserver/migrations/testdata/phased_schema_contract.sql`
 
-**Verification:** forward/down migration, schema contract, duplicate fixture, rollback test.
+**Verification:** Disposable PostgreSQL verified numeric upgrade + `schema_contract.sql` + `down.sql` (0 columns left) + re-apply `up.sql` + `schema_contract.sql`, and fresh phased install + `phased_schema_contract.sql` + reverse `down.sql`.
 
 **Dependencies:** D0
 
@@ -517,14 +521,17 @@ Identity policy + privacy + permission
 #### Task D2 — Add bounded application backfill/reconciliation
 
 **Acceptance criteria:**
-- [ ] Normalize + HMAC existing phone/national ID in bounded idempotent batches.
-- [ ] Missing secret fails closed.
-- [ ] Collisions are reported for manual resolution; no winner selected automatically.
-- [ ] Logs/metrics contain counts and status only, never raw PII.
+- [x] Normalize + domain-separated HMAC-SHA256 (`apiserver/internal/domain/identity/identity.go`) and bounded keyset-paginated idempotent backfill (`apiserver/internal/repository/employee_identity_backfill.go`).
+- [x] Missing or `<32`-byte `IDENTITY_LOOKUP_HMAC_SECRET` fails closed before DB access (`config.go`, `identity.NewHasher`, `BackfillIdentityLookupHashes`).
+- [x] Collisions reported as aggregate group/row counts via `IdentityReadiness` / `IdentityBackfillReport`; no winner selected; `UniqueIndexReady` remains false when collisions exist.
+- [x] Reports/errors/config stringers contain aggregate counts/status only, never raw PII, secrets, or lookup hashes.
 
-**Files likely touched:** repository/admin job, configuration validation, migration evidence, tests.
+**Files likely touched:**
+- `apiserver/internal/domain/identity/identity.go`, `identity_test.go`
+- `apiserver/internal/config/config.go`, `config_test.go`
+- `apiserver/internal/repository/employee_identity_backfill.go`, `employee_identity_backfill_test.go`, `employee_identity_backfill_integration_test.go`
 
-**Verification:** first run, rerun idempotency, collision fixture, secret-missing test.
+**Verification:** `scripts/_go-gates.sh --lint-only` (`gofmt`, `go vet`, `staticcheck`, `golangci-lint --new-from-rev`, `govulncheck`, `go mod verify`), `--unit-only ./...` (`-race`), and `--integration` (`TestIntegrationEmployeeIdentityBackfillIdempotentAndCollisionAware`, `TestIntegrationEmployeeTenures*`) all passed.
 
 **Dependencies:** D1
 
@@ -532,8 +539,8 @@ Identity policy + privacy + permission
 
 ### Checkpoint D-B
 
-- [ ] Lookup columns populated or collision queue explicitly documented.
-- [ ] No unique index activated while unresolved collisions exist.
+- [x] Lookup columns, non-unique partial indexes, bounded idempotent backfill, and collision-readiness queries verified on disposable DB.
+- [x] No unique index activated while unresolved collisions exist (asserted by both schema contracts and `UniqueIndexReady` check).
 
 ### Phase 2 — Match API
 

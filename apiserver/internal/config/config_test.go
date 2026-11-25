@@ -192,6 +192,33 @@ func TestLoad_JWTSecretShortInProduction(t *testing.T) {
 	}
 }
 
+func TestLoad_IdentityLookupHMACSecretValidation(t *testing.T) {
+	env := minimumDevEnv()
+	env["IDENTITY_LOOKUP_HMAC_SECRET"] = "short-secret-value"
+	_, err := LoadWithLookup(mockLookup(env))
+	if err == nil {
+		t.Fatal("expected error for short IDENTITY_LOOKUP_HMAC_SECRET")
+	}
+	if !strings.Contains(err.Error(), "IDENTITY_LOOKUP_HMAC_SECRET") {
+		t.Fatalf("expected IDENTITY_LOOKUP_HMAC_SECRET validation error, got %v", err)
+	}
+	if strings.Contains(err.Error(), "short-secret-value") {
+		t.Fatalf("secret leaked in validation error: %s", err.Error())
+	}
+
+	env["IDENTITY_LOOKUP_HMAC_SECRET"] = "0123456789abcdef0123456789abcdef"
+	cfg, err := LoadWithLookup(mockLookup(env))
+	if err != nil {
+		t.Fatalf("expected valid IDENTITY_LOOKUP_HMAC_SECRET, got %v", err)
+	}
+	if cfg.IdentityLookupHMACSecret.String() != "[REDACTED]" {
+		t.Fatalf("expected redacted String(), got %q", cfg.IdentityLookupHMACSecret.String())
+	}
+	if cfg.IdentityLookupHMACSecret.Expose() != "0123456789abcdef0123456789abcdef" {
+		t.Fatalf("unexpected exposed secret")
+	}
+}
+
 func TestLoad_InvalidURLPrefixes(t *testing.T) {
 	env := minimumDevEnv()
 	env["DB_PRIMARY_URL"] = "mysql://user:pass@localhost:3306/db"

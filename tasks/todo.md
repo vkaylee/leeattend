@@ -89,22 +89,23 @@
 
 ## Phase D0 — Policy and baseline
 
-- [ ] **D0.1** Freeze normalization, hard/soft match, global employee-code, permission, privacy, audit, rate-limit, and feature-flag policy.
-- [ ] **D0.2** Generate disposable aggregate duplicate report: profiles, codes, tenure overlaps, mismatches, reconciliation rows; no raw PII.
+- [x] **D0.1** Human approved normalization, hard/soft match, global employee-code, permission, privacy, audit, 30/actor/60s rate limit, and feature-flag default/shadow/pilot policy on 2026-11-24. Flag owner/removal date remains required before rollout.
+- [x] **D0.2** Run aggregate duplicate report on isolated disposable schema; all ten counters zero on empty-schema baseline. No PII output/artifact. Populated-fixture/target prevalence not measured.
 
 ### Checkpoint D-A
 
-- [ ] Human approves identity and code policy before schema/API work.
+- [x] Human approved identity and code policy before schema/API work.
+- [ ] Decide/provision populated disposable fixture if data-prevalence report is required; current schema-only baseline is not prevalence evidence.
 
 ## Phase D1 — Lookup foundation
 
-- [ ] **D1.1** Add reversible nullable phone/national-ID HMAC lookup columns and indexes.
-- [ ] **D1.2** Add bounded idempotent backfill/reconciliation; fail closed without secret; block unique indexes on unresolved collisions.
+- [x] **D1.1** Add reversible nullable phone/national-ID HMAC lookup columns and non-unique partial indexes (`20261125000000_employee_identity_matching`, `phases/hr_core/up.sql`, schema contracts).
+- [x] **D1.2** Add bounded idempotent backfill/reconciliation (`internal/domain/identity`, `config.IdentityLookupHMACSecret`, `repository/employee_identity_backfill.go`); fail closed without secret; block unique indexes on unresolved collisions.
 
 ### Checkpoint D-B
 
-- [ ] Migration forward/down and backfill rerun pass.
-- [ ] No raw PII in logs/artifacts.
+- [x] Migration forward/down (numeric + fresh phased) and backfill dry-run/first-run/rerun/collision/secret-missing integration tests pass.
+- [x] No raw PII, secret, or lookup hash in reports/logs/artifacts.
 
 ## Phase D2 — Match API
 

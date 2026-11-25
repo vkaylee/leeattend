@@ -79,6 +79,14 @@ BEGIN
         RAISE EXCEPTION 'phased schema check failed: superseded policy snapshot index remains';
     END IF;
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employee_profiles' AND column_name = 'national_id_lookup_hash' AND is_nullable = 'YES')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employee_profiles' AND column_name = 'phone_lookup_hash' AND is_nullable = 'YES')
+       OR NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.employee_profiles'::regclass AND conname = 'employee_profiles_identity_lookup_hash_check' AND contype = 'c')
+       OR NOT EXISTS (SELECT 1 FROM pg_index WHERE indexrelid = to_regclass('public.idx_employee_profiles_national_id_lookup_hash') AND NOT indisunique)
+       OR NOT EXISTS (SELECT 1 FROM pg_index WHERE indexrelid = to_regclass('public.idx_employee_profiles_phone_lookup_hash') AND NOT indisunique) THEN
+        RAISE EXCEPTION 'phased schema check failed: employee identity lookup hash columns, check, or non-unique partial indexes missing';
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM public.feature_flags WHERE flag_key = 'ff_econtracts' AND enabled = false)
        OR NOT EXISTS (SELECT 1 FROM public.feature_flags WHERE flag_key = 'ff_ess' AND enabled = false) THEN
         RAISE EXCEPTION 'phased schema check failed: default feature flags missing';

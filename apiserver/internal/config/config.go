@@ -119,14 +119,15 @@ type Config struct {
 	RedisURL RedisURL
 
 	// 2.4 Security
-	JWTSecret              JWTSecret
-	EncryptionKeysJSON     EncryptionKeysJSON
-	EncryptionKeys         EncryptionKeys
-	AllowedOrigins         []string
-	CookieDomain           string
-	MaxRequestBodyBytes    int64
-	MaxFileUploadBodyBytes int64
-	MaxBulkUploadBodyBytes int64
+	JWTSecret                JWTSecret
+	IdentityLookupHMACSecret Secret
+	EncryptionKeysJSON       EncryptionKeysJSON
+	EncryptionKeys           EncryptionKeys
+	AllowedOrigins           []string
+	CookieDomain             string
+	MaxRequestBodyBytes      int64
+	MaxFileUploadBodyBytes   int64
+	MaxBulkUploadBodyBytes   int64
 
 	// 2.5 Storage (S3 / MinIO)
 	S3EndpointURL           string
@@ -377,6 +378,11 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 		addErr("JWT_SECRET", "must be at least 32 bytes in production")
 	}
 
+	identityLookupHMACSecretRaw, ok := get("IDENTITY_LOOKUP_HMAC_SECRET")
+	if ok && len(identityLookupHMACSecretRaw) < 32 {
+		addErr("IDENTITY_LOOKUP_HMAC_SECRET", "must be at least 32 bytes when configured")
+	}
+
 	encryptionKeysRaw, ok := get("ENCRYPTION_KEYS_JSON")
 	var parsedKeys EncryptionKeys
 	if !ok {
@@ -539,6 +545,7 @@ func LoadWithLookup(lookup LookupEnvFunc) (*Config, error) {
 		PgBouncerPort:              pgBouncerPort,
 		RedisURL:                   RedisURL(redisRaw),
 		JWTSecret:                  JWTSecret(jwtSecretRaw),
+		IdentityLookupHMACSecret:   Secret(identityLookupHMACSecretRaw),
 		EncryptionKeysJSON:         EncryptionKeysJSON(encryptionKeysRaw),
 		EncryptionKeys:             parsedKeys,
 		AllowedOrigins:             allowedOrigins,
