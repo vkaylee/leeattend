@@ -52,10 +52,13 @@ BEGIN
           'payroll_formula_rules',
           'payroll_formula_rule_versions',
           'payroll_calculation_runs',
-          'department_payroll_reconciliation',
+          'overtime_policy_versions',
+          'work_policy_groups',
+          'work_policy_versions',
+          'work_policy_memberships',
           'schema_migrations'
       );
-    IF required_count <> 16 THEN
+    IF required_count <> 19 THEN
         RAISE EXCEPTION 'phased schema check failed: required objects missing, found %', required_count;
     END IF;
 
@@ -115,6 +118,33 @@ BEGIN
        OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.employments'::regclass AND tgname = 'trg_validate_segment_relationship_bounds' AND NOT tgisinternal)
        OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.employee_tenures'::regclass AND tgname = 'trg_validate_tenure_bounds_guard' AND NOT tgisinternal) THEN
         RAISE EXCEPTION 'phased schema check failed: employee tenures v2 columns, constraints, or containment triggers missing';
+    END IF;
+
+    -- Work Policy v2 single-source-of-truth invariants
+    IF to_regclass('public.labor_policy_groups') IS NOT NULL
+       OR to_regclass('public.labor_policy_group_versions') IS NOT NULL
+       OR to_regclass('public.labor_policy_memberships') IS NOT NULL
+       OR to_regclass('public.work_credit_policies') IS NOT NULL
+       OR to_regclass('public.pay_basis_policies') IS NOT NULL
+       OR to_regclass('public.attendance_policies') IS NOT NULL
+       OR to_regclass('public.attendance_policy_versions') IS NOT NULL
+       OR to_regclass('public.attendance_policy_assignments') IS NOT NULL
+       OR to_regclass('public.overtime_policy_assignments') IS NOT NULL
+       OR to_regclass('public.overtime_rules') IS NOT NULL
+       OR to_regclass('public.department_payroll_reconciliation') IS NOT NULL THEN
+        RAISE EXCEPTION 'phased schema check failed: legacy competing work policy tables or views remain';
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.work_policy_versions'::regclass AND conname = 'work_policy_versions_published_no_overlap' AND contype = 'x')
+       OR NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.work_policy_memberships'::regclass AND conname = 'work_policy_memberships_effective_no_overlap' AND contype = 'x')
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.overtime_policy_versions'::regclass AND tgname = 'trg_guard_overtime_policy_version_immutability' AND NOT tgisinternal)
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.work_policy_versions'::regclass AND tgname = 'trg_guard_work_policy_version_immutability' AND NOT tgisinternal)
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.work_policy_memberships'::regclass AND tgname = 'trg_work_policy_memberships_rel_bounds' AND NOT tgisinternal)
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.employment_relationships'::regclass AND tgname = 'trg_employment_relationships_policy_bounds_guard' AND NOT tgisinternal)
+       OR NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.attendance_daily_summaries'::regclass AND conname = 'attendance_daily_summaries_work_policy_version_id_fkey' AND contype = 'f')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'payslip_segments' AND column_name = 'work_policy_version_id')
+       OR to_regclass('public.payslip_segments_work_policy_version_idx') IS NULL THEN
+        RAISE EXCEPTION 'phased schema check failed: work policy v2 constraints, triggers, or provenance links missing';
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM public.feature_flags WHERE flag_key = 'ff_econtracts' AND enabled = false)

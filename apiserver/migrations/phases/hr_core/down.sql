@@ -8,15 +8,15 @@ DROP TABLE IF EXISTS public.salary_component_definitions CASCADE;
 
 DROP TABLE IF EXISTS public.recruitment_sources CASCADE;
 
-DROP TABLE IF EXISTS public.overtime_rules CASCADE;
+DROP TABLE IF EXISTS public.overtime_policy_versions CASCADE;
+
+DROP FUNCTION IF EXISTS public.fn_guard_overtime_policy_version_immutability();
 
 DROP TABLE IF EXISTS public.overtime_requests CASCADE;
 
 DROP TABLE IF EXISTS public.overtime_request_employees CASCADE;
 
 DROP TABLE IF EXISTS public.overtime_policy_definitions CASCADE;
-
-DROP TABLE IF EXISTS public.overtime_policy_assignments CASCADE;
 
 DROP TABLE IF EXISTS public.leave_types CASCADE;
 

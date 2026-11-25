@@ -85,8 +85,8 @@ func (r *attendancePolicyRows) Scan(dest ...any) error {
 }
 
 func TestAttendanceSummariesUseEffectiveWorkPolicy(t *testing.T) {
-	employmentID, summaryID, versionID := uuid.New(), uuid.New(), uuid.New()
-	var query string
+	employmentID, summaryID, relID, versionID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	var resolverQuery string
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
 			return fakeRow{scanFn: func(dest ...any) error {
@@ -95,10 +95,13 @@ func TestAttendanceSummariesUseEffectiveWorkPolicy(t *testing.T) {
 			}}
 		},
 		queryFn: func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
-			query = sql
+			if strings.Contains(sql, "work_policy_memberships") {
+				resolverQuery = sql
+				return &resolvedPolicyCustomRows{empID: employmentID, relID: relID, versionID: versionID, minutesPerCredit: 450}, nil
+			}
 			return &attendancePolicyRows{rows: [][]any{{
 				summaryID, employmentID, "2026-06-15", 450, 450, 0, 0, 0, 0, 0, 0,
-				0, 0, 450, 450, 450, false, nil, 450.0, versionID, nil, "none", nil, nil, false, false, nil,
+				0, 0, 450, 450, 450, false, nil, nil, nil, "none", nil, nil, false, false, nil,
 				"2026-06-15T00:00:00Z", "2026-06-15T00:00:00Z",
 			}}}, nil
 		},
@@ -108,8 +111,8 @@ func TestAttendanceSummariesUseEffectiveWorkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get summaries: %v", err)
 	}
-	if !strings.Contains(query, "m.effective_to IS NULL OR m.effective_to > s.date") || !strings.Contains(query, "v.effective_to IS NULL OR v.effective_to > s.date") {
-		t.Fatalf("query must use exclusive policy boundaries: %s", query)
+	if !strings.Contains(resolverQuery, "v.status = 'published'") {
+		t.Fatalf("resolver query must filter published versions: %s", resolverQuery)
 	}
 	if len(result.Data) != 1 || result.Data[0].StandardCredits != 1 || result.Data[0].WorkPolicyVersionID == nil || *result.Data[0].WorkPolicyVersionID != versionID {
 		t.Fatalf("unexpected policy summary: %+v", result.Data)
@@ -125,10 +128,13 @@ func TestAttendanceSummariesKeepMissingPolicyUnconfigured(t *testing.T) {
 				return nil
 			}}
 		},
-		queryFn: func(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+		queryFn: func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+			if strings.Contains(sql, "work_policy_memberships") {
+				return &fakeRows{}, nil
+			}
 			return &attendancePolicyRows{rows: [][]any{{
 				summaryID, employmentID, "2026-06-15", 90, 90, 0, 0, 0, 0, 0, 0,
-				0, 0, 90, 90, 90, false, nil, 0.0, nil, nil, "none", nil, nil, false, false, nil,
+				0, 0, 90, 90, 90, false, nil, nil, nil, "none", nil, nil, false, false, nil,
 				"2026-06-15T00:00:00Z", "2026-06-15T00:00:00Z",
 			}}}, nil
 		},
@@ -141,4 +147,40 @@ func TestAttendanceSummariesKeepMissingPolicyUnconfigured(t *testing.T) {
 	if len(result.Data) != 1 || result.Data[0].StandardCredits != 0 || result.Data[0].WorkPolicyVersionID != nil {
 		t.Fatalf("missing policy must remain unconfigured: %+v", result.Data)
 	}
+}
+
+type resolvedPolicyCustomRows struct {
+	empID            uuid.UUID
+	relID            uuid.UUID
+	versionID        uuid.UUID
+	minutesPerCredit int
+	read             bool
+}
+
+func (r *resolvedPolicyCustomRows) Close()                                       {}
+func (r *resolvedPolicyCustomRows) Err() error                                   { return nil }
+func (r *resolvedPolicyCustomRows) CommandTag() pgconn.CommandTag                { return pgconn.CommandTag{} }
+func (r *resolvedPolicyCustomRows) FieldDescriptions() []pgconn.FieldDescription { return nil }
+func (r *resolvedPolicyCustomRows) Values() ([]any, error)                       { return nil, nil }
+func (r *resolvedPolicyCustomRows) RawValues() [][]byte                          { return nil }
+func (r *resolvedPolicyCustomRows) Conn() *pgx.Conn                              { return nil }
+func (r *resolvedPolicyCustomRows) Next() bool {
+	if r.read {
+		return false
+	}
+	r.read = true
+	return true
+}
+func (r *resolvedPolicyCustomRows) Scan(dest ...any) error {
+	base := &resolvedPolicyTestRows{empID: r.empID, relID: r.relID}
+	if err := base.Scan(dest...); err != nil {
+		return err
+	}
+	if r.versionID != uuid.Nil {
+		*(dest[6].(*uuid.UUID)) = r.versionID
+	}
+	if r.minutesPerCredit > 0 {
+		*(dest[14].(*int)) = r.minutesPerCredit
+	}
+	return nil
 }

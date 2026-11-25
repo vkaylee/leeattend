@@ -99,7 +99,7 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	attendanceHandler := &api.AttendanceHandler{Repository: attendanceRepo, Authorizer: organizationAuthorizer}
 	attendanceLogsHandler := &api.AttendanceLogsHandler{Repository: attendanceRepo, Authorizer: organizationAuthorizer, StorageDir: cfg.StorageDir}
 	attendancePolicyRepo := repository.AttendancePolicyRepository{DB: db, SystemDB: db}
-	attendancePolicyHandler := &api.AttendancePolicyHandler{PolicyRepository: attendancePolicyRepo, BehalfRepository: attendancePolicyRepo, Authorizer: organizationAuthorizer}
+	attendancePolicyHandler := &api.AttendancePolicyHandler{BehalfRepository: attendancePolicyRepo, Authorizer: organizationAuthorizer}
 	overtimeRepo := repository.OvertimeRepository{DB: db}
 	overtimeHandler := &api.OvertimeHandler{Repository: overtimeRepo, BehalfRepository: attendancePolicyRepo, Authorizer: organizationAuthorizer}
 	registerOvertimeRoutes(protectedRouter, overtimeHandler)

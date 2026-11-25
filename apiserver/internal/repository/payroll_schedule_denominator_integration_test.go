@@ -42,10 +42,11 @@ func TestIntegrationLoadScheduledWorkdayCountsUsesCanonicalWorkSegments(t *testi
 	insertSegment("2026-01-06", "completed")
 	insertSegment("2026-01-07", "cancelled")
 
-	counts, err := loadScheduledWorkdayCounts(ctx, tx, employmentID, "2026-01-01", "2026-01-31")
+	bundles, err := (PayrollBatchLoader{}).LoadForEmployments(ctx, tx, []uuid.UUID{employmentID}, 2026, 1)
 	if err != nil {
-		t.Fatalf("load scheduled workday counts: %v", err)
+		t.Fatalf("load batch period inputs: %v", err)
 	}
+	counts := bundles[employmentID].Input.ScheduledWorkdayCounts
 	if len(counts) != 2 || counts["2026-01-05"] != 1 || counts["2026-01-06"] != 1 {
 		t.Fatalf("unexpected scheduled workday counts: %#v", counts)
 	}

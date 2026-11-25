@@ -25,16 +25,12 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useHorizontalDragScroll } from "@/hooks/use-horizontal-drag-scroll";
 import {
   assignEmployeeSalaryComponent,
-  fetchEmployeePayrollConfigs,
   fetchEmployeeSalaryComponents,
   fetchSalaryComponents,
-  setEmployeePayrollConfig,
 } from "@/lib/api/payroll";
 import { EmployeeSalaryComponentDetail } from "@/lib/api/types";
 import { createQueryKey } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
-
-import TemporalConfigTable from "../common/temporal-config-table";
 
 
 interface SalaryCompDefinition {
@@ -170,7 +166,7 @@ interface Props {
   employmentId: string;
 }
 
-export default function EmployeeSalaryConfig({employeeId, employmentId }: Props) {
+export default function EmployeeSalaryConfig({ employmentId }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -188,7 +184,6 @@ export default function EmployeeSalaryConfig({employeeId, employmentId }: Props)
 
   const { data: definitions = [] } = useQuery({ queryKey: createQueryKey("salary-components"), queryFn: () => fetchSalaryComponents() });
   const { data: employeeComps = [], isLoading } = useQuery({ queryKey: createQueryKey("employee-salary-components", employmentId), queryFn: () => fetchEmployeeSalaryComponents(employmentId) });
-  const { data: individualConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: createQueryKey("employee-payroll-configs", employeeId), queryFn: () => fetchEmployeePayrollConfigs(employeeId) });
 
   const groupedComps = employeeComps.reduce<Partial<Record<string, EmployeeSalaryComponentDetail[]>>>((acc, comp) => {
     const key = comp.component_definition_id;
@@ -199,15 +194,6 @@ export default function EmployeeSalaryConfig({employeeId, employmentId }: Props)
   Object.keys(groupedComps).forEach(key => { groupedComps[key]?.sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()); });
 
   const toggleGroup = (id: string) => { setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] })); };
-
-  const saveIndividualConfigMutation = useMutation({
-    mutationFn: (data: { effective_date: string; hours_per_day: number; std_working_days: number }) => setEmployeePayrollConfig(employeeId, {
-      ...data,
-      hours_per_day: String(data.hours_per_day),
-      std_working_days: String(data.std_working_days),
-    }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: createQueryKey("employee-payroll-configs", employeeId) }); toast.success(t("common.success")); },
-  });
 
   const assignMutation = useMutation({
     mutationFn: (data: { amount: string; component_definition_id: string; effective_date: string; }) => assignEmployeeSalaryComponent(employmentId, data),
@@ -266,8 +252,18 @@ export default function EmployeeSalaryConfig({employeeId, employmentId }: Props)
         </div>
       </div>
 
-      <div className="pt-10 border-t border-slate-100 dark:border-slate-800">
-        <TemporalConfigTable isLoading={isConfigsLoading} onSave={async (data) => { await saveIndividualConfigMutation.mutateAsync(data); }} records={individualConfigs} title={t("payroll.settings.std_days_override")} />
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-800/40">
+        <div className="space-y-1">
+          <Typography className="text-sm font-bold text-slate-800 dark:text-slate-100" variant="h4">
+            {t("payroll.work_policies.title", "Work Policy Groups")}
+          </Typography>
+          <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">
+            {t("payroll.work_policies.managed_in_settings", "Standard days, work credit, and overtime rules are managed via Work Policy Groups in Payroll Settings.")}
+          </Typography>
+        </div>
+        <Link search={{} as never} to="/settings/payroll">
+          <Button size="sm" variant="outline">{t("payroll.work_policies.open_settings", "Open Work Policies")}</Button>
+        </Link>
       </div>
     </div>
   );

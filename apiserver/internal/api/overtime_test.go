@@ -57,17 +57,27 @@ type mockOvertimeRepo struct {
 func (m *mockOvertimeRepo) ListOvertimePolicies(_ context.Context, p, l int) (OvertimePolicyListResponse, error) {
 	return OvertimePolicyListResponse{Data: m.policies, Total: int64(len(m.policies)), Page: p, Limit: l}, m.err
 }
-func (m *mockOvertimeRepo) CreateOvertimePolicy(_ context.Context, req CreateOvertimePolicyRequest) (OvertimePolicy, error) {
-	return OvertimePolicy{ID: uuid.New(), Name: req.Name, Description: req.Description}, m.err
+func (m *mockOvertimeRepo) CreateOvertimePolicy(_ context.Context, req CreateOvertimePolicyRequest, actor uuid.UUID) (OvertimePolicyDetail, error) {
+	pid := uuid.New()
+	return OvertimePolicyDetail{
+		Policy:   OvertimePolicy{ID: pid, Name: req.Name, Description: req.Description},
+		Versions: []OvertimePolicyVersion{{ID: uuid.New(), PolicyID: pid, VersionNo: 1, Status: "draft", RowVersion: 1, CreatedBy: actor, Rules: req.Rules}},
+	}, m.err
 }
 func (m *mockOvertimeRepo) GetOvertimePolicy(_ context.Context, _ uuid.UUID) (OvertimePolicyDetail, error) {
 	return m.policyDetail, m.err
 }
-func (m *mockOvertimeRepo) AddOvertimeRule(_ context.Context, id uuid.UUID, req CreateOvertimeRuleRequest) (OvertimeRule, error) {
-	return OvertimeRule{ID: uuid.New(), PolicyID: id, Priority: req.Priority, Multiplier: req.Multiplier}, m.err
+func (m *mockOvertimeRepo) ListOvertimePolicyVersions(_ context.Context, _ uuid.UUID) ([]OvertimePolicyVersion, error) {
+	return m.policyDetail.Versions, m.err
 }
-func (m *mockOvertimeRepo) AssignOvertimePolicy(_ context.Context, _ AssignOvertimePolicyRequest) error {
-	return m.err
+func (m *mockOvertimeRepo) CreateOvertimePolicyVersion(_ context.Context, id uuid.UUID, req CreateOvertimePolicyVersionRequest, actor uuid.UUID) (OvertimePolicyVersion, error) {
+	return OvertimePolicyVersion{ID: uuid.New(), PolicyID: id, VersionNo: 2, Status: "draft", RowVersion: 1, Rules: req.Rules, CreatedBy: actor}, m.err
+}
+func (m *mockOvertimeRepo) PatchOvertimePolicyVersion(_ context.Context, id, vid uuid.UUID, req PatchOvertimePolicyVersionRequest) (OvertimePolicyVersion, error) {
+	return OvertimePolicyVersion{ID: vid, PolicyID: id, VersionNo: 1, Status: "draft", RowVersion: req.ExpectedRowVersion + 1, Rules: req.Rules}, m.err
+}
+func (m *mockOvertimeRepo) PublishOvertimePolicyVersion(_ context.Context, id, vid uuid.UUID, req PublishOvertimePolicyVersionRequest, actor uuid.UUID) (OvertimePolicyVersion, error) {
+	return OvertimePolicyVersion{ID: vid, PolicyID: id, VersionNo: 1, Status: "published", RowVersion: req.ExpectedRowVersion + 1, PublishedBy: &actor}, m.err
 }
 func (m *mockOvertimeRepo) ListOvertimeRequests(_ context.Context, p, l int) (OvertimeRequestListResponse, error) {
 	return OvertimeRequestListResponse{Data: m.requests, Total: int64(len(m.requests)), Page: p, Limit: l}, m.err
@@ -140,57 +150,48 @@ func TestOvertimePolicies_CreateAndListSuccess(t *testing.T) {
 	}
 }
 
-func TestOvertimePolicies_AddRuleValidation(t *testing.T) {
+func TestOvertimePolicyVersions_LifecycleValidation(t *testing.T) {
 	policyID := uuid.New()
+	versionID := uuid.New()
 	user := uuid.New()
 	h := OvertimeHandler{Repository: &mockOvertimeRepo{}, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{PermissionOvertimePoliciesManage: true}}}
 
-	// negative multiplier
-	req := otReq(http.MethodPost, "/api/v1"+"/overtime/policies/"+policyID.String()+"/rules", []byte(`{"priority":1,"multiplier":"-1.5"}`), user)
+	// negative multiplier rejected
+	req := otReq(http.MethodPost, "/api/v1/overtime/policies/"+policyID.String()+"/versions", []byte(`{"rules":[{"priority":1,"day_type":"weekday","days_of_week":127,"multiplier":"-1.5"}]}`), user)
 	req.SetPathValue("policy_id", policyID.String())
 	rec := httptest.NewRecorder()
-	h.AddRule(rec, req)
-	if rec.Code != http.StatusBadRequest && rec.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("expected 400/422, got %d", rec.Code)
+	h.CreatePolicyVersion(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", rec.Code)
 	}
 
-	// success
-	req2 := otReq(http.MethodPost, "/api/v1"+"/overtime/policies/"+policyID.String()+"/rules", []byte(`{"priority":1,"multiplier":"1.50","days_of_week":127}`), user)
+	// valid version draft creation
+	req2 := otReq(http.MethodPost, "/api/v1/overtime/policies/"+policyID.String()+"/versions", []byte(`{"daily_cap_minutes":240,"monthly_cap_hours":"40","rules":[{"priority":10,"day_type":"weekday","days_of_week":127,"multiplier":"1.50"}]}`), user)
 	req2.SetPathValue("policy_id", policyID.String())
 	rec2 := httptest.NewRecorder()
-	h.AddRule(rec2, req2)
+	h.CreatePolicyVersion(rec2, req2)
 	if rec2.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d", rec2.Code)
-	}
-}
-
-func TestOvertimePolicies_AssignValidation(t *testing.T) {
-	policyID := uuid.New()
-	user := uuid.New()
-	h := OvertimeHandler{Repository: &mockOvertimeRepo{}, Authorizer: mockOvertimeAuthorizer{allowed: map[string]bool{PermissionOvertimePoliciesManage: true}}}
-
-	// invalid assignee type
-	req := otReq(http.MethodPost, "/api/v1"+"/overtime/policies/assign", []byte(`{"assignee_type":"invalid","policy_id":"`+policyID.String()+`","effective_from":"2026-10-20"}`), user)
-	rec := httptest.NewRecorder()
-	h.AssignPolicy(rec, req)
-	if rec.Code != http.StatusBadRequest && rec.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("expected 400/422, got %d", rec.Code)
+		t.Fatalf("expected 201, got %d: %s", rec2.Code, rec2.Body.String())
 	}
 
-	// valid organization assignment
-	req2 := otReq(http.MethodPost, "/api/v1"+"/overtime/policies/assign", []byte(`{"assignee_type":"organization","policy_id":"`+policyID.String()+`","effective_from":"2026-10-20"}`), user)
-	rec2 := httptest.NewRecorder()
-	h.AssignPolicy(rec2, req2)
-	if rec2.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec2.Code)
+	// patch draft requires expected_row_version >= 1
+	reqPatch := otReq(http.MethodPatch, "/api/v1/overtime/policies/"+policyID.String()+"/versions/"+versionID.String(), []byte(`{"expected_row_version":1,"rules":[{"priority":10,"day_type":"holiday","days_of_week":127,"multiplier":"3.00"}]}`), user)
+	reqPatch.SetPathValue("policy_id", policyID.String())
+	reqPatch.SetPathValue("version_id", versionID.String())
+	recPatch := httptest.NewRecorder()
+	h.PatchPolicyVersion(recPatch, reqPatch)
+	if recPatch.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recPatch.Code)
 	}
-	// valid user assignment
-	targetUserID := uuid.New()
-	req3 := otReq(http.MethodPost, "/api/v1"+"/overtime/policies/assign", []byte(`{"assignee_type":"user","assignee_id":"`+targetUserID.String()+`","policy_id":"`+policyID.String()+`","effective_from":"2026-10-20"}`), user)
-	rec3 := httptest.NewRecorder()
-	h.AssignPolicy(rec3, req3)
-	if rec3.Code != http.StatusOK {
-		t.Fatalf("expected 200 for user assignment, got %d", rec3.Code)
+
+	// publish draft
+	reqPub := otReq(http.MethodPost, "/api/v1/overtime/policies/"+policyID.String()+"/versions/"+versionID.String()+"/publish", []byte(`{"expected_row_version":2}`), user)
+	reqPub.SetPathValue("policy_id", policyID.String())
+	reqPub.SetPathValue("version_id", versionID.String())
+	recPub := httptest.NewRecorder()
+	h.PublishPolicyVersion(recPub, reqPub)
+	if recPub.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recPub.Code)
 	}
 }
 

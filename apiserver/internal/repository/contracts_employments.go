@@ -842,6 +842,10 @@ func closeRelationshipAndSegments(ctx context.Context, tx pgx.Tx, employmentID, 
 		return api.Employment{}, false, mapRelationshipConstraintError(err)
 	}
 
+	if err := closeRelationshipPolicyMemberships(ctx, tx, []uuid.UUID{relationshipID}, req.TerminationDate); err != nil {
+		return api.Employment{}, false, mapRelationshipConstraintError(err)
+	}
+
 	relTag, err := tx.Exec(ctx, `
 		UPDATE employment_relationships
 		SET status = 'terminated',

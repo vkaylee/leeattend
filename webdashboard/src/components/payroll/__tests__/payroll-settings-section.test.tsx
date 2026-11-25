@@ -1,392 +1,239 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
-
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "@/components/ui/toast";
-import * as employeeApi from "@/lib/api/employees";
-import { ApiError } from "@/lib/api/errors";
+import * as employeesApi from "@/lib/api/employees";
 import * as api from "@/lib/api/payroll";
 
 import PayrollSettingsSection from "../payroll-settings-section";
 
-
-// Mock API
-vi.mock("@/lib/api/employees", () => ({
-  fetchEmployees: vi.fn(),
-  fetchEmployeeEmployments: vi.fn(),
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (k: string, d?: string) => d ?? k }),
 }));
 
-vi.mock("@/lib/api/payroll", () => ({
-  fetchPayrollSettings: vi.fn(),
-  updatePayrollSettings: vi.fn(),
-  fetchPayrollSettingsHistory: vi.fn(),
-  fetchWorkPolicyGroups: vi.fn(),
-  fetchWorkPolicyGroupHistory: vi.fn(),
-  createWorkPolicyGroupVersion: vi.fn(),
-  fetchWorkPolicyMemberships: vi.fn(),
-  createWorkPolicyMembership: vi.fn(),
-  fetchWorkPolicyReferenceOptions: vi.fn(),
-  validateWorkPolicyGroupVersion: vi.fn(),
-  fetchPayrollImpactBatch: vi.fn(),
-  simulatePayroll: vi.fn(),
-  simulatePayrollWithPolicy: vi.fn(),
-}));
-
-// Mock i18n
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    i18n: {
-      changeLanguage: () => Promise.resolve(),
-      language: 'en',
-    },
+vi.mock("@/hooks/use-permissions", () => ({
+  useMyPermissions: () => ({
+    hasPermission: () => true,
   }),
 }));
 
-describe("PayrollSettingsSection", () => {
+vi.mock("@/lib/api/payroll", () => ({
+  fetchWorkPolicyGroups: vi.fn(),
+  createWorkPolicyGroup: vi.fn(),
+  fetchWorkPolicyGroupVersions: vi.fn(),
+  createWorkPolicyVersion: vi.fn(),
+  patchWorkPolicyVersion: vi.fn(),
+  validateWorkPolicyVersion: vi.fn(),
+  publishWorkPolicyVersion: vi.fn(),
+  fetchWorkPolicyMemberships: vi.fn(),
+  createWorkPolicyMembership: vi.fn(),
+  transferWorkPolicyMembership: vi.fn(),
+  fetchWorkPolicyReferenceOptions: vi.fn(),
+  simulateWorkPolicyVersionBatch: vi.fn(),
+}));
+
+vi.mock("@/lib/api/employees", () => ({
+  fetchEmployees: vi.fn(),
+  fetchEmployeeRelationships: vi.fn(),
+}));
+
+const sampleDraft: api.WorkPolicyVersion = {
+  id: "ver-2",
+  group_id: "grp-1",
+  group_code: "STD-OFFICE",
+  group_name: "Standard Office",
+  version_no: 2,
+  status: "draft",
+  row_version: 1,
+  effective_from: "2026-06-01",
+  effective_to: null,
+  minutes_per_credit: 480,
+  work_unit_minutes: 1,
+  rounding_policy: "none",
+  early_arrival_strategy: "clamp",
+  late_arrival_grace_minutes: 5,
+  early_ot_enabled: false,
+  early_ot_qualification_grace_minutes: 0,
+  early_ot_max_minutes: null,
+  break_auto_deduct: true,
+  break_is_overtime: false,
+  ot_aggregation_mode: "aggregate",
+  working_pattern_id: null,
+  pay_method: "monthly",
+  monthly_denominator: "fixed",
+  monthly_standard_days: "22",
+  rate_component_definition_id: null,
+  paid_leave_credit_mode: "standard_day",
+  overtime_policy_version_id: "ot-ver-1",
+  created_by: "u-1",
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+};
+
+describe("PayrollSettingsSection (Work Policy v2)", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([
+      {
+        id: "grp-1",
+        code: "STD-OFFICE",
+        name: "Standard Office",
+        active_membership_count: 1,
+        latest_draft: sampleDraft,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+      {
+        id: "grp-2",
+        code: "SHIFT-PROD",
+        name: "Production Shift",
+        active_membership_count: 0,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+    ]);
+    vi.mocked(api.fetchWorkPolicyGroupVersions).mockResolvedValue([sampleDraft]);
+    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([
+      { id: "m-1", group_id: "grp-1", employment_relationship_id: "rel-1", effective_from: "2026-01-01", effective_to: null },
+    ]);
+    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({
+      overtimeVersions: [{ id: "ot-ver-1", label: "Standard OT (v1)" }],
+      patterns: [],
+      salaryComponents: [{ id: "sc-1", label: "Hourly Rate (RATE)" }],
     });
- 
-    vi.mocked(api.fetchPayrollSettingsHistory).mockResolvedValue([
-      { fixed_std_days: 26, hours_per_day: 8, effective_date: "2026-01-01" }
-    ] as unknown as never);
-    vi.mocked(employeeApi.fetchEmployees).mockResolvedValue({ data: [{ id: "employee-1", full_name: "Test Employee" }], total: 1, page: 1, limit: 100 } as never);
-    vi.mocked(employeeApi.fetchEmployeeEmployments).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [], salaryComponents: [] });
-    vi.mocked(api.simulatePayroll).mockResolvedValue({ base_pay_amount: "100", net_pay_amount: "90" } as never);
-    vi.mocked(api.simulatePayrollWithPolicy).mockResolvedValue({ base_pay_amount: "110", net_pay_amount: "99" } as never);
+    vi.mocked(employeesApi.fetchEmployees).mockResolvedValue({
+      data: [{ id: "emp-1", full_name: "Alice", employee_id_number: "EMP001" } as unknown as never],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+    vi.mocked(employeesApi.fetchEmployeeRelationships).mockResolvedValue([
+      { id: "rel-1", employee_id: "emp-1", employer_id: "er-1", tenure_id: "t-1", status: "active", start_date: "2026-01-01" },
+    ]);
   });
 
-  const renderWithProviders = (ui: React.ReactElement) => {
-    return render(
+  const renderSection = (onDirtyChange?: (dirty: boolean) => void) =>
+    render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          {ui}
+          <PayrollSettingsSection onDirtyChange={onDirtyChange} />
         </ToastProvider>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
-  };
 
-  it("shows current and draft simulation results from same period", async () => {
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-    }]);
-    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-    }]);
-    renderWithProviders(<PayrollSettingsSection />);
-    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    fireEvent.change(await screen.findByLabelText("common.payroll.settings.draft_simulation_employee"), { target: { value: "employee-1" } });
-    fireEvent.change(await screen.findByLabelText("common.payroll.settings.draft_simulation_policy"), { target: { value: "v-1" } });
-    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.draft_simulation_run" }));
-    await waitFor(() => expect(api.simulatePayroll).toHaveBeenCalledWith("employee-1", 2026, 1));
-    expect(api.simulatePayrollWithPolicy).toHaveBeenCalledWith("employee-1", 2026, 1, "v-1");
-    expect(await screen.findByText("common.payroll.settings.draft_simulation_current_net")).toBeInTheDocument();
+  it("renders group list, version editor, memberships, and simulation panels", async () => {
+    renderSection();
+    expect(await screen.findByTestId("work-policy-group-card-STD-OFFICE")).toBeInTheDocument();
+    expect(await screen.findByTestId("work-policy-version-editor")).toBeInTheDocument();
+    expect(screen.getByTestId("work-policy-memberships-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("work-policy-simulation-panel")).toBeInTheDocument();
   });
 
-  it("does not show partial simulation as complete", async () => {
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-    }]);
-    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-    }]);
-    vi.mocked(api.simulatePayroll).mockRejectedValue(new Error("current unavailable"));
-    renderWithProviders(<PayrollSettingsSection />);
-    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    fireEvent.change(await screen.findByLabelText("common.payroll.settings.draft_simulation_employee"), { target: { value: "employee-1" } });
-    fireEvent.change(await screen.findByLabelText("common.payroll.settings.draft_simulation_policy"), { target: { value: "v-1" } });
-    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.draft_simulation_run" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.draft_simulation_partial");
-    expect(screen.queryByText("common.payroll.settings.draft_simulation_current_net")).not.toBeInTheDocument();
+  it("hides inapplicable pay fields when switching pay method and notifies dirty state", async () => {
+    const onDirty = vi.fn();
+    renderSection(onDirty);
+    const payMethod = await screen.findByTestId("wp-pay-method");
+    expect(screen.getByTestId("wp-monthly-standard-days")).toBeInTheDocument();
+    expect(screen.queryByTestId("wp-rate-component")).not.toBeInTheDocument();
+
+    fireEvent.change(payMethod, { target: { value: "hourly" } });
+    expect(screen.queryByTestId("wp-monthly-standard-days")).not.toBeInTheDocument();
+    expect(screen.getByTestId("wp-rate-component")).toBeInTheDocument();
+    expect(onDirty).toHaveBeenCalledWith(true);
   });
 
-  it("shows bounded impact preview results and stale state", async () => {
-    vi.mocked(api.fetchPayrollImpactBatch).mockResolvedValue({ evaluated_at: "2026-11-18T00:00:00Z", expires_at: "2099-11-18T00:15:00Z", stale_after_seconds: 900, total: 1, computed: 1, affected: 1, uncomputable: 0, items: [{ employment_id: "e-1", computed: true, stale: true, stale_reasons: ["policy_version_changed"], delta: { net_pay_delta: "240" } as never }] });
-    renderWithProviders(<PayrollSettingsSection />);
-    fireEvent.change(await screen.findByLabelText(/impact_employments/i), { target: { value: "e-1" } });
-    fireEvent.change(screen.getByLabelText(/impact_before_run_id/i), { target: { value: "r-1" } });
-    fireEvent.change(screen.getByLabelText(/impact_after_run_id/i), { target: { value: "r-2" } });
-    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.impact_run" }));
-    expect(await screen.findByText("policy_version_changed")).toBeInTheDocument();
-    expect(screen.getByText(/240/)).toBeInTheDocument();
-    expect(screen.getByText(/2026-11-18T00:00:00Z/)).toBeInTheDocument();
-    expect(screen.getByText(/2099-11-18T00:15:00Z/)).toBeInTheDocument();
-    expect(screen.queryByText(/impact_expired/)).not.toBeInTheDocument();
+  it("surfaces 409 optimistic lock conflict banner on stale draft save", async () => {
+    const err = Object.assign(new Error("conflict"), { status: 409 });
+    vi.mocked(api.patchWorkPolicyVersion).mockRejectedValue(err);
+    renderSection();
+
+    const minsInput = await screen.findByTestId("wp-minutes-per-credit");
+    fireEvent.change(minsInput, { target: { value: "450" } });
+    fireEvent.click(screen.getByTestId("save-work-policy-draft-btn"));
+
+    expect(await screen.findByTestId("work-policy-conflict-banner")).toBeInTheDocument();
   });
 
-  it("rejects duplicate employment IDs before impact request", async () => {
-    renderWithProviders(<PayrollSettingsSection />);
-    fireEvent.change(await screen.findByLabelText(/impact_employments/i), { target: { value: "e-1 e-1" } });
-    fireEvent.change(screen.getByLabelText(/impact_before_run_id/i), { target: { value: "r-1" } });
-    fireEvent.change(screen.getByLabelText(/impact_after_run_id/i), { target: { value: "r-2" } });
-    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.impact_run" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.impact_validation");
-    expect(api.fetchPayrollImpactBatch).not.toHaveBeenCalled();
-  });
-
-  it("renders settings correctly", async () => {
-    renderWithProviders(<PayrollSettingsSection   />);
-
-    // In the new UI, standard days are wrapped in a span with text-primary-600
-    // and followed by common.days_short.
-    expect(await screen.findByText(/26/i, { selector: 'span' })).toBeInTheDocument();
-    expect(screen.getByText(/01\/01\/2026/i)).toBeInTheDocument();
-  });
-
-  it("does not submit until configurable standard values are entered", async () => {
-    renderWithProviders(<PayrollSettingsSection />);
-
-    fireEvent.click(await screen.findByText(/common.add_new/i));
-    fireEvent.click(screen.getByText(/common.save/i));
-
-    await waitFor(() => {
-      expect(api.updatePayrollSettings).not.toHaveBeenCalled();
+  it("validates, runs batch simulation with uncomputable + trace, and publishes", async () => {
+    vi.mocked(api.validateWorkPolicyVersion).mockResolvedValue({
+      version_id: "ver-2",
+      valid: true,
+      blockers: [],
+      warnings: [],
+      checked_at: "2026-03-01T00:00:00Z",
     });
-    expect(screen.getAllByText(/payroll.settings.validation.positive/i).length).toBeGreaterThanOrEqual(2);
-  });
-
-  it("shows save errors without closing the form", async () => {
-    vi.mocked(api.updatePayrollSettings).mockRejectedValue(new Error("conflict"));
-    renderWithProviders(<PayrollSettingsSection />);
-
-    fireEvent.click(await screen.findByText(/common.add_new/i));
-    const numberInputs = await screen.findAllByRole("spinbutton");
-    fireEvent.change(numberInputs[0], { target: { value: "24" } });
-    fireEvent.change(numberInputs[1], { target: { value: "8" } });
-    fireEvent.click(screen.getByText(/common.save/i));
-
-    await waitFor(() => {
-      expect(api.updatePayrollSettings).toHaveBeenCalled();
+    vi.mocked(api.simulateWorkPolicyVersionBatch).mockResolvedValue({
+      group_id: "grp-1",
+      version_id: "ver-2",
+      period_year: 2026,
+      period_month: 3,
+      total: 2,
+      computed: 1,
+      affected: 1,
+      uncomputable: 1,
+      input_fingerprint: "abcdef1234567890",
+      evaluated_at: "2026-03-01T00:00:00Z",
+      expires_at: "2099-03-01T00:15:00Z",
+      stale_after_seconds: 900,
+      items: [
+        {
+          employment_relationship_id: "rel-1",
+          status: "computed",
+          affected: true,
+          baseline_net: "1000",
+          candidate_net: "1100",
+          net_delta: "100",
+          trace: [{ step: "net", rule: "gross_minus_deductions", expression: "1100 - 0", result: "1100.00" }],
+        },
+        {
+          employment_relationship_id: "rel-missing",
+          status: "uncomputable",
+          affected: false,
+          reason: "no active employment segment covers period",
+        },
+      ],
     });
-    expect(screen.getByText(/common.save/i)).toBeInTheDocument();
-  });
+    vi.mocked(api.publishWorkPolicyVersion).mockResolvedValue({ ...sampleDraft, status: "published", row_version: 2 });
 
-  it("shows retry state and blocks editing when policy references fail", async () => {
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-    }]);
-    vi.mocked(api.fetchWorkPolicyGroupHistory).mockRejectedValue(new Error("history unavailable"));
-    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [], salaryComponents: [] });
-    renderWithProviders(<PayrollSettingsSection />);
-    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.work_policy_references_unavailable");
-    expect(screen.getByRole("button", { name: "common.retry" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "common.payroll.settings.work_policy_create" })).not.toBeInTheDocument();
-  });
+    renderSection();
+    fireEvent.click(await screen.findByTestId("validate-work-policy-btn"));
+    expect(await screen.findByTestId("work-policy-validation-results")).toBeInTheDocument();
 
-  it("creates a new effective policy version from selected policy references", async () => {
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
-      id: "v-1",
-      group_id: "g-1",
-      name: "Operations",
-      attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1",
-      overtime_policy_id: "overtime-1",
-      minutes_per_credit: 480,
-      pay_method: "monthly",
-      monthly_standard_days: "26",
-      effective_from: "2026-01-01",
-    }]);
-    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [], salaryComponents: [] });
-    vi.mocked(api.createWorkPolicyGroupVersion).mockResolvedValue({} as never);
-    renderWithProviders(<PayrollSettingsSection />);
+    fireEvent.click(screen.getByTestId("wp-run-simulation-btn"));
+    expect(await screen.findByTestId("wp-simulation-results")).toBeInTheDocument();
+    expect(screen.getByText(/uncomputable · no active employment segment/)).toBeInTheDocument();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    fireEvent.change((await screen.findAllByLabelText("common.payroll.settings.work_policy_effective_from"))[0], { target: { value: "2026-07-01" } });
-    fireEvent.change(await screen.findByLabelText("common.payroll.settings.work_policy_minutes"), { target: { value: "450" } });
-    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_create" }));
-
+    fireEvent.click(screen.getByTestId("publish-work-policy-btn"));
     await waitFor(() => {
-      expect(api.createWorkPolicyGroupVersion).toHaveBeenCalledWith("g-1", expect.objectContaining({
-        effective_from: "2026-07-01",
-        minutes_per_credit: 450,
-        attendance_policy_id: "attendance-1",
-        working_pattern_id: "pattern-1",
-        overtime_policy_id: "overtime-1",
-      }));
+      expect(api.publishWorkPolicyVersion).toHaveBeenCalledWith(
+        "grp-1",
+        "ver-2",
+        expect.objectContaining({ expected_row_version: 1, auto_close_previous: true }),
+        expect.stringContaining("pub-ver-2"),
+      );
     });
   });
 
-  it("preserves draft and offers refresh after version conflict", async () => {
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-    }]);
-    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
-    vi.mocked(api.createWorkPolicyGroupVersion).mockRejectedValue(new ApiError(409, "Conflict", "conflict"));
-    renderWithProviders(<PayrollSettingsSection />);
-    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    const date = (await screen.findAllByLabelText("common.payroll.settings.work_policy_effective_from"))[0];
-    const minutes = await screen.findByLabelText("common.payroll.settings.work_policy_minutes");
-    fireEvent.change(date, { target: { value: "2026-07-01" } });
-    fireEvent.change(minutes, { target: { value: "480" } });
-    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_create" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.work_policy_conflict");
-    expect(date).toHaveValue("2026-07-01");
-    expect(minutes).toHaveValue(480);
-    expect(screen.getByRole("button", { name: "common.payroll.settings.work_policy_refresh" })).toBeInTheDocument();
-  });
-
-  it("preserves membership draft and offers refresh after conflict", async () => {
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{ id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1", working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480, pay_method: "monthly", effective_from: "2026-01-01" }]);
-    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
-    vi.mocked(employeeApi.fetchEmployeeEmployments).mockResolvedValue([{ id: "employment-1", status: "active" }] as never);
-    vi.mocked(api.createWorkPolicyMembership).mockRejectedValue(new ApiError(409, "Conflict", "conflict"));
-    renderWithProviders(<PayrollSettingsSection />);
-    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    fireEvent.change(await screen.findByLabelText("common.payroll.settings.work_policy_employee"), { target: { value: "employee-1" } });
-    await waitFor(() => expect(screen.getByRole("option", { name: /employment-1/ })).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_employment_id"), { target: { value: "employment-1" } });
-    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_effective_from", { selector: "#policy-membership-from" }), { target: { value: "2026-07-01" } });
-    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_assign" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.work_policy_membership_conflict");
-    expect(screen.getByRole("button", { name: "common.payroll.settings.work_policy_membership_refresh" })).toBeInTheDocument();
-    expect(screen.getByLabelText("common.payroll.settings.work_policy_effective_from", { selector: "#policy-membership-from" })).toHaveValue("2026-07-01");
-  });
-
-  it("validates selected policy version and shows blockers", async () => {
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-    }]);
-    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-    }]);
-    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
-    vi.mocked(api.validateWorkPolicyGroupVersion).mockResolvedValue({
-      version_id: "v-1", valid: false, blockers: [{ code: "reference_missing_or_inactive", field: "policy_references", severity: "blocker", message: "working pattern inactive" }], warnings: [], checked_at: "2026-11-16T00:00:00Z",
+  it("performs atomic membership transfer to another group", async () => {
+    vi.mocked(api.transferWorkPolicyMembership).mockResolvedValue({
+      new_membership: { id: "m-2", group_id: "grp-2", employment_relationship_id: "rel-1", effective_from: "2026-05-01" },
     });
-    renderWithProviders(<PayrollSettingsSection />);
+    renderSection();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    fireEvent.click(await screen.findByRole("button", { name: "common.payroll.settings.work_policy_validate" }));
-
-    await waitFor(() => expect(api.validateWorkPolicyGroupVersion).toHaveBeenCalledWith("g-1", "v-1"));
-    expect(await screen.findByText(/working pattern inactive/i)).toBeInTheDocument();
-    expect(screen.getByText("common.payroll.settings.work_policy_blocked")).toBeInTheDocument();
-  });
-
-  it("rejects policy version without date or positive whole minutes", async () => {
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-    }]);
-    vi.mocked(api.fetchWorkPolicyGroupHistory).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyMemberships).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkPolicyReferenceOptions).mockResolvedValue({ attendance: [], patterns: [], overtime: [], salaryComponents: [] });
-    renderWithProviders(<PayrollSettingsSection />);
-
-    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    fireEvent.click(await screen.findByRole("button", { name: "common.payroll.settings.work_policy_create" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.work_policy_validation");
-    expect(api.createWorkPolicyGroupVersion).not.toHaveBeenCalled();
-  });
-
-  it("submits all 7 attendance & Early OT work policy rule fields", async () => {
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-      late_arrival_grace_minutes: 5, early_ot_enabled: false, early_ot_qualification_grace_minutes: 10,
-      early_ot_max_minutes: null, break_auto_deduct: true, break_is_overtime: false, ot_aggregation_mode: "aggregate",
-    }]);
-    vi.mocked(api.createWorkPolicyGroupVersion).mockResolvedValue({} as never);
-    renderWithProviders(<PayrollSettingsSection />);
-
-    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    fireEvent.change((await screen.findAllByLabelText("common.payroll.settings.work_policy_effective_from"))[0], { target: { value: "2026-08-01" } });
-    fireEvent.change(await screen.findByLabelText("common.payroll.settings.work_policy_minutes"), { target: { value: "480" } });
-    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_late_grace"), { target: { value: "10" } });
-    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_early_ot_grace"), { target: { value: "15" } });
-    fireEvent.click(screen.getByLabelText("common.payroll.settings.work_policy_early_ot_enabled"));
-    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_early_ot_max"), { target: { value: "45" } });
-    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_ot_aggregation"), { target: { value: "per_segment" } });
-    fireEvent.click(screen.getByLabelText("common.payroll.settings.work_policy_break_auto_deduct"));
-    fireEvent.click(screen.getByLabelText("common.payroll.settings.work_policy_break_is_overtime"));
-    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_create" }));
+    fireEvent.click(await screen.findByTestId("wp-open-transfer-rel-1"));
+    expect(screen.getByTestId("wp-transfer-modal")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("wp-confirm-transfer-btn"));
 
     await waitFor(() => {
-      expect(api.createWorkPolicyGroupVersion).toHaveBeenCalledWith("g-1", expect.objectContaining({
-        late_arrival_grace_minutes: 10,
-        early_ot_enabled: true,
-        early_ot_qualification_grace_minutes: 15,
-        early_ot_max_minutes: 45,
-        ot_aggregation_mode: "per_segment",
-        break_auto_deduct: false,
-        break_is_overtime: true,
-      }));
-    });
-  });
-
-  it("rejects negative grace or early OT minute limits before submission", async () => {
-    vi.mocked(api.fetchWorkPolicyGroups).mockResolvedValue([{
-      id: "v-1", group_id: "g-1", name: "Operations", attendance_policy_id: "attendance-1",
-      working_pattern_id: "pattern-1", overtime_policy_id: "overtime-1", minutes_per_credit: 480,
-      pay_method: "monthly", effective_from: "2026-01-01",
-    }]);
-    renderWithProviders(<PayrollSettingsSection />);
-
-    fireEvent.click(await screen.findByRole("button", { name: "Operations" }));
-    fireEvent.change((await screen.findAllByLabelText("common.payroll.settings.work_policy_effective_from"))[0], { target: { value: "2026-08-01" } });
-    fireEvent.change(await screen.findByLabelText("common.payroll.settings.work_policy_minutes"), { target: { value: "480" } });
-    fireEvent.change(screen.getByLabelText("common.payroll.settings.work_policy_late_grace"), { target: { value: "-5" } });
-    fireEvent.click(screen.getByRole("button", { name: "common.payroll.settings.work_policy_create" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("common.payroll.settings.work_policy_rules_validation");
-    expect(api.createWorkPolicyGroupVersion).not.toHaveBeenCalled();
-  });
-
-  it("calls update API when save button is clicked", async () => {
- 
-    vi.mocked(api.updatePayrollSettings).mockResolvedValue({} as unknown as never);
-    renderWithProviders(<PayrollSettingsSection   />);
-
-    const addButton = await screen.findByText(/common.add_new/i);
-    fireEvent.click(addButton);
-
-    const daysInput = await screen.findByLabelText("payroll.settings.std_days");
-    const hoursInput = screen.getByLabelText("payroll.settings.hours_per_day");
-    fireEvent.change(daysInput, { target: { value: "24" } });
-    fireEvent.change(hoursInput, { target: { value: "8" } });
-
-    const saveButton = screen.getByText(/common.save/i);
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(api.updatePayrollSettings).toHaveBeenCalledWith(expect.objectContaining({
-        fixed_std_days: "24"
-      }));
+      expect(api.transferWorkPolicyMembership).toHaveBeenCalledWith(
+        expect.objectContaining({ employment_relationship_id: "rel-1", target_group_id: "grp-2" }),
+      );
     });
   });
 });

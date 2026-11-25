@@ -18,14 +18,17 @@ func TestWorkPolicyRoutesRequireAuthorization(t *testing.T) {
 		path   string
 	}{
 		{method: http.MethodGet, path: "/api/v1/payroll/work-policy-groups"},
-		{method: http.MethodGet, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/history"},
-		{method: http.MethodGet, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/versions/00000000-0000-0000-0000-000000000002"},
-		{method: http.MethodPost, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/versions/00000000-0000-0000-0000-000000000002/validate"},
 		{method: http.MethodPost, path: "/api/v1/payroll/work-policy-groups"},
+		{method: http.MethodGet, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/versions"},
 		{method: http.MethodPost, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/versions"},
-		{method: http.MethodGet, path: "/api/v1/employments/00000000-0000-0000-0000-000000000001/work-policy?as_of=2026-01-01"},
+		{method: http.MethodGet, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/versions/00000000-0000-0000-0000-000000000002"},
+		{method: http.MethodPatch, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/versions/00000000-0000-0000-0000-000000000002"},
+		{method: http.MethodPost, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/versions/00000000-0000-0000-0000-000000000002/validate"},
+		{method: http.MethodPost, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/versions/00000000-0000-0000-0000-000000000002/publish"},
 		{method: http.MethodGet, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/memberships"},
 		{method: http.MethodPost, path: "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/memberships"},
+		{method: http.MethodPost, path: "/api/v1/payroll/work-policy-memberships/transfer"},
+		{method: http.MethodGet, path: "/api/v1/employment-relationships/00000000-0000-0000-0000-000000000001/work-policy?as_of=2026-01-01"},
 	} {
 		req := httptest.NewRequest(test.method, test.path, nil)
 		rec := httptest.NewRecorder()

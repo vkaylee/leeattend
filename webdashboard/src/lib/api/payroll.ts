@@ -1,47 +1,124 @@
-/* eslint-disable max-lines -- API wrapper module: 300 lines of exported functions; splitting would scatter imports */
-import type { AttendancePolicyVersion } from "./attendance-rules";
+/* eslint-disable max-lines -- API wrapper module for payroll, work policies, and overtime versions */
 import type { PayrollCalculationRun, PayrollFormulaRuleVersion, PayrollInput } from "./types-payroll";
 
+import { client, fetch } from "./client";
+import {
+  Payslip,
+  SalaryComponentDefinition,
+  EmployeeSalaryComponent,
+  EmployeeSalaryComponentDetail,
+  CreateSalaryComponentRequest,
+  CreatePayrollRuleDefinitionRequest,
+  PayrollIncentivePolicyResponse,
+  PayrollRuleAssignment,
+  PayrollRuleDefinition,
+  PayrollRuleTier,
+  BatchCalculateResult,
+  IncentiveTier,
+} from "./types";
 import { fetchWorkingPatterns } from "./working-patterns";
 
-export interface WorkPolicyGroupVersion {
-  attendance_policy_id?: string;
-  effective_from: string;
-  effective_to?: string;
-  group_id: string;
-  id: string;
-  minutes_per_credit: number;
-  late_arrival_grace_minutes: number;
-  early_ot_enabled: boolean;
-  early_ot_qualification_grace_minutes: number;
-  early_ot_max_minutes?: number | null;
-  break_auto_deduct: boolean;
-  break_is_overtime: boolean;
-  ot_aggregation_mode: "aggregate" | "per_segment";
-  monthly_denominator?: "fixed" | "schedule";
-  monthly_standard_days?: string;
-  name: string;
-  overtime_policy_id: string;
-  pay_basis_policy_id?: string;
-  pay_method: "monthly" | "hourly" | "shift";
-  rate_component_definition_id?: string | null;
-  work_credit_policy_id?: string;
-  working_pattern_id?: string;
+// --- Work Policy v2 Types ---
+
+export type WorkPolicyVersionStatus = "draft" | "published" | "archived";
+export type PayMethod = "monthly" | "hourly" | "shift";
+export type MonthlyDenominator = "fixed" | "schedule";
+export type PaidLeaveCreditMode = "standard_day" | "scheduled_minutes" | "unpaid";
+export type RoundingPolicy = "none" | "floor" | "round" | "ceil";
+export type EarlyArrivalStrategy = "allow" | "clamp" | "block";
+export type OTAggregationMode = "aggregate" | "per_segment";
+export type OvertimeDayType = "weekday" | "weekend" | "holiday" | "any";
+
+export interface OvertimeRuleV2 {
+  day_type: OvertimeDayType;
+  days_of_week: number;
+  multiplier: string;
+  priority: number;
+  time_end?: string | null;
+  time_start?: string | null;
 }
 
-export async function fetchWorkPolicyReferenceOptions(): Promise<{ attendance: { id: string; label: string }[]; patterns: { id: string; label: string }[]; overtime: { id: string; label: string }[]; salaryComponents: { id: string; label: string }[] }> {
-  const [attendance, patterns, overtime, salaryComponents] = await Promise.all([
-    client.GET<AttendancePolicyVersion[]>("/api/v1/attendance/rules/versions").then((response) => response.data),
-    fetchWorkingPatterns(),
-    fetchOvertimePolicies(),
-    fetchSalaryComponents(),
-  ]);
-  return {
-    attendance: (attendance ?? []).map((item) => ({ id: item.id, label: `${item.id} (${item.valid_from})` })),
-    patterns: patterns.map((item) => ({ id: item.id, label: item.name })),
-    overtime: overtime.map((item) => ({ id: item.id, label: item.name })),
-    salaryComponents: salaryComponents.map((item) => ({ id: item.id, label: `${item.name} (${item.code})` })),
-  };
+export interface OvertimePolicyV2 {
+  created_at: string;
+  description?: string | null;
+  id: string;
+  latest_published_version_id?: string | null;
+  latest_published_version_no?: number | null;
+  name: string;
+  updated_at: string;
+}
+
+export interface OvertimePolicyVersion {
+  created_at: string;
+  created_by: string;
+  daily_cap_minutes?: number | null;
+  id: string;
+  monthly_cap_hours?: string | null;
+  policy_id: string;
+  published_at?: string | null;
+  published_by?: string | null;
+  row_version: number;
+  rules: OvertimeRuleV2[];
+  status: WorkPolicyVersionStatus;
+  updated_at: string;
+  version_no: number;
+  yearly_cap_hours?: string | null;
+}
+
+export interface OvertimePolicyDetail {
+  policy: OvertimePolicyV2;
+  versions: OvertimePolicyVersion[];
+}
+
+export interface WorkPolicyVersionFields {
+  break_auto_deduct: boolean;
+  break_is_overtime: boolean;
+  early_arrival_strategy: EarlyArrivalStrategy;
+  early_ot_enabled: boolean;
+  early_ot_max_minutes?: number | null;
+  early_ot_qualification_grace_minutes: number;
+  effective_from: string;
+  effective_to?: string | null;
+  late_arrival_grace_minutes: number;
+  minutes_per_credit: number;
+  monthly_denominator?: MonthlyDenominator | null;
+  monthly_standard_days?: string | null;
+  ot_aggregation_mode: OTAggregationMode;
+  overtime_policy_version_id: string;
+  paid_leave_credit_mode: PaidLeaveCreditMode;
+  pay_method: PayMethod;
+  rate_component_definition_id?: string | null;
+  rounding_policy: RoundingPolicy;
+  work_unit_minutes: number;
+  working_pattern_id?: string | null;
+}
+
+export interface WorkPolicyVersion extends WorkPolicyVersionFields {
+  created_at: string;
+  created_by: string;
+  group_code: string;
+  group_id: string;
+  group_name: string;
+  id: string;
+  published_at?: string | null;
+  published_by?: string | null;
+  row_version: number;
+  status: WorkPolicyVersionStatus;
+  updated_at: string;
+  version_no: number;
+}
+
+export interface WorkPolicyGroupSummary {
+  active_membership_count: number;
+  archived_at?: string | null;
+  code: string;
+  created_at: string;
+  current_published?: WorkPolicyVersion | null;
+  description?: string | null;
+  id: string;
+  latest_draft?: WorkPolicyVersion | null;
+  name: string;
+  updated_at: string;
 }
 
 export interface WorkPolicyValidationIssue {
@@ -60,112 +137,181 @@ export interface WorkPolicyValidationResponse {
 }
 
 export interface WorkPolicyMembership {
+  created_at?: string;
   effective_from: string;
-  effective_to?: string;
-  employment_id: string;
+  effective_to?: string | null;
+  employment_relationship_id: string;
   group_id: string;
   id: string;
 }
 
-export interface CreateWorkPolicyGroupVersionRequest {
-  attendance_policy_id: string;
-  effective_from: string;
-  effective_to?: string;
-  minutes_per_credit: number;
-  late_arrival_grace_minutes: number;
-  early_ot_enabled: boolean;
-  early_ot_qualification_grace_minutes: number;
-  early_ot_max_minutes?: number | null;
-  break_auto_deduct: boolean;
-  break_is_overtime: boolean;
-  ot_aggregation_mode: "aggregate" | "per_segment";
-  monthly_denominator?: "fixed" | "schedule";
-  monthly_standard_days?: string;
-  name: string;
-  overtime_policy_id: string;
-  pay_method: "monthly" | "hourly" | "shift";
-  rate_component_definition_id?: string | null;
-  working_pattern_id: string;
+export interface TransferWorkPolicyMembershipResponse {
+  closed_membership?: WorkPolicyMembership | null;
+  new_membership: WorkPolicyMembership;
 }
 
-interface WorkPolicyGroupListResponse {
-  data: WorkPolicyGroupVersion[];
+export interface ResolvedWorkPolicyResponse extends WorkPolicyVersionFields {
+  daily_cap_minutes?: number | null;
+  employment_relationship_id: string;
+  group_code: string;
+  group_id: string;
+  group_name: string;
+  membership_id: string;
+  monthly_cap_hours?: string | null;
+  overtime_policy_id: string;
+  overtime_policy_version_no: number;
+  overtime_rules: OvertimeRuleV2[];
+  status: WorkPolicyVersionStatus;
+  version_id: string;
+  version_no: number;
+  yearly_cap_hours?: string | null;
+}
+
+export interface SimulationTraceStep {
+  expression: string;
+  result: string;
+  rule: string;
+  step: string;
+}
+
+export interface WorkPolicyBatchSimulationItem {
+  affected: boolean;
+  baseline_gross?: string;
+  baseline_net?: string;
+  baseline_ot_pay?: string;
+  candidate_gross?: string;
+  candidate_net?: string;
+  candidate_ot_pay?: string;
+  employment_id?: string;
+  employment_relationship_id: string;
+  gross_delta?: string;
+  input_fingerprint?: string;
+  net_delta?: string;
+  ot_pay_delta?: string;
+  reason?: string;
+  status: "computed" | "uncomputable";
+  trace?: SimulationTraceStep[];
+}
+
+export interface WorkPolicyBatchSimulationResponse {
+  affected: number;
+  computed: number;
+  evaluated_at: string;
+  expires_at: string;
+  group_id: string;
+  input_fingerprint: string;
+  items: WorkPolicyBatchSimulationItem[];
+  period_month: number;
+  period_year: number;
+  stale_after_seconds: number;
+  total: number;
+  uncomputable: number;
+  version_id: string;
+}
+
+export interface CreateWorkPolicyGroupRequest extends WorkPolicyVersionFields {
+  code: string;
+  description?: string | null;
+  name: string;
+}
+
+export interface CreateWorkPolicyVersionRequest extends Partial<WorkPolicyVersionFields> {
+  clone_from_version_id?: string;
+}
+
+export interface PatchWorkPolicyVersionRequest extends WorkPolicyVersionFields {
+  expected_row_version: number;
+}
+
+export interface PublishWorkPolicyVersionRequest {
+  auto_close_previous: boolean;
+  expected_row_version: number;
+  idempotency_key?: string;
+}
+
+interface PaginatedResponse<T> {
+  data: T[];
   limit: number;
   page: number;
   total: number;
 }
 
-import { client, fetch } from "./client";
-import {
-  Payslip,
-  PayrollSettings,
-  UpdatePayrollSettingsRequest,
-  SalaryComponentDefinition,
-  EmployeeSalaryComponent,
-  EmployeeSalaryComponentDetail,
-  CreateSalaryComponentRequest,
-  CreatePayrollRuleDefinitionRequest,
-  PayrollIncentivePolicyResponse,
-  PayrollRuleAssignment,
-  OvertimePolicy,
-  OvertimeRule,
-  PayrollRuleDefinition,
-  PayrollRuleTier,
-  BatchCalculateResult,
-  ConfigRecord,
-  CreateOvertimePolicyRequest,
-  EmployeePayrollConfig,
-  SetEmployeePayrollConfigRequest,
-  IncentiveTier,
-} from "./types";
+// --- Work Policy v2 APIs ---
 
-export async function fetchIncentivePolicies(): Promise<PayrollIncentivePolicyResponse[]> {
-  const { data: resData } = await client.GET<PayrollIncentivePolicyResponse[]>("/api/v1/payroll/incentive-policies");
-  return resData;
+export async function fetchWorkPolicyReferenceOptions(): Promise<{
+  overtimeVersions: { id: string; label: string }[];
+  patterns: { id: string; label: string }[];
+  salaryComponents: { id: string; label: string }[];
+}> {
+  const [patterns, overtime, salaryComponents] = await Promise.all([
+    fetchWorkingPatterns(),
+    fetchOvertimePolicies(),
+    fetchSalaryComponents(),
+  ]);
+  const overtimeVersions = overtime.flatMap((item) =>
+    item.latest_published_version_id
+      ? [{ id: item.latest_published_version_id, label: `${item.name} (v${item.latest_published_version_no ?? 1})` }]
+      : [],
+  );
+  return {
+    overtimeVersions,
+    patterns: patterns.map((item) => ({ id: item.id, label: item.name })),
+    salaryComponents: salaryComponents.map((item) => ({ id: item.id, label: `${item.name} (${item.code})` })),
+  };
 }
 
-export async function createIncentivePolicy(data: { base_amount: number; effective_from: string; name: string; payout_type: string; tiers: Omit<IncentiveTier, 'id' | 'policy_id'>[] }): Promise<void> {
-  await client.POST("/api/v1/payroll/incentive-policies", {
-    body: data,
-  });
-}
-
-export async function cloneIncentivePolicy(policyId: string): Promise<void> {
-  await client.POST("/api/v1/payroll/incentive-policies/{policy_id}/clone", {
-    params: { path: { policy_id: policyId } }
-  });
-}
-
-export async function deleteIncentivePolicy(policyId: string): Promise<void> {
-  await client.DELETE("/api/v1/payroll/incentive-policies/{policy_id}", {
-    params: { path: { policy_id: policyId } }
-  });
-}
-
-export async function fetchWorkPolicyGroups(): Promise<WorkPolicyGroupVersion[]> {
-  const { data } = await fetch<WorkPolicyGroupListResponse>("GET", "/api/v1/payroll/work-policy-groups", {
+export async function fetchWorkPolicyGroups(): Promise<WorkPolicyGroupSummary[]> {
+  const { data } = await fetch<PaginatedResponse<WorkPolicyGroupSummary>>("GET", "/api/v1/payroll/work-policy-groups", {
     params: { query: { page: 1, limit: 100 } },
   });
   return data?.data ?? [];
 }
 
-export async function fetchWorkPolicyGroupHistory(groupId: string): Promise<WorkPolicyGroupVersion[]> {
-  const { data } = await fetch<WorkPolicyGroupListResponse>("GET", "/api/v1/payroll/work-policy-groups/{group_id}/history", {
-    params: { path: { group_id: groupId }, query: { page: 1, limit: 100 } },
+export async function createWorkPolicyGroup(body: CreateWorkPolicyGroupRequest): Promise<WorkPolicyVersion> {
+  const { data } = await fetch<WorkPolicyVersion>("POST", "/api/v1/payroll/work-policy-groups", { body });
+  return data;
+}
+
+export async function fetchWorkPolicyGroupVersions(groupId: string, status?: WorkPolicyVersionStatus): Promise<WorkPolicyVersion[]> {
+  const { data } = await fetch<PaginatedResponse<WorkPolicyVersion>>("GET", "/api/v1/payroll/work-policy-groups/{group_id}/versions", {
+    params: { path: { group_id: groupId }, query: { page: 1, limit: 100, ...(status ? { status } : {}) } },
   });
   return data?.data ?? [];
 }
 
-export async function validateWorkPolicyGroupVersion(groupId: string, versionId: string): Promise<WorkPolicyValidationResponse> {
+export async function createWorkPolicyVersion(groupId: string, body: CreateWorkPolicyVersionRequest): Promise<WorkPolicyVersion> {
+  const { data } = await fetch<WorkPolicyVersion>("POST", "/api/v1/payroll/work-policy-groups/{group_id}/versions", {
+    params: { path: { group_id: groupId } },
+    body,
+  });
+  return data;
+}
+
+export async function patchWorkPolicyVersion(groupId: string, versionId: string, body: PatchWorkPolicyVersionRequest): Promise<WorkPolicyVersion> {
+  const { data } = await fetch<WorkPolicyVersion>("PATCH", "/api/v1/payroll/work-policy-groups/{group_id}/versions/{version_id}", {
+    params: { path: { group_id: groupId, version_id: versionId } },
+    body,
+  });
+  return data;
+}
+
+export async function validateWorkPolicyVersion(groupId: string, versionId: string): Promise<WorkPolicyValidationResponse> {
   const { data } = await fetch<WorkPolicyValidationResponse>("POST", "/api/v1/payroll/work-policy-groups/{group_id}/versions/{version_id}/validate", {
     params: { path: { group_id: groupId, version_id: versionId } },
   });
   return data;
 }
 
-export async function createWorkPolicyMembership(groupId: string, body: { employment_id: string; effective_from: string; effective_to?: string }): Promise<WorkPolicyMembership> {
-  const { data } = await fetch<WorkPolicyMembership>("POST", "/api/v1/payroll/work-policy-groups/{group_id}/memberships", {
-    params: { path: { group_id: groupId } }, body,
+export async function publishWorkPolicyVersion(
+  groupId: string,
+  versionId: string,
+  body: PublishWorkPolicyVersionRequest,
+  idempotencyKey?: string,
+): Promise<WorkPolicyVersion> {
+  const { data } = await fetch<WorkPolicyVersion>("POST", "/api/v1/payroll/work-policy-groups/{group_id}/versions/{version_id}/publish", {
+    params: { path: { group_id: groupId, version_id: versionId } },
+    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+    body,
   });
   return data;
 }
@@ -177,35 +323,134 @@ export async function fetchWorkPolicyMemberships(groupId: string): Promise<WorkP
   return data ?? [];
 }
 
-export async function resolveWorkPolicy(employmentId: string, asOf: string): Promise<WorkPolicyGroupVersion> {
-  const { data } = await fetch<WorkPolicyGroupVersion>("GET", "/api/v1/employments/{employment_id}/work-policy", {
-    params: { path: { employment_id: employmentId }, query: { as_of: asOf } },
+export async function createWorkPolicyMembership(
+  groupId: string,
+  body: { effective_from: string; effective_to?: string | null; employment_relationship_id: string },
+): Promise<WorkPolicyMembership> {
+  const { data } = await fetch<WorkPolicyMembership>("POST", "/api/v1/payroll/work-policy-groups/{group_id}/memberships", {
+    params: { path: { group_id: groupId } },
+    body,
   });
   return data;
 }
 
-export async function createWorkPolicyGroupVersion(groupId: string, body: CreateWorkPolicyGroupVersionRequest): Promise<WorkPolicyGroupVersion> {
-  const { data } = await fetch<WorkPolicyGroupVersion>("POST", "/api/v1/payroll/work-policy-groups/{group_id}/versions", {
-    params: { path: { group_id: groupId } }, body,
+export async function transferWorkPolicyMembership(body: {
+  effective_date: string;
+  employment_relationship_id: string;
+  target_group_id: string;
+}): Promise<TransferWorkPolicyMembershipResponse> {
+  const { data } = await fetch<TransferWorkPolicyMembershipResponse>("POST", "/api/v1/payroll/work-policy-memberships/transfer", { body });
+  return data;
+}
+
+export async function resolveWorkPolicyByRelationship(relationshipId: string, asOf: string): Promise<ResolvedWorkPolicyResponse> {
+  const { data } = await fetch<ResolvedWorkPolicyResponse>("GET", "/api/v1/employment-relationships/{relationship_id}/work-policy", {
+    params: { path: { relationship_id: relationshipId }, query: { as_of: asOf } },
   });
   return data;
 }
 
-export async function fetchPayrollSettings(): Promise<PayrollSettings> {
-  const { data: resData } = await client.GET<PayrollSettings>("/api/v1/payroll-settings");
-  return resData;
+export async function simulateWorkPolicyVersionBatch(
+  groupId: string,
+  versionId: string,
+  body: { employment_relationship_ids: string[]; month: number; year: number },
+): Promise<WorkPolicyBatchSimulationResponse> {
+  const { data } = await fetch<WorkPolicyBatchSimulationResponse>("POST", "/api/v1/payroll/work-policy-groups/{group_id}/versions/{version_id}/simulate", {
+    params: { path: { group_id: groupId, version_id: versionId } },
+    body,
+  });
+  return data;
 }
 
-export async function updatePayrollSettings(data: UpdatePayrollSettingsRequest): Promise<PayrollSettings> {
-  const { data: resData } = await client.PATCH<PayrollSettings>("/api/v1/payroll-settings", {
-    body: data
+// --- Overtime Policy v2 APIs ---
+
+export async function fetchOvertimePolicies(): Promise<OvertimePolicyV2[]> {
+  const { data: resData } = await client.GET<{ data: OvertimePolicyV2[] }>("/api/v1/overtime/policies");
+  return resData?.data ?? [];
+}
+
+export async function fetchOvertimePolicy(policyId: string): Promise<OvertimePolicyDetail> {
+  const { data: resData } = await fetch<OvertimePolicyDetail>("GET", "/api/v1/overtime/policies/{policy_id}", {
+    params: { path: { policy_id: policyId } },
   });
   return resData;
 }
 
-export async function fetchPayrollSettingsHistory(): Promise<PayrollSettings[]> {
-  const { data: resData } = await client.GET<PayrollSettings[]>("/api/v1/payroll-settings/history");
+export async function createOvertimePolicy(body: {
+  daily_cap_minutes?: number | null;
+  description?: string | null;
+  monthly_cap_hours?: string | null;
+  name: string;
+  rules?: OvertimeRuleV2[];
+  yearly_cap_hours?: string | null;
+}): Promise<OvertimePolicyDetail> {
+  const { data: resData } = await fetch<OvertimePolicyDetail>("POST", "/api/v1/overtime/policies", { body });
   return resData;
+}
+
+export async function createOvertimePolicyVersion(
+  policyId: string,
+  body: {
+    daily_cap_minutes?: number | null;
+    monthly_cap_hours?: string | null;
+    rules: OvertimeRuleV2[];
+    yearly_cap_hours?: string | null;
+  },
+): Promise<OvertimePolicyVersion> {
+  const { data } = await fetch<OvertimePolicyVersion>("POST", "/api/v1/overtime/policies/{policy_id}/versions", {
+    params: { path: { policy_id: policyId } },
+    body,
+  });
+  return data;
+}
+
+export async function patchOvertimePolicyVersion(
+  policyId: string,
+  versionId: string,
+  body: {
+    daily_cap_minutes?: number | null;
+    expected_row_version: number;
+    monthly_cap_hours?: string | null;
+    rules: OvertimeRuleV2[];
+    yearly_cap_hours?: string | null;
+  },
+): Promise<OvertimePolicyVersion> {
+  const { data } = await fetch<OvertimePolicyVersion>("PATCH", "/api/v1/overtime/policies/{policy_id}/versions/{version_id}", {
+    params: { path: { policy_id: policyId, version_id: versionId } },
+    body,
+  });
+  return data;
+}
+
+export async function publishOvertimePolicyVersion(
+  policyId: string,
+  versionId: string,
+  expectedRowVersion: number,
+): Promise<OvertimePolicyVersion> {
+  const { data } = await fetch<OvertimePolicyVersion>("POST", "/api/v1/overtime/policies/{policy_id}/versions/{version_id}/publish", {
+    params: { path: { policy_id: policyId, version_id: versionId } },
+    body: { expected_row_version: expectedRowVersion },
+  });
+  return data;
+}
+
+// --- Incentives, Salary Components, Payslips, Rules, Formulas, Impact ---
+
+export async function fetchIncentivePolicies(): Promise<PayrollIncentivePolicyResponse[]> {
+  const { data: resData } = await client.GET<PayrollIncentivePolicyResponse[]>("/api/v1/payroll/incentive-policies");
+  return resData;
+}
+
+export async function createIncentivePolicy(data: { base_amount: number; effective_from: string; name: string; payout_type: string; tiers: Omit<IncentiveTier, "id" | "policy_id">[] }): Promise<void> {
+  await client.POST("/api/v1/payroll/incentive-policies", { body: data });
+}
+
+export async function cloneIncentivePolicy(policyId: string): Promise<void> {
+  await client.POST("/api/v1/payroll/incentive-policies/{policy_id}/clone", { params: { path: { policy_id: policyId } } });
+}
+
+export async function deleteIncentivePolicy(policyId: string): Promise<void> {
+  await client.DELETE("/api/v1/payroll/incentive-policies/{policy_id}", { params: { path: { policy_id: policyId } } });
 }
 
 export async function fetchSalaryComponents(): Promise<SalaryComponentDefinition[]> {
@@ -213,12 +458,8 @@ export async function fetchSalaryComponents(): Promise<SalaryComponentDefinition
   return resData;
 }
 
-export async function createSalaryComponent(
-  data: CreateSalaryComponentRequest
-): Promise<SalaryComponentDefinition> {
-  const { data: resData } = await client.POST<SalaryComponentDefinition>("/api/v1/salary-components", {
-    body: data
-  });
+export async function createSalaryComponent(data: CreateSalaryComponentRequest): Promise<SalaryComponentDefinition> {
+  const { data: resData } = await client.POST<SalaryComponentDefinition>("/api/v1/salary-components", { body: data });
   return resData;
 }
 
@@ -231,104 +472,40 @@ export async function fetchEmployeeSalaryComponents(employmentId: string): Promi
 
 export async function assignEmployeeSalaryComponent(
   employmentId: string,
-  data: { amount: string; component_definition_id: string; effective_date: string; }
+  data: { amount: string; component_definition_id: string; effective_date: string },
 ): Promise<EmployeeSalaryComponent> {
   const { data: resData } = await client.POST<EmployeeSalaryComponent>("/api/v1/employments/{employment_id}/salary-components", {
     params: { path: { employment_id: employmentId } },
-    body: data
+    body: data,
   });
   return resData;
 }
 
-export async function calculate_payroll(
-  employeeId: string,
-  year: number,
-  month: number,
-): Promise<Payslip> {
+export async function calculate_payroll(employeeId: string, year: number, month: number): Promise<Payslip> {
   const { data: resData } = await client.POST<Payslip>("/api/v1/employees/{employee_id}/calculate-payroll", {
-    params: {
-      path: { employee_id: employeeId },
-      query: { year, month }
-    }
+    params: { path: { employee_id: employeeId }, query: { year, month } },
   });
   return resData;
 }
 
-export async function fetchEmployeePayslips(
-  employeeId: string,
-): Promise<Payslip[]> {
+export async function fetchEmployeePayslips(employeeId: string): Promise<Payslip[]> {
   const { data: resData } = await client.GET<Payslip[]>("/api/v1/employees/{employee_id}/payslips", {
-    params: { path: { employee_id: employeeId } }
+    params: { path: { employee_id: employeeId } },
   });
   return resData;
 }
 
-export async function fetchEmployeePayrollConfigs(employeeId: string): Promise<ConfigRecord[]> {
-  const { data: resData } = await fetch<ConfigRecord[]>("GET", "/api/v1/employees/{id}/payroll-config", {
-    params: { path: { id: employeeId } },
-  });
-  return resData;
-}
-
-// Overtime Policies
-export async function fetchOvertimePolicies(): Promise<OvertimePolicy[]> {
-  const { data: resData } = await client.GET<{ data: OvertimePolicy[] }>("/api/v1/overtime/policies");
-  return resData.data;
-}
-
-export async function fetchOvertimePolicy(policyId: string): Promise<[OvertimePolicy, OvertimeRule[]]> {
-  const { data: resData } = await fetch<[OvertimePolicy, OvertimeRule[]]>("GET", "/api/v1/overtime/policies/{policy_id}", {
-    params: { path: { policy_id: policyId } },
-  });
-  return resData;
-}
-
-export async function createOvertimePolicy(data: CreateOvertimePolicyRequest): Promise<OvertimePolicy> {
-  const { data: resData } = await fetch<OvertimePolicy>("POST", "/api/v1/overtime/policies", {
-    body: data,
-  });
-  return resData;
-}
-
-export async function addOvertimeRule(policyId: string, data: { days_of_week: number; is_holiday: boolean; multiplier: string; priority: number; time_end?: string | null; time_start?: string | null }): Promise<OvertimeRule> {
-  const { data: resData } = await client.POST<OvertimeRule>("/api/v1/overtime/policies/{policy_id}/rules", {
-    params: { path: { policy_id: policyId } },
-    body: data
-  });
-  return resData;
-}
-
-export async function setEmployeePayrollConfig(employeeId: string, data: SetEmployeePayrollConfigRequest): Promise<EmployeePayrollConfig> {
-  const { data: resData } = await client.POST<EmployeePayrollConfig>("/api/v1/employees/{id}/payroll-config", {
-    params: { path: { id: employeeId } },
-    body: data,
-  });
-  return resData;
-}
-
-export async function calculateBatchPayslips(data: { employment_ids: string[]; year: number; month: number }): Promise<{ results: BatchCalculateResult[] }> {
-  const { data: resData } = await client.POST<{ results: BatchCalculateResult[] }>("/api/v1/payroll/calculate-batch", {
-    body: data
-  });
+export async function calculateBatchPayslips(data: { employment_ids: string[]; month: number; year: number }): Promise<{ results: BatchCalculateResult[] }> {
+  const { data: resData } = await client.POST<{ results: BatchCalculateResult[] }>("/api/v1/payroll/calculate-batch", { body: data });
   return resData;
 }
 
 export async function fetchPayslips(year: number, month: number): Promise<Payslip[]> {
   const { data: resData } = await client.GET<Payslip[]>("/api/v1/payroll/payslips", {
-    params: {
-      query: { year, month }
-    }
+    params: { query: { year, month } },
   });
   return resData;
 }
-
-export async function assignOvertimePolicy(data: { assignee_id?: string | null; assignee_type: string; effective_from: string; policy_id: string }): Promise<void> {
-  await client.POST("/api/v1/overtime/policies/assign", {
-    body: data
-  });
-}
-
-// --- Payroll Rules API ---
 
 export async function fetchPayrollFormulaRules(): Promise<PayrollRuleDefinition[]> {
   const { data: response } = await fetch<PayrollRuleDefinition[]>("GET", "/api/v1/payroll/formulas");
@@ -340,7 +517,7 @@ export async function fetchPayrollFormulaVersions(ruleId: string): Promise<Payro
   return response;
 }
 
-export async function createPayrollFormulaVersion(ruleId: string, data: { expression: string; effective_from: string }): Promise<PayrollFormulaRuleVersion> {
+export async function createPayrollFormulaVersion(ruleId: string, data: { effective_from: string; expression: string }): Promise<PayrollFormulaRuleVersion> {
   const { data: response } = await fetch<PayrollFormulaRuleVersion>("POST", "/api/v1/payroll/formulas/{rule_id}/versions", { params: { path: { rule_id: ruleId } }, body: data });
   return response;
 }
@@ -356,16 +533,15 @@ export async function retirePayrollFormulaRule(ruleId: string): Promise<PayrollF
 }
 
 export interface PayrollImpactResponse {
-  input_fingerprint?: string;
-  evaluated_at?: string;
-  expires_at?: string;
-  stale_after_seconds?: number;
   after_run_id: string;
   base_pay_delta: string;
   before_run_id: string;
   computed: boolean;
   deductions_delta: string;
   employment_id: string;
+  evaluated_at?: string;
+  expires_at?: string;
+  input_fingerprint?: string;
   net_pay_delta: string;
   overtime_pay_delta: string;
   overtime_units_delta: number;
@@ -373,32 +549,36 @@ export interface PayrollImpactResponse {
   period_year: number;
   reason?: string;
   stale: boolean;
+  stale_after_seconds?: number;
   stale_reasons?: string[];
   standard_units_delta: number;
 }
 
 export interface PayrollImpactBatchItem {
-  input_fingerprint?: string;
   computed: boolean;
   delta?: PayrollImpactResponse;
   employment_id: string;
+  input_fingerprint?: string;
   reason?: string;
   stale: boolean;
   stale_reasons?: string[];
 }
 
 export interface PayrollImpactBatchResponse {
-  evaluated_at?: string;
-  expires_at?: string;
-  stale_after_seconds?: number;
   affected: number;
   computed: number;
+  evaluated_at?: string;
+  expires_at?: string;
   items: PayrollImpactBatchItem[];
+  stale_after_seconds?: number;
   total: number;
   uncomputable: number;
 }
-export async function fetchPayrollCalculationRuns(employmentId: string, year: number, month: number): Promise<PayrollCalculationRun[]> {
-  const { data: response } = await fetch<PayrollCalculationRun[]>("GET", "/api/v1/employments/{id}/payroll/calculation-runs", { params: { path: { id: employmentId }, query: { year, month } } });
+
+export async function fetchPayrollCalculationRuns(employmentId: string, year: number, month: number, limit = 50): Promise<PayrollCalculationRun[]> {
+  const { data: response } = await fetch<PayrollCalculationRun[]>("GET", "/api/v1/employments/{id}/payroll/calculation-runs", {
+    params: { path: { id: employmentId }, query: { year, month, limit } },
+  });
   return response;
 }
 
@@ -409,7 +589,7 @@ export async function fetchPayrollImpact(employmentId: string, year: number, mon
   return response;
 }
 
-export async function fetchPayrollImpactBatch(data: { employment_ids: string[]; year: number; month: number; before_run_id: string; after_run_id: string }): Promise<PayrollImpactBatchResponse> {
+export async function fetchPayrollImpactBatch(data: { after_run_id: string; before_run_id: string; employment_ids: string[]; month: number; year: number }): Promise<PayrollImpactBatchResponse> {
   const { data: response } = await fetch<PayrollImpactBatchResponse>("POST", "/api/v1/payroll/impact/batch", { body: data });
   return response;
 }
@@ -439,15 +619,13 @@ export async function fetchPayrollRules(): Promise<PayrollRuleDefinition[]> {
 }
 
 export async function createPayrollRule(data: CreatePayrollRuleDefinitionRequest): Promise<PayrollRuleDefinition> {
-  const { data: resData } = await client.POST<PayrollRuleDefinition>("/api/v1/payroll-rules", {
-    body: data
-  });
+  const { data: resData } = await client.POST<PayrollRuleDefinition>("/api/v1/payroll-rules", { body: data });
   return resData;
 }
 
 export async function fetchPayrollRuleTiers(ruleId: string): Promise<PayrollRuleTier[]> {
   const { data: resData } = await client.GET<PayrollRuleTier[]>("/api/v1/payroll-rules/{rule_id}/tiers", {
-    params: { path: { rule_id: ruleId } }
+    params: { path: { rule_id: ruleId } },
   });
   return resData;
 }
@@ -455,16 +633,14 @@ export async function fetchPayrollRuleTiers(ruleId: string): Promise<PayrollRule
 export async function createPayrollRuleTier(ruleId: string, data: { fixed_amount?: string | null; max_amount?: string | null; min_amount: string; rate: string; tier_order: number }): Promise<PayrollRuleTier> {
   const { data: resData } = await client.POST<PayrollRuleTier>("/api/v1/payroll-rules/{rule_id}/tiers", {
     params: { path: { rule_id: ruleId } },
-    body: data
+    body: data,
   });
   return resData;
 }
 
-// --- Payroll Rule Assignments ---
-
 export async function fetchPayrollRuleAssignments(ruleId: string): Promise<PayrollRuleAssignment[]> {
   const { data: resData } = await client.GET<PayrollRuleAssignment[]>("/api/v1/payroll-rules/{rule_id}/assignments", {
-    params: { path: { rule_id: ruleId } }
+    params: { path: { rule_id: ruleId } },
   });
   return resData;
 }
@@ -479,6 +655,6 @@ export async function createPayrollRuleAssignment(ruleId: string, data: { assign
 
 export async function deletePayrollRuleAssignment(ruleId: string, assignmentId: string): Promise<void> {
   await client.DELETE("/api/v1/payroll-rules/{rule_id}/assignments/{assignment_id}", {
-    params: { path: { rule_id: ruleId, assignment_id: assignmentId } }
+    params: { path: { rule_id: ruleId, assignment_id: assignmentId } },
   });
 }

@@ -1,245 +1,151 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Plus,
-  Clock,
-  Hash,
-  Percent
-} from 'lucide-react';
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { CheckCircle2, Clock, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { useToast } from '@/components/ui/toast';
 import { Typography } from "@/components/ui/typography";
-import { addOvertimeRule } from '@/lib/api/payroll';
-import { OvertimeRule } from "@/lib/api/types";
-import { createQueryKey } from "@/lib/query-keys";
-import { cn } from '@/lib/utils';
+import type { OvertimeDayType, OvertimePolicyVersion, OvertimeRuleV2 } from "@/lib/api/payroll";
 
-
+import { useOvertimePolicyVersionMutations } from "./hooks/use-overtime-policies";
 
 interface OvertimeRuleEditorProps {
   policyId: string;
-  rules: OvertimeRule[];
+  versions: OvertimePolicyVersion[];
 }
 
-function OvertimeRuleInputs({
-  priority, setPriority,
-  multiplier, setMultiplier,
-  startTime, setStartTime,
-  endTime, setEndTime
-}: {
-  priority: number; setPriority: (val: number) => void;
-  multiplier: number; setMultiplier: (val: number) => void;
-  startTime: string; setStartTime: (val: string) => void;
-  endTime: string; setEndTime: (val: string) => void;
-}) {
-  return (
-    <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-      <div className='space-y-1.5'>
-        <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400' htmlFor='rule-priority'>
-          <Hash size={10}/> Priority
-        </label>
-        <input
-          className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
-          id='rule-priority'
-          onChange={e => { setPriority(parseInt(e.target.value)); }}
-          type='number'
-          value={priority}
-        />
-      </div>
-      <div className='space-y-1.5'>
-        <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400' htmlFor='rule-multiplier'>
-          <Percent size={10}/> Multiplier
-        </label>
-        <input
-          className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
-          id='rule-multiplier'
-          onChange={e => { setMultiplier(parseFloat(e.target.value)); }}
-          step='0.1'
-          type='number'
-          value={multiplier}
-        />
-      </div>
-      <div className='space-y-1.5'>
-        <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400' htmlFor='rule-start'>
-          <Clock size={10}/> Start
-        </label>
-        <input
-          className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
-          id='rule-start'
-          onChange={e => { setStartTime(e.target.value); }}
-          type='time'
-          value={startTime}
-        />
-      </div>
-      <div className='space-y-1.5'>
-        <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400' htmlFor='rule-end'>
-          <Clock size={10}/> End
-        </label>
-        <input
-          className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
-          id='rule-end'
-          onChange={e => { setEndTime(e.target.value); }}
-          type='time'
-          value={endTime}
-        />
-      </div>
-    </div>
-  );
-}
-
-function OvertimeRuleForm({
-  onSubmit,
-  isPending
-}: {
-  onSubmit: (data: Partial<OvertimeRule>) => void;
-  isPending: boolean;
-}) {
+export default function OvertimeRuleEditor({ policyId, versions }: OvertimeRuleEditorProps) {
   const { t } = useTranslation();
-  const [priority, setPriority] = useState(0);
-  const [multiplier, setMultiplier] = useState(1.5);
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [days, setDays] = useState(127); // Default all days
-  const [isHoliday, setIsHoliday] = useState(false);
+  const { createVersion, patchVersion, publishVersion } = useOvertimePolicyVersionMutations(policyId);
 
-  const weekdays = [
-    { bit: 1, label: 'M' },
-    { bit: 2, label: 'T' },
-    { bit: 4, label: 'W' },
-    { bit: 8, label: 'T' },
-    { bit: 16, label: 'F' },
-    { bit: 32, label: 'S' },
-    { bit: 64, label: 'S' },
-  ];
+  const latestDraft = versions.find((v) => v.status === "draft") ?? null;
+  const activeVersion = latestDraft ?? versions[0] ?? null;
 
-  const toggleDay = (bit: number) => {
-    setDays(previous => previous ^ bit);
+  const [dailyCap, setDailyCap] = useState(activeVersion?.daily_cap_minutes ? String(activeVersion.daily_cap_minutes) : "240");
+  const [monthlyCap, setMonthlyCap] = useState(activeVersion?.monthly_cap_hours ?? "40");
+  const [yearlyCap, setYearlyCap] = useState(activeVersion?.yearly_cap_hours ?? "200");
+  const [rules, setRules] = useState<OvertimeRuleV2[]>(activeVersion?.rules ?? []);
+
+  const [dayType, setDayType] = useState<OvertimeDayType>("weekday");
+  const [priority, setPriority] = useState("50");
+  const [multiplier, setMultiplier] = useState("1.50");
+  const [timeStart, setTimeStart] = useState("");
+  const [timeEnd, setTimeEnd] = useState("");
+
+  const addRuleToDraft = () => {
+    const next: OvertimeRuleV2 = {
+      priority: Number(priority) || 0,
+      day_type: dayType,
+      days_of_week: 127,
+      multiplier: multiplier || "1.50",
+      ...(timeStart && timeEnd ? { time_start: timeStart, time_end: timeEnd } : {}),
+    };
+    setRules((prev) => [...prev, next]);
+  };
+
+  const handleSaveDraft = () => {
+    const payload = {
+      daily_cap_minutes: dailyCap ? Number(dailyCap) : null,
+      monthly_cap_hours: monthlyCap || null,
+      yearly_cap_hours: yearlyCap || null,
+      rules,
+    };
+    if (latestDraft) {
+      patchVersion.mutate({ versionId: latestDraft.id, data: { ...payload, expected_row_version: latestDraft.row_version } });
+    } else {
+      createVersion.mutate(payload);
+    }
   };
 
   return (
-    <div className='bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 space-y-4 animate-in zoom-in-95 duration-200'>
-      <OvertimeRuleInputs
-        endTime={endTime} multiplier={multiplier} priority={priority} setEndTime={setEndTime} setMultiplier={setMultiplier} setPriority={setPriority} setStartTime={setStartTime} startTime={startTime}
-      />
-
-      <div className='flex flex-wrap items-center justify-between gap-4'>
-        <div className='flex items-center gap-1.5'>
-          {weekdays.map(d => (
-            <Button className={cn(
-                'w-7 h-7 rounded-lg text-[10px] font-bold transition-all',
-                (days & d.bit) ? 'bg-primary-600 text-white shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-              )}
-              key={d.bit}
-              onClick={() => { toggleDay(d.bit); }}
-              variant="ghost"
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          {versions.map((v) => (
+            <span
+              className={`rounded-full px-2.5 py-0.5 font-semibold ${
+                v.status === "published"
+                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                  : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+              }`}
+              key={v.id}
             >
-              {d.label}
-            </Button>
+              v{v.version_no} · {v.status}
+            </span>
           ))}
         </div>
-
-        <div className='flex items-center gap-3'>
-          <label className='flex items-center gap-2 cursor-pointer group'>
-            <input
-              checked={isHoliday}
-              className='w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500'
-              onChange={e => { setIsHoliday(e.target.checked); }}
-              type='checkbox'
-            />
-            <span className='text-xs font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:hover:text-slate-200 transition-colors'>Holiday Only</span>
-          </label>
-
-          <Button className='bg-primary-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all shadow-sm'
-            disabled={isPending}
-            onClick={() => {
-              onSubmit({
-                priority,
-                multiplier: String(multiplier),
-                time_start: startTime || undefined,
-                time_end: endTime || undefined,
-                days_of_week: days,
-                is_holiday: isHoliday
-              });
-            }}
-            variant="ghost"
-          >
-            {t('common.save')}
+        <div className="flex gap-2">
+          <Button disabled={patchVersion.isPending || createVersion.isPending} onClick={handleSaveDraft} size="sm" variant="outline">
+            {latestDraft ? t("payroll.work_policies.save_draft", "Save Draft") : t("payroll.work_policies.new_draft", "New Draft Version")}
           </Button>
+          {latestDraft ? (
+            <Button
+              disabled={publishVersion.isPending || rules.length === 0}
+              onClick={() => { publishVersion.mutate({ versionId: latestDraft.id, expectedRowVersion: latestDraft.row_version }); }}
+              size="sm"
+              variant="primary"
+            >
+              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+              {t("payroll.work_policies.publish", "Publish")}
+            </Button>
+          ) : null}
         </div>
       </div>
-    </div>
-  );
-}
 
-export default function OvertimeRuleEditor({policyId, rules }: OvertimeRuleEditorProps) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const [isAdding, setIsAdding] = useState(false);
-
-  const addMutation = useMutation({
-    mutationFn: (data: Partial<OvertimeRule>) => {
-      if (data.multiplier === undefined) throw new Error("Multiplier is required");
-      return addOvertimeRule(policyId, {
-        days_of_week: data.days_of_week ?? 127,
-        is_holiday: !!data.is_holiday,
-        multiplier: data.multiplier,
-        priority: data.priority ?? 0,
-        time_end: data.time_end,
-        time_start: data.time_start,
-      });
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: createQueryKey('overtime-policies') });
-      setIsAdding(false);
-      toast.success(t('common.success'));
-    },
-  });
-
-  return (
-    <div className='mt-6 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6'>
-      <div className='flex items-center justify-between'>
-        <Typography className='text-sm font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400' variant="h4">{t('payroll.rules.label')}</Typography>
-        <Button className='flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 transition-colors'
-          onClick={() => { setIsAdding(!isAdding); }}
-          variant="ghost"
-        >
-          <Plus size={14} />
-          {t('payroll.add_rule')}
-        </Button>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <label className="text-xs text-slate-600 dark:text-slate-300">
+          {t("payroll.overtime_daily_cap", "Daily Cap (min)")}
+          <input className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900" onChange={(e) => { setDailyCap(e.target.value); }} type="number" value={dailyCap} />
+        </label>
+        <label className="text-xs text-slate-600 dark:text-slate-300">
+          {t("payroll.overtime_monthly_cap", "Monthly Cap (h)")}
+          <input className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900" onChange={(e) => { setMonthlyCap(e.target.value); }} type="number" value={monthlyCap} />
+        </label>
+        <label className="text-xs text-slate-600 dark:text-slate-300">
+          {t("payroll.overtime_yearly_cap", "Yearly Cap (h)")}
+          <input className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900" onChange={(e) => { setYearlyCap(e.target.value); }} type="number" value={yearlyCap} />
+        </label>
       </div>
 
-      {isAdding ? (
-        <OvertimeRuleForm
-          isPending={addMutation.isPending}
-          onSubmit={(data) => { addMutation.mutate(data); }}
-        />
-      ) : null}
-
-      <div className='space-y-2'>
-        {[...rules].sort((a, b) => b.priority - a.priority).map((rule: OvertimeRule) => (
-          <div className='flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800/50 hover:bg-white dark:hover:bg-slate-900 transition-all' key={rule.id}>
-            <div className='flex items-center gap-4'>
-              <div className='px-2 py-1 bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300 rounded-lg text-[10px] font-bold'>
-                {rule.multiplier}x
+      <div className="space-y-2">
+        {rules.length === 0 ? (
+          <Typography className="text-xs italic text-slate-400" variant="p">
+            {t("payroll.no_overtime_rules", "No overtime rules configured yet.")}
+          </Typography>
+        ) : (
+          rules.map((r, idx) => (
+            <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-800/40" key={`${r.day_type}-${r.priority}-${idx}`}>
+              <div className="flex flex-wrap items-center gap-3 font-mono">
+                <span className="font-bold text-primary-600 dark:text-primary-400">{r.multiplier}x</span>
+                <span>{r.day_type}</span>
+                <span>P{r.priority}</span>
+                {r.time_start && r.time_end ? (
+                  <span className="inline-flex items-center gap-1 text-slate-500">
+                    <Clock size={12} /> {r.time_start}–{r.time_end}
+                  </span>
+                ) : null}
               </div>
-              <div className='flex flex-col'>
-                <span className='text-xs font-bold text-slate-700 dark:text-slate-200'>
-                  {rule.time_start ?? '00:00'} - {rule.time_end ?? '23:59'}
-                </span>
-                <span className='text-[10px] text-slate-500 dark:text-slate-400 font-medium'>
-                  Priority: {rule.priority} | {rule.is_holiday ? 'Holidays Only' : 'Regular Days'}
-                </span>
-              </div>
+              <Button onClick={() => { setRules((prev) => prev.filter((_, i) => i !== idx)); }} size="sm" variant="ghost">
+                <Trash2 size={14} />
+              </Button>
             </div>
-            {/* Delete button could go here */}
-          </div>
-        ))}
-        {rules.length === 0 && !isAdding ? (
-          <Typography className='text-center py-4 text-xs text-slate-500 dark:text-slate-400 font-medium italic' variant="p">No rules defined yet.</Typography>
-        ) : null}
+          ))
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700 sm:grid-cols-6">
+        <select aria-label="Day type" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900" onChange={(e) => { setDayType(e.target.value as OvertimeDayType); }} value={dayType}>
+          <option value="weekday">weekday</option>
+          <option value="weekend">weekend</option>
+          <option value="holiday">holiday</option>
+          <option value="any">any</option>
+        </select>
+        <input aria-label="Priority" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900" onChange={(e) => { setPriority(e.target.value); }} placeholder="Priority" type="number" value={priority} />
+        <input aria-label="Multiplier" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900" onChange={(e) => { setMultiplier(e.target.value); }} placeholder="1.50" step="0.1" type="number" value={multiplier} />
+        <input aria-label="Start time" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900" onChange={(e) => { setTimeStart(e.target.value); }} type="time" value={timeStart} />
+        <input aria-label="End time" className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900" onChange={(e) => { setTimeEnd(e.target.value); }} type="time" value={timeEnd} />
+        <Button onClick={addRuleToDraft} size="sm" variant="outline">
+          <Plus className="mr-1 h-3.5 w-3.5" /> {t("common.add", "Add")}
+        </Button>
       </div>
     </div>
   );

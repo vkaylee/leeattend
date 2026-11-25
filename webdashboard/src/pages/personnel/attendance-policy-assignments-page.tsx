@@ -52,16 +52,7 @@ export default function AttendancePolicyAssignmentsPage() {
           {t("common.search", { defaultValue: "Search" })}
         </Button>
       </div>
-      <PolicyAssignmentsSection
-        options={{
-          limit: search.limit ?? 50,
-          onPageChange: (nextPage) => { updateSearch({ page: nextPage }); },
-          onTargetTypeChange: (targetType) => { updateSearch({ target_type: targetType, page: 1 }); },
-          page: search.page ?? 1,
-          q: search.q,
-          targetType: search.target_type,
-        }}
-      />
+      <PolicyAssignmentsSection options={{ q: search.q }} />
     </PageContainer>
   );
 }

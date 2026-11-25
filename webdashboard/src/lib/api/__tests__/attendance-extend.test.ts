@@ -34,12 +34,6 @@ import {
   fetchMonitorAlert,
   acknowledgeMonitorAlert,
   resolveMonitorAlert,
-  fetchDefaultAttendanceRules,
-  fetchAttendancePolicyVersions,
-  fetchPolicyAssignments,
-  upsertPolicyAssignment,
-  deletePolicyAssignment,
-  updateDefaultAttendanceRules,
   fetchBehalfAssignments,
   createBehalfAssignment,
   deleteBehalfAssignment,
@@ -353,57 +347,6 @@ describe("attendance API (extended)", () => {
     expect(result.jobs).toHaveLength(1);
     expect(result.next_cursor).toBe(5);
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/api/v1/monitor/jobs?limit=10");
-  });
-
-  it("fetchDefaultAttendanceRules: GET rules", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ rounding_policy: "floor", work_unit_minutes: 15 }));
-    const result = await fetchDefaultAttendanceRules();
-    expect(result).toEqual({ rounding_policy: "floor", work_unit_minutes: 15 });
-  });
-
-  it("fetchAttendancePolicyVersions: GET list", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "v1" }]));
-    const result = await fetchAttendancePolicyVersions();
-    expect(result).toEqual([{ id: "v1" }]);
-  });
-
-  it("fetchPolicyAssignments: GET paginated list", async () => {
-    const payload = { data: [{ id: "pa-1" }], total: 1, page: 1, limit: 50 };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(payload));
-    const result = await fetchPolicyAssignments();
-    expect(result).toEqual(payload);
-  });
-
-  it("upsertPolicyAssignment: POST returns assignment", async () => {
-    const mock = { id: "pa-new", target_type: "USER" };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await upsertPolicyAssignment({
-      early_arrival_strategy: "allow",
-      rounding_policy: "floor",
-      target_id: "e1",
-      target_type: "USER",
-      work_unit_minutes: 15,
-    });
-    expect(result).toEqual(mock);
-    const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
-    expect(JSON.parse(opts.body as string).target_type).toBe("USER");
-  });
-
-  it("deletePolicyAssignment: DELETE", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await deletePolicyAssignment("pa-1");
-    const call = vi.mocked(apiFetch).mock.calls[0];
-    expect(call[0]).toContain("/policies/assignments/pa-1");
-    expect((call[1] as RequestInit).method).toBe("DELETE");
-  });
-
-  it("updateDefaultAttendanceRules: PATCH returns version", async () => {
-    const mock = { id: "v2" };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await updateDefaultAttendanceRules({ rounding_policy: "ceil" });
-    expect(result).toEqual(mock);
-    const call = vi.mocked(apiFetch).mock.calls[0];
-    expect((call[1] as RequestInit).method).toBe("PATCH");
   });
 
   it("fetchBehalfAssignments: GET list", async () => {

@@ -195,6 +195,26 @@ export async function fetchEmployeeDepartmentHistory(employeeId: string): Promis
   return data;
 }
 
+export interface EmploymentRelationshipRecord {
+  employee_id: string;
+  employer_id: string;
+  end_date?: string | null;
+  id: string;
+  start_date: string;
+  status: string;
+  tenure_id: string;
+}
+
+export async function fetchEmployeeRelationships(
+  employeeId: string,
+): Promise<EmploymentRelationshipRecord[]> {
+  const { data } = await client.GET<EmploymentRelationshipRecord[]>(
+    "/api/v1/employees/{id}/employment-relationships",
+    { params: { path: { id: employeeId } } },
+  );
+  return data ?? [];
+}
+
 export async function fetchEmployeeEmployments(
   employeeId: string,
 ): Promise<Employment[]> {

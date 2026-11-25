@@ -10,9 +10,6 @@ vi.mock("../helpers", () => ({
 
 import { apiFetch } from "../helpers";
 import {
-  fetchPayrollSettings,
-  updatePayrollSettings,
-  fetchPayrollSettingsHistory,
   fetchSalaryComponents,
   createSalaryComponent,
   fetchIncentivePolicies,
@@ -23,15 +20,13 @@ import {
   assignEmployeeSalaryComponent,
   calculate_payroll,
   fetchEmployeePayslips,
-  fetchEmployeePayrollConfigs,
   fetchOvertimePolicies,
   fetchOvertimePolicy,
   createOvertimePolicy,
-  addOvertimeRule,
-  setEmployeePayrollConfig,
+  createOvertimePolicyVersion,
+  publishOvertimePolicyVersion,
   calculateBatchPayslips,
   fetchPayslips,
-  assignOvertimePolicy,
   fetchPayrollRules,
   createPayrollRule,
   fetchPayrollRuleTiers,
@@ -40,8 +35,12 @@ import {
   createPayrollRuleAssignment,
   deletePayrollRuleAssignment,
   fetchWorkPolicyMemberships,
-  resolveWorkPolicy,
-  createWorkPolicyGroupVersion,
+  resolveWorkPolicyByRelationship,
+  createWorkPolicyVersion,
+  patchWorkPolicyVersion,
+  publishWorkPolicyVersion,
+  transferWorkPolicyMembership,
+  simulateWorkPolicyVersionBatch,
   fetchWorkPolicyReferenceOptions,
   fetchPayrollImpact,
   fetchPayrollImpactBatch,
@@ -85,26 +84,40 @@ function errRes(status: number, statusText: string, body: unknown) {
 
 describe("payroll API", () => {
   it("fetches policy memberships", async () => {
-    const memberships = [{ id: "m-1", employment_id: "e-1", group_id: "g-1", effective_from: "2026-01-01" }];
+    const memberships = [{ id: "m-1", employment_relationship_id: "rel-1", group_id: "g-1", effective_from: "2026-01-01" }];
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(memberships));
     await expect(fetchWorkPolicyMemberships("g-1")).resolves.toEqual(memberships);
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/work-policy-groups/g-1/memberships");
   });
 
-  it("resolves policy at effective date", async () => {
-    const policy = { id: "v-1", group_id: "g-1", effective_from: "2026-01-01", pay_method: "hourly" };
+  it("resolves policy by relationship at effective date", async () => {
+    const policy = { version_id: "v-1", group_id: "g-1", effective_from: "2026-01-01", pay_method: "hourly" };
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(policy));
-    await expect(resolveWorkPolicy("e-1", "2026-06-01")).resolves.toEqual(policy);
+    await expect(resolveWorkPolicyByRelationship("rel-1", "2026-06-01")).resolves.toEqual(policy);
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/employment-relationships/rel-1/work-policy");
     expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("as_of=2026-06-01");
   });
 
-  it("creates immutable policy version", async () => {
-    const body = { name: "Operations", minutes_per_credit: 450, attendance_policy_id: "a-1", working_pattern_id: "w-1", pay_method: "hourly" as const, overtime_policy_id: "o-1", effective_from: "2026-06-01" };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "v-2", group_id: "g-1", ...body }));
-    await createWorkPolicyGroupVersion("g-1", body);
-    const call = vi.mocked(apiFetch).mock.calls[0];
-    expect(call[0]).toContain("/work-policy-groups/g-1/versions");
-    expect((call[1] as RequestInit).method).toBe("POST");
+  it("creates, patches, publishes, transfers, and batch-simulates work policy versions", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "v-2", group_id: "g-1", status: "draft", row_version: 1 }));
+    await createWorkPolicyVersion("g-1", { clone_from_version_id: "v-1" });
+    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/work-policy-groups/g-1/versions");
+
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "v-2", group_id: "g-1", status: "draft", row_version: 2 }));
+    await patchWorkPolicyVersion("g-1", "v-2", { expected_row_version: 1 } as never);
+    expect((vi.mocked(apiFetch).mock.calls[1][1] as RequestInit).method).toBe("PATCH");
+
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "v-2", group_id: "g-1", status: "published", row_version: 3 }));
+    await publishWorkPolicyVersion("g-1", "v-2", { expected_row_version: 2, auto_close_previous: true }, "idem-1");
+    expect(vi.mocked(apiFetch).mock.calls[2][0]).toContain("/work-policy-groups/g-1/versions/v-2/publish");
+
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ new_membership: { id: "m-2" } }));
+    await transferWorkPolicyMembership({ employment_relationship_id: "rel-1", target_group_id: "g-2", effective_date: "2026-05-01" });
+    expect(vi.mocked(apiFetch).mock.calls[3][0]).toContain("/work-policy-memberships/transfer");
+
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ total: 1, computed: 1, affected: 1, uncomputable: 0, items: [] }));
+    await simulateWorkPolicyVersionBatch("g-1", "v-2", { year: 2026, month: 3, employment_relationship_ids: ["rel-1"] });
+    expect(vi.mocked(apiFetch).mock.calls[4][0]).toContain("/work-policy-groups/g-1/versions/v-2/simulate");
   });
   it("fetches payroll impact with stale metadata", async () => {
     const impact = { employment_id: "e-1", period_year: 2026, period_month: 6, before_run_id: "r-1", after_run_id: "r-2", computed: true, stale: true, stale_reasons: ["policy_version_changed"], base_pay_delta: "200", overtime_pay_delta: "50", deductions_delta: "10", net_pay_delta: "240", standard_units_delta: 2, overtime_units_delta: 1 };
@@ -140,33 +153,17 @@ describe("payroll API", () => {
     expect((call[1] as RequestInit).method).toBe("POST");
   });
 
-  it("fetches labor policy reference options in parallel", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "attendance-1", valid_from: "2026-01-01" }]));
+  it("fetches work policy v2 reference options in parallel", async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes([{ id: "pattern-1", name: "Weekly" }]));
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [{ id: "overtime-1", name: "Standard OT" }] }));
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: [{ id: "overtime-1", name: "Standard OT", latest_published_version_id: "ot-v1", latest_published_version_no: 1 }] }));
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes([]));
     const result = await fetchWorkPolicyReferenceOptions();
-    expect(result.attendance[0]).toEqual({ id: "attendance-1", label: "attendance-1 (2026-01-01)" });
+    expect(result.overtimeVersions).toEqual([{ id: "ot-v1", label: "Standard OT (v1)" }]);
     expect(result.patterns).toEqual([{ id: "pattern-1", label: "Weekly" }]);
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("fetchPayrollSettings: happy path returns settings", async () => {
-    const mock = { id: "ps-1", payroll_cycle: "monthly" };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-
-    const result = await fetchPayrollSettings();
-    expect(result).toEqual(mock);
-    expect(apiFetch).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/payroll-settings");
-  });
-
-  it("fetchPayrollSettings: ApiError on 500", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(errRes(500, "Internal Server Error", { message: "boom" }));
-    await expect(fetchPayrollSettings()).rejects.toThrow();
   });
 
   it("fetchSalaryComponents: happy path", async () => {
@@ -266,60 +263,32 @@ describe("payroll API", () => {
     expect(result).toEqual(mock);
   });
 
-  it("fetchEmployeePayrollConfigs: happy path", async () => {
-    const mock = [{ id: "cfg-1", hours_per_day: "8" }];
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchEmployeePayrollConfigs("emp-1");
-    expect(result).toEqual(mock);
-  });
-
   it("fetchOvertimePolicies: returns data array", async () => {
     const mock = [{ id: "op-1", name: "OT-Weekday" }];
-    // fetchOvertimePolicies accesses resData.data, so payload needs a data key.
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ data: mock }));
     const result = await fetchOvertimePolicies();
     expect(result).toEqual(mock);
   });
 
-  it("fetchOvertimePolicy: returns [policy, rules] tuple", async () => {
-    const policy = { id: "op-1" };
-    const rules = [{ id: "or-1" }];
-    // The implementation casts resData `as unknown as [policy, rules]`.
-    // We return an actual array of length 2 so both the Array.isArray cast
-    // and the positional tuple semantics are exercised.
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes([policy, rules]));
+  it("fetchOvertimePolicy: returns policy + versions detail", async () => {
+    const detail = { policy: { id: "op-1", name: "OT" }, versions: [{ id: "ov-1", version_no: 1, status: "published" }] };
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(detail));
     const result = await fetchOvertimePolicy("op-1");
-    expect(Array.isArray(result)).toBe(true);
-    expect((result as unknown[]).length).toBe(2);
+    expect(result).toEqual(detail);
   });
 
-  it("createOvertimePolicy: POST returns policy", async () => {
-    const mock = { id: "op-new", name: "New" };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await createOvertimePolicy({ name: "New" } as never);
-    expect(result).toEqual(mock);
-  });
+  it("createOvertimePolicy + version + publish", async () => {
+    const detail = { policy: { id: "op-new", name: "New" }, versions: [{ id: "ov-1", version_no: 1, status: "draft", row_version: 1 }] };
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(detail));
+    await expect(createOvertimePolicy({ name: "New", rules: [] })).resolves.toEqual(detail);
 
-  it("addOvertimeRule: POST returns rule", async () => {
-    const mock = { id: "or-new", multiplier: "1.5" };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await addOvertimeRule("op-1", {
-      days_of_week: 1,
-      is_holiday: false,
-      multiplier: "1.5",
-      priority: 1,
-    });
-    expect(result).toEqual(mock);
-  });
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "ov-2", version_no: 2, status: "draft", row_version: 1 }));
+    await createOvertimePolicyVersion("op-new", { rules: [{ priority: 10, day_type: "weekday", days_of_week: 127, multiplier: "1.5" }] });
+    expect(vi.mocked(apiFetch).mock.calls[1][0]).toContain("/overtime/policies/op-new/versions");
 
-  it("setEmployeePayrollConfig: POST", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ ok: true }));
-    const result = await setEmployeePayrollConfig("emp-1", {
-      effective_date: "2026-01-01",
-      hours_per_day: "8",
-      std_working_days: "22",
-    });
-    expect(result).toEqual({ ok: true });
+    vi.mocked(apiFetch).mockResolvedValueOnce(okRes({ id: "ov-2", status: "published", row_version: 2 }));
+    await publishOvertimePolicyVersion("op-new", "ov-2", 1);
+    expect(vi.mocked(apiFetch).mock.calls[2][0]).toContain("/overtime/policies/op-new/versions/ov-2/publish");
   });
 
   it("calculateBatchPayslips: POST body with employment_ids + year/month", async () => {
@@ -344,18 +313,6 @@ describe("payroll API", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
     const result = await fetchPayslips(2026, 3);
     expect(result).toEqual(mock);
-  });
-
-  it("assignOvertimePolicy: POST forwards body", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(undefined));
-    await assignOvertimePolicy({
-      assignee_type: "employee",
-      effective_from: "2026-01-01",
-      policy_id: "op-1",
-    });
-    const opts = vi.mocked(apiFetch).mock.calls[0][1] as RequestInit;
-    const body = JSON.parse(opts.body as string);
-    expect(body.assignee_type).toBe("employee");
   });
 
   it("fetchPayrollRules: GET list", async () => {
@@ -395,41 +352,6 @@ describe("payroll API", () => {
     vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
     const result = await fetchPayrollRuleAssignments("pr-1");
     expect(result).toEqual(mock);
-  });
-
-  // --- updatePayrollSettings + fetchPayrollSettingsHistory ------------------
-  // These two live at lines 91-104 (the previous gap in coverage). Both are
-  // simple GET/PATCH wrappers, tested here with param forwarding + error path.
-  it("updatePayrollSettings: PATCH forwards body", async () => {
-    const mock = { id: "ps-1", payroll_cycle: "bi-weekly" };
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await updatePayrollSettings({ payroll_cycle: "bi-weekly" } as never);
-    expect(result).toEqual(mock);
-    const call = vi.mocked(apiFetch).mock.calls[0];
-    expect(call[0]).toContain("/payroll-settings");
-    expect((call[1] as RequestInit).method).toBe("PATCH");
-    expect(JSON.parse((call[1] as RequestInit).body as string).payroll_cycle).toBe("bi-weekly");
-  });
-
-  it("updatePayrollSettings: ApiError on 500", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(errRes(500, "Error", {}));
-    await expect(updatePayrollSettings({} as never)).rejects.toThrow();
-  });
-
-  it("fetchPayrollSettingsHistory: GET history list", async () => {
-    const mock = [
-      { id: "ps-h1", payroll_cycle: "monthly", created_at: "2026-01-01" },
-      { id: "ps-h2", payroll_cycle: "bi-weekly", created_at: "2026-02-01" },
-    ];
-    vi.mocked(apiFetch).mockResolvedValueOnce(okRes(mock));
-    const result = await fetchPayrollSettingsHistory();
-    expect(result).toEqual(mock);
-    expect(vi.mocked(apiFetch).mock.calls[0][0]).toContain("/payroll-settings/history");
-  });
-
-  it("fetchPayrollSettingsHistory: ApiError on 500", async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce(errRes(500, "Error", {}));
-    await expect(fetchPayrollSettingsHistory()).rejects.toThrow();
   });
 
   it("createPayrollRuleAssignment: POST returns assignment", async () => {

@@ -10,9 +10,11 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 )
 
 type ReportRepository struct {
@@ -290,39 +292,12 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
        ads.break_exception_code,
        COALESCE(ads.standard_minutes, 0),
        COALESCE(ads.approved_ot_minutes, 0),
-       COALESCE(ads.ot_status::text, 'none'),
-       COALESCE(hours.hours_per_day, 8.0)::double precision,
-       COALESCE(credits.minutes_per_credit, 0)::double precision
+       COALESCE(ads.ot_status::text, 'none')
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
 JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id
 LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL
 LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ads.date AND (t.end_date IS NULL OR t.end_date >= ads.date)
-LEFT JOIN LATERAL (
-	SELECT ce.value_decimal AS hours_per_day
-	FROM config_entries ce
-	WHERE ce.config_key = 'payroll.hours_per_day'
-	  AND ce.effective_from <= ads.date
-	  AND (ce.effective_to IS NULL OR ce.effective_to >= ads.date)
-	  AND ce.value_decimal > 0
-	  AND ((ce.scope_type = 'employment' AND ce.scope_id = emp.id)
-	    OR (ce.scope_type = 'department' AND ce.scope_id = emp.department_id)
-	    OR (ce.scope_type = 'organization' AND ce.scope_id IS NULL))
-	ORDER BY CASE ce.scope_type WHEN 'employment' THEN 1 WHEN 'department' THEN 2 WHEN 'organization' THEN 3 END,
-	         ce.effective_from DESC, ce.created_at DESC, ce.id DESC
-	LIMIT 1
-) hours ON TRUE
-LEFT JOIN LATERAL (
-	SELECT wc.minutes_per_credit
-	FROM labor_policy_memberships m
-	JOIN labor_policy_group_versions v ON v.group_id = m.group_id
-	JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
-	WHERE m.employment_id = emp.id
-	  AND m.effective_from <= ads.date AND (m.effective_to IS NULL OR m.effective_to > ads.date)
-	  AND v.effective_from <= ads.date AND (v.effective_to IS NULL OR v.effective_to > ads.date)
-	ORDER BY v.effective_from DESC, v.id DESC
-	LIMIT 1
-) credits ON TRUE
 LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date = ads.date
 LEFT JOIN LATERAL (
        SELECT MIN(te.punch_in_time)::text AS punch_in_time, MAX(te.punch_out_time)::text AS punch_out_time
@@ -347,18 +322,25 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 		}
 		defer rows.Close()
 
-		results := make([]api.DailyAttendanceRow, 0)
+		type dailyPending struct {
+			row     api.DailyAttendanceRow
+			stdMins int
+			otMins  int
+		}
+		pending := make([]dailyPending, 0)
+		empSet := make(map[uuid.UUID]struct{})
+		empIDs := make([]uuid.UUID, 0)
+		var minDate, maxDate time.Time
 		for rows.Next() {
 			var row api.DailyAttendanceRow
 			var actMins, scheduledBreakMins, actualBreakMins, deductedBreakMins, netWorkMins, netPaidMins, stdMins, otMins int
 			var breakProvisional bool
 			var breakExceptionCode *string
-			var hoursPerDay, minutesPerCredit float64
 			var shiftName, schedStart, schedEnd, punchIn, punchOut *string
 			var otStatus string
 			if err := rows.Scan(&row.Date, &row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
 				&shiftName, &schedStart, &schedEnd, &punchIn, &punchOut,
-				&actMins, &scheduledBreakMins, &actualBreakMins, &deductedBreakMins, &netWorkMins, &netPaidMins, &breakProvisional, &breakExceptionCode, &stdMins, &otMins, &otStatus, &hoursPerDay, &minutesPerCredit); err != nil {
+				&actMins, &scheduledBreakMins, &actualBreakMins, &deductedBreakMins, &netWorkMins, &netPaidMins, &breakProvisional, &breakExceptionCode, &stdMins, &otMins, &otStatus); err != nil {
 				return api.PaginatedReportResponse{}, err
 			}
 			row.ShiftName = shiftName
@@ -376,20 +358,53 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 			row.BreakExceptionCode = breakExceptionCode
 			row.ComputedStdHours = math.Round((float64(stdMins)/60.0)*100) / 100
 			row.ComputedOTHours = math.Round((float64(otMins)/60.0)*100) / 100
-			denominator := hoursPerDay * 60
-			if denominator <= 0 {
-				denominator = 480
-			}
-			row.StdWorkUnits = math.Round((float64(stdMins)/denominator)*100) / 100
-			row.OTWorkUnits = math.Round((float64(otMins)/denominator)*100) / 100
-			if minutesPerCredit > 0 {
-				row.StandardCredits = math.Round((float64(stdMins)/minutesPerCredit)*100) / 100
-			}
 			row.OTClaimStatus = otStatus
 			if actMins > 0 || stdMins > 0 || (punchIn != nil && punchOut != nil) {
 				row.Status = "present"
 			} else {
 				row.Status = "absent"
+			}
+			if _, seen := empSet[row.EmploymentID]; !seen {
+				empSet[row.EmploymentID] = struct{}{}
+				empIDs = append(empIDs, row.EmploymentID)
+			}
+			if d, parseErr := time.Parse("2006-01-02", row.Date); parseErr == nil {
+				if minDate.IsZero() || d.Before(minDate) {
+					minDate = d
+				}
+				if maxDate.IsZero() || d.After(maxDate) {
+					maxDate = d
+				}
+			}
+			pending = append(pending, dailyPending{row: row, stdMins: stdMins, otMins: otMins})
+		}
+		if err := rows.Err(); err != nil {
+			return api.PaginatedReportResponse{}, err
+		}
+		rows.Close()
+
+		policiesByEmp := make(map[uuid.UUID][]workpolicy.ResolvedPolicy)
+		if len(empIDs) > 0 && !minDate.IsZero() {
+			policiesByEmp, err = (WorkPolicyResolver{}).ResolveRangeForEmployments(ctx, db, empIDs, minDate, maxDate)
+			if err != nil {
+				return api.PaginatedReportResponse{}, err
+			}
+		}
+		results := make([]api.DailyAttendanceRow, 0, len(pending))
+		for _, item := range pending {
+			row := item.row
+			denominator := 480.0
+			minutesPerCredit := 0.0
+			if d, parseErr := time.Parse("2006-01-02", row.Date); parseErr == nil {
+				if policy, ok := FindResolvedPolicyForDate(policiesByEmp[row.EmploymentID], d); ok && policy.MinutesPerCredit > 0 {
+					minutesPerCredit = float64(policy.MinutesPerCredit)
+					denominator = minutesPerCredit
+				}
+			}
+			row.StdWorkUnits = math.Round((float64(item.stdMins)/denominator)*100) / 100
+			row.OTWorkUnits = math.Round((float64(item.otMins)/denominator)*100) / 100
+			if minutesPerCredit > 0 {
+				row.StandardCredits = math.Round((float64(item.stdMins)/minutesPerCredit)*100) / 100
 			}
 			results = append(results, row)
 		}
@@ -459,46 +474,18 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 	}
 
 	dataQuery := fmt.Sprintf(`SELECT emp.id AS employment_id, e.id AS employee_id, e.full_name, COALESCE(t.employee_number, ''),
-       FLOOR(COALESCE(SUM(ads.standard_minutes), 0)::numeric / (COALESCE(hours.hours_per_day, 8.0) * 60))::int AS total_std_units,
-       FLOOR(COALESCE(SUM(ads.approved_ot_minutes), 0)::numeric / (COALESCE(hours.hours_per_day, 8.0) * 60))::int AS total_ot_units,
-       ROUND((COALESCE(SUM(ads.standard_minutes), 0)::numeric / 60.0), 2) AS computed_std_hours,
-       ROUND((COALESCE(SUM(ads.approved_ot_minutes), 0)::numeric / 60.0), 2) AS computed_ot_hours,
-       COALESCE(hours.hours_per_day, 8.0)::double precision AS unit_coefficient_hours,
-       ROUND(COALESCE(SUM(CASE WHEN credits.minutes_per_credit > 0 THEN ads.standard_minutes::numeric / credits.minutes_per_credit ELSE 0 END), 0), 2)::double precision AS standard_credits,
+       COALESCE(SUM(ads.standard_minutes), 0)::int AS total_std_minutes,
+       COALESCE(SUM(ads.approved_ot_minutes), 0)::int AS total_ot_minutes,
+       COALESCE(json_agg(json_build_object('date', ads.date::text, 'standard_minutes', ads.standard_minutes)) FILTER (WHERE ads.id IS NOT NULL), '[]'::json) AS daily_entries,
        emp.employer_id, em.name AS employer_name
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
 LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL
 LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $2::date AND (t.end_date IS NULL OR t.end_date >= $1::date)
 LEFT JOIN employers em ON em.id = emp.employer_id
-LEFT JOIN LATERAL (
-	SELECT ce.value_decimal AS hours_per_day
-	FROM config_entries ce
-	WHERE ce.config_key = 'payroll.hours_per_day'
-	  AND ce.effective_from <= $1::date
-	  AND (ce.effective_to IS NULL OR ce.effective_to >= $1::date)
-	  AND ce.value_decimal > 0
-	  AND ((ce.scope_type = 'employment' AND ce.scope_id = emp.id)
-	    OR (ce.scope_type = 'department' AND ce.scope_id = emp.department_id)
-	    OR (ce.scope_type = 'organization' AND ce.scope_id IS NULL))
-	ORDER BY CASE ce.scope_type WHEN 'employment' THEN 1 WHEN 'department' THEN 2 WHEN 'organization' THEN 3 END,
-	         ce.effective_from DESC, ce.created_at DESC, ce.id DESC
-	LIMIT 1
-) hours ON TRUE
 LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.date >= $1::date AND ads.date <= $2::date
-LEFT JOIN LATERAL (
-	SELECT wc.minutes_per_credit
-	FROM labor_policy_memberships m
-	JOIN labor_policy_group_versions v ON v.group_id = m.group_id
-	JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
-	WHERE m.employment_id = emp.id
-	  AND m.effective_from <= ads.date AND (m.effective_to IS NULL OR m.effective_to > ads.date)
-	  AND v.effective_from <= ads.date AND (v.effective_to IS NULL OR v.effective_to > ads.date)
-	ORDER BY v.effective_from DESC, v.id DESC
-	LIMIT 1
-) credits ON TRUE
 		WHERE %s%s
-		GROUP BY emp.id, e.id, e.full_name, COALESCE(t.employee_number, ''), emp.employer_id, em.name, hours.hours_per_day
+		GROUP BY emp.id, e.id, e.full_name, COALESCE(t.employee_number, ''), emp.employer_id, em.name
 		ORDER BY e.full_name ASC
 		LIMIT $%d OFFSET $%d`, baseClause, dataFilterClause, dataArgIndex, dataArgIndex+1)
 
@@ -509,16 +496,79 @@ LEFT JOIN LATERAL (
 	}
 	defer rows.Close()
 
-	summaries := make([]api.AttendanceSummaryRow, 0)
+	type summaryDailyEntry struct {
+		Date            string `json:"date"`
+		StandardMinutes int    `json:"standard_minutes"`
+	}
+	type summaryPending struct {
+		row          api.AttendanceSummaryRow
+		totalStdMins int
+		totalOTMins  int
+		dailyRaw     []byte
+	}
+	pending := make([]summaryPending, 0)
+	empIDs := make([]uuid.UUID, 0)
 	for rows.Next() {
-		var row api.AttendanceSummaryRow
-		row.UnitType = "DAY"
-		if err := rows.Scan(&row.EmploymentID, &row.EmployeeID, &row.EmployeeName, &row.EmployeeIDNumber,
-			&row.TotalStdUnits, &row.TotalOTUnits,
-			&row.ComputedStdHours, &row.ComputedOTHours, &row.UnitCoefficientHours,
-			&row.StandardCredits, &row.EmployerID, &row.EmployerName); err != nil {
+		var item summaryPending
+		item.row.UnitType = "DAY"
+		if err := rows.Scan(&item.row.EmploymentID, &item.row.EmployeeID, &item.row.EmployeeName, &item.row.EmployeeIDNumber,
+			&item.totalStdMins, &item.totalOTMins, &item.dailyRaw,
+			&item.row.EmployerID, &item.row.EmployerName); err != nil {
 			return api.PaginatedReportResponse{}, err
 		}
+		empIDs = append(empIDs, item.row.EmploymentID)
+		pending = append(pending, item)
+	}
+	if err := rows.Err(); err != nil {
+		return api.PaginatedReportResponse{}, err
+	}
+	rows.Close()
+
+	startDate, startErr := time.Parse("2006-01-02", params.StartDate)
+	endDate, endErr := time.Parse("2006-01-02", params.EndDate)
+	policiesByEmp := make(map[uuid.UUID][]workpolicy.ResolvedPolicy)
+	if len(empIDs) > 0 && startErr == nil && endErr == nil {
+		policiesByEmp, err = (WorkPolicyResolver{}).ResolveRangeForEmployments(ctx, db, empIDs, startDate, endDate)
+		if err != nil {
+			return api.PaginatedReportResponse{}, err
+		}
+	}
+
+	summaries := make([]api.AttendanceSummaryRow, 0, len(pending))
+	for _, item := range pending {
+		row := item.row
+		empPolicies := policiesByEmp[row.EmploymentID]
+		hoursPerDay := 8.0
+		if startErr == nil {
+			if p, ok := FindResolvedPolicyForDate(empPolicies, startDate); ok && p.MinutesPerCredit > 0 {
+				hoursPerDay = math.Round((float64(p.MinutesPerCredit)/60.0)*100) / 100
+			} else if len(empPolicies) > 0 && empPolicies[0].MinutesPerCredit > 0 {
+				hoursPerDay = math.Round((float64(empPolicies[0].MinutesPerCredit)/60.0)*100) / 100
+			}
+		}
+		denomMins := hoursPerDay * 60.0
+		if denomMins <= 0 {
+			denomMins = 480.0
+		}
+		row.UnitCoefficientHours = hoursPerDay
+		row.TotalStdUnits = int(math.Floor(float64(item.totalStdMins) / denomMins))
+		row.TotalOTUnits = int(math.Floor(float64(item.totalOTMins) / denomMins))
+		row.ComputedStdHours = math.Round((float64(item.totalStdMins)/60.0)*100) / 100
+		row.ComputedOTHours = math.Round((float64(item.totalOTMins)/60.0)*100) / 100
+
+		var entries []summaryDailyEntry
+		if len(item.dailyRaw) > 0 {
+			_ = json.Unmarshal(item.dailyRaw, &entries)
+		}
+		creditsTotal := 0.0
+		for _, entry := range entries {
+			if d, parseErr := time.Parse("2006-01-02", entry.Date); parseErr == nil {
+				if p, ok := FindResolvedPolicyForDate(empPolicies, d); ok && p.MinutesPerCredit > 0 {
+					creditsTotal += float64(entry.StandardMinutes) / float64(p.MinutesPerCredit)
+				}
+			}
+		}
+		row.StandardCredits = math.Round(creditsTotal*100) / 100
 		summaries = append(summaries, row)
 	}
 	if err := rows.Err(); err != nil {

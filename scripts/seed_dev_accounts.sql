@@ -131,10 +131,111 @@ BEGIN
     UPDATE departments SET manager_id = 'f0000000-0000-0000-0000-000000000005' WHERE id = v_dept_hr;
     UPDATE departments SET manager_id = 'f0000000-0000-0000-0000-000000000007' WHERE id = v_dept_tech;
 
+    -- Default Work Policy v2 + Published Overtime Policy Version + Memberships
+    INSERT INTO overtime_policy_definitions (id, name, description)
+    VALUES (
+        '60000000-0000-0000-0000-000000000001',
+        'Standard Statutory OT Policy',
+        'Standard weekday 1.5x, weekend 2.0x, holiday 3.0x, night 22:00-06:00 premium with statutory caps'
+    )
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO overtime_policy_versions (
+        id, policy_id, version_no, status, row_version,
+        daily_cap_minutes, monthly_cap_hours, yearly_cap_hours,
+        rules, created_by, published_by, published_at
+    )
+    VALUES (
+        '61000000-0000-0000-0000-000000000001',
+        '60000000-0000-0000-0000-000000000001',
+        1,
+        'published',
+        1,
+        240,
+        40.00,
+        200.00,
+        '[
+            {"priority": 100, "day_type": "holiday", "days_of_week": 127, "time_start": "22:00", "time_end": "06:00", "multiplier": 3.90},
+            {"priority": 90,  "day_type": "holiday", "days_of_week": 127, "multiplier": 3.00},
+            {"priority": 80,  "day_type": "weekend", "days_of_week": 127, "time_start": "22:00", "time_end": "06:00", "multiplier": 2.70},
+            {"priority": 70,  "day_type": "weekend", "days_of_week": 127, "multiplier": 2.00},
+            {"priority": 60,  "day_type": "weekday", "days_of_week": 127, "time_start": "22:00", "time_end": "06:00", "multiplier": 2.00},
+            {"priority": 50,  "day_type": "weekday", "days_of_week": 127, "multiplier": 1.50}
+        ]'::jsonb,
+        'e80200c2-eec3-4fc1-8135-de9f8f264396',
+        'e80200c2-eec3-4fc1-8135-de9f8f264396',
+        NOW()
+    )
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO work_policy_groups (id, code, name, description, created_by)
+    VALUES (
+        '62000000-0000-0000-0000-000000000001',
+        'STD-MONTHLY',
+        'Standard Office Monthly Policy',
+        'Default full-time office work policy (480m/credit, fixed 22 days/month)',
+        'e80200c2-eec3-4fc1-8135-de9f8f264396'
+    )
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO work_policy_versions (
+        id, group_id, version_no, status, row_version,
+        effective_from, effective_to,
+        created_by, published_by, published_at,
+        minutes_per_credit, work_unit_minutes, rounding_policy, early_arrival_strategy,
+        late_arrival_grace_minutes, early_ot_enabled, early_ot_qualification_grace_minutes,
+        early_ot_max_minutes, break_auto_deduct, break_is_overtime, ot_aggregation_mode,
+        working_pattern_id, pay_method, monthly_denominator, monthly_standard_days,
+        rate_component_definition_id, paid_leave_credit_mode, overtime_policy_version_id
+    )
+    VALUES (
+        '63000000-0000-0000-0000-000000000001',
+        '62000000-0000-0000-0000-000000000001',
+        1,
+        'published',
+        1,
+        DATE '2020-01-01',
+        NULL,
+        'e80200c2-eec3-4fc1-8135-de9f8f264396',
+        'e80200c2-eec3-4fc1-8135-de9f8f264396',
+        NOW(),
+        480, 1, 'none', 'clamp',
+        5, false, 0,
+        NULL, true, false, 'aggregate',
+        NULL, 'monthly', 'fixed', 22.0000,
+        NULL, 'standard_day', '61000000-0000-0000-0000-000000000001'
+    )
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO work_policy_memberships (
+        id, employment_relationship_id, group_id, effective_from, effective_to, created_by
+    )
+    SELECT
+        ('64000000-0000-0000-0000-' || right(replace(er.id::text, '-', ''), 12))::uuid,
+        er.id,
+        '62000000-0000-0000-0000-000000000001',
+        er.start_date,
+        CASE WHEN er.end_date IS NOT NULL THEN er.end_date + 1 ELSE NULL END,
+        'e80200c2-eec3-4fc1-8135-de9f8f264396'
+    FROM employment_relationships er
+    WHERE er.id IN (
+        'd1000000-0000-0000-0000-000000000001',
+        'd1000000-0000-0000-0000-000000000005',
+        'd1000000-0000-0000-0000-000000000006',
+        'd1000000-0000-0000-0000-000000000007',
+        'd1000000-0000-0000-0000-000000000008'
+    )
+      AND NOT EXISTS (
+          SELECT 1
+          FROM work_policy_memberships m
+          WHERE m.employment_relationship_id = er.id
+      )
+    ON CONFLICT (id) DO NOTHING;
+
     INSERT INTO attendance_daily_summaries (
         id, employment_id, date,
         actual_work_minutes, standard_minutes, approved_ot_minutes,
-        is_weekend, is_holiday, ot_status
+        is_weekend, is_holiday, ot_status, work_policy_version_id
     )
     SELECT
         gen_random_uuid(),
@@ -162,7 +263,8 @@ BEGIN
         CASE
             WHEN EXTRACT(DOW FROM d.dt) NOT IN (0, 6) AND EXTRACT(DAY FROM d.dt) = 18 THEN 'approved'::public.ot_status_type
             ELSE 'none'::public.ot_status_type
-        END AS ot_status
+        END AS ot_status,
+        '63000000-0000-0000-0000-000000000001'::uuid AS work_policy_version_id
     FROM employments emp
     CROSS JOIN generate_series(CURRENT_DATE - INTERVAL '60 days', CURRENT_DATE, INTERVAL '1 day') AS d(dt)
     ON CONFLICT (employment_id, date) DO UPDATE SET
@@ -170,5 +272,6 @@ BEGIN
         standard_minutes = EXCLUDED.standard_minutes,
         approved_ot_minutes = EXCLUDED.approved_ot_minutes,
         is_weekend = EXCLUDED.is_weekend,
-        ot_status = EXCLUDED.ot_status;
+        ot_status = EXCLUDED.ot_status,
+        work_policy_version_id = EXCLUDED.work_policy_version_id;
 END $$;

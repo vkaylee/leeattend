@@ -404,7 +404,7 @@ func TestEmployeeMatch_OpenAPIContract(t *testing.T) {
 	}
 
 	start := strings.Index(spec, "    EmployeeMatchCandidate:")
-	end := strings.Index(spec[start:], "    EmployeePayrollConfig:")
+	end := strings.Index(spec[start:], "    EmployeePhase:")
 	if start < 0 || end <= 0 {
 		t.Fatal("failed to locate EmployeeMatchCandidate schema block")
 	}

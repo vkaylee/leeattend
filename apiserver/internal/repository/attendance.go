@@ -404,27 +404,6 @@ func (r AttendanceRepository) GetESSAttendanceState(ctx context.Context, employe
 	return api.AttendanceActionResponse{State: "working", NextAllowedActions: []string{api.AttendanceActionBreakStart, api.AttendanceActionWorkOut}, Entry: &entry}, nil
 }
 
-func decodeReprocessAttendanceRules(raw []byte) api.AttendanceRules {
-	rules := api.DefaultAttendanceRules()
-	if len(raw) == 0 {
-		return rules
-	}
-	var decoded api.AttendanceRules
-	if err := json.Unmarshal(raw, &decoded); err != nil {
-		return rules
-	}
-	if decoded.WorkUnitMinutes > 0 {
-		rules.WorkUnitMinutes = decoded.WorkUnitMinutes
-	}
-	if decoded.RoundingPolicy != "" {
-		rules.RoundingPolicy = decoded.RoundingPolicy
-	}
-	if decoded.EarlyArrivalStrategy != "" {
-		rules.EarlyArrivalStrategy = decoded.EarlyArrivalStrategy
-	}
-	return rules
-}
-
 type reprocessDailyGroup struct {
 	employmentID      uuid.UUID
 	date              string
@@ -436,7 +415,30 @@ type reprocessDailyGroup struct {
 	inputs            []buckets.DailyCalcInput
 }
 
+type rawReprocessRow struct {
+	empID                  uuid.UUID
+	dateStr                string
+	punchIn, punchOut      time.Time
+	duration               *int
+	segmentID, shiftID     *uuid.UUID
+	startAt, endAt         *time.Time
+	breaks                 []byte
+	intervalBreakPunchMode string
+	actualBreakMins        int
+	actualBreakCount       int
+	hasOpenBreak           bool
+	approvedBreakWorked    int
+}
+
 func loadReprocessDailyGroups(ctx context.Context, db DBTX, startDate, endDate string, employeeID *uuid.UUID) ([]*reprocessDailyGroup, error) {
+	parsedStart, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		return nil, err
+	}
+	parsedEnd, err := time.Parse("2006-01-02", endDate)
+	if err != nil {
+		return nil, err
+	}
 	businessDateExpr := `COALESCE(ws.date, (te.punch_in_time AT TIME ZONE COALESCE(sdr.timezone, 'UTC'))::date)`
 	where := businessDateExpr + ` >= $1::date AND ` + businessDateExpr + ` <= $2::date`
 	args := []any{startDate, endDate}
@@ -444,24 +446,12 @@ func loadReprocessDailyGroups(ctx context.Context, db DBTX, startDate, endDate s
 		where += " AND e.employee_id = $3"
 		args = append(args, *employeeID)
 	}
-	rows, err := db.Query(ctx, `SELECT te.employment_id, `+businessDateExpr+`::text, te.punch_in_time, te.punch_out_time, te.duration_minutes, te.segment_id, te.shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot, COALESCE(sdi.break_punch_mode, 'none'), wp.id, COALESCE(wc.late_arrival_grace_minutes, 0), COALESCE(wc.early_ot_enabled, false), COALESCE(wc.early_ot_qualification_grace_minutes, 0), wc.early_ot_max_minutes, COALESCE(wc.break_auto_deduct, true), COALESCE(wc.break_is_overtime, false), COALESCE(wc.ot_aggregation_mode, 'aggregate'), apv.rules, COALESCE(tbr.actual_break_minutes, 0), COALESCE(tbr.actual_break_count, 0), COALESCE(tbr.has_open_break, false), COALESCE(bwo.approved_break_worked_minutes, 0)
+	rows, err := db.Query(ctx, `SELECT te.employment_id, `+businessDateExpr+`::text, te.punch_in_time, te.punch_out_time, te.duration_minutes, te.segment_id, te.shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot, COALESCE(sdi.break_punch_mode, 'none'), COALESCE(tbr.actual_break_minutes, 0), COALESCE(tbr.actual_break_count, 0), COALESCE(tbr.has_open_break, false), COALESCE(bwo.approved_break_worked_minutes, 0)
 		FROM time_entries te
 		JOIN employments e ON e.id = te.employment_id
 		LEFT JOIN work_segments ws ON ws.id = te.segment_id
 		LEFT JOIN shift_default_intervals sdi ON sdi.id = ws.interval_id
 		LEFT JOIN schedule_day_revisions sdr ON sdr.id = ws.schedule_revision_id
-		LEFT JOIN labor_policy_memberships lm ON lm.employment_id = te.employment_id AND lm.effective_from <= `+businessDateExpr+` AND (lm.effective_to IS NULL OR lm.effective_to > `+businessDateExpr+`)
-		LEFT JOIN labor_policy_group_versions wp ON wp.group_id = lm.group_id AND wp.effective_from <= `+businessDateExpr+` AND (wp.effective_to IS NULL OR wp.effective_to > `+businessDateExpr+`)
-		LEFT JOIN work_credit_policies wc ON wc.id = wp.work_credit_policy_id
-		LEFT JOIN LATERAL (
-			SELECT v.rules
-			FROM attendance_policy_versions v
-			WHERE v.policy_id = wc.attendance_policy_id
-			  AND v.valid_from <= ((`+businessDateExpr+`::date + INTERVAL '1 day') - INTERVAL '1 second')
-			  AND (v.valid_to IS NULL OR v.valid_to > `+businessDateExpr+`::date)
-			ORDER BY v.valid_from DESC, v.created_at DESC
-			LIMIT 1
-		) apv ON true
 		LEFT JOIN LATERAL (
 			SELECT
 				COALESCE(SUM(CASE WHEN tb.break_end_at IS NOT NULL THEN GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (tb.break_end_at - tb.break_start_at)) / 60)) ELSE 0 END), 0)::integer AS actual_break_minutes,
@@ -484,76 +474,89 @@ func loadReprocessDailyGroups(ctx context.Context, db DBTX, startDate, endDate s
 		return nil, err
 	}
 	defer rows.Close()
-	byKey := make(map[string]*reprocessDailyGroup)
-	var ordered []*reprocessDailyGroup
+
+	rawRows := make([]rawReprocessRow, 0)
+	empIDSet := make(map[uuid.UUID]struct{})
+	empIDs := make([]uuid.UUID, 0)
 	for rows.Next() {
-		item, err := scanReprocessRow(rows, byKey)
-		if err != nil {
+		var r rawReprocessRow
+		if err := rows.Scan(&r.empID, &r.dateStr, &r.punchIn, &r.punchOut, &r.duration, &r.segmentID, &r.shiftID, &r.startAt, &r.endAt, &r.breaks, &r.intervalBreakPunchMode, &r.actualBreakMins, &r.actualBreakCount, &r.hasOpenBreak, &r.approvedBreakWorked); err != nil {
 			return nil, err
 		}
-		if item != nil {
-			ordered = append(ordered, item)
+		rawRows = append(rawRows, r)
+		if _, seen := empIDSet[r.empID]; !seen {
+			empIDSet[r.empID] = struct{}{}
+			empIDs = append(empIDs, r.empID)
 		}
 	}
-	return ordered, rows.Err()
-}
-
-func scanReprocessRow(rows pgx.Rows, byKey map[string]*reprocessDailyGroup) (*reprocessDailyGroup, error) {
-	var empID uuid.UUID
-	var dateStr, intervalBreakPunchMode, otAggMode string
-	var punchIn, punchOut time.Time
-	var duration, maxEarly *int
-	var segmentID, shiftID, policyID *uuid.UUID
-	var startAt, endAt *time.Time
-	var breaks, attRulesRaw []byte
-	var lateGrace, earlyGrace, actualBreakMins, actualBreakCount, approvedBreakWorked int
-	var earlyEnabled, breakAuto, breakOT, hasOpenBreak bool
-	if err := rows.Scan(&empID, &dateStr, &punchIn, &punchOut, &duration, &segmentID, &shiftID, &startAt, &endAt, &breaks, &intervalBreakPunchMode, &policyID, &lateGrace, &earlyEnabled, &earlyGrace, &maxEarly, &breakAuto, &breakOT, &otAggMode, &attRulesRaw, &actualBreakMins, &actualBreakCount, &hasOpenBreak, &approvedBreakWorked); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	if policyID == nil {
-		return nil, api.ErrAttendancePolicyMissing
+	rows.Close()
+	if len(rawRows) == 0 {
+		return nil, nil
 	}
-	breakWindows, breakStart, breakEnd, scheduledBreak, breakPunchMode, err := parseBreakWindowsSnapshot(breaks)
+
+	policiesByEmp, err := (WorkPolicyResolver{}).ResolveRangeForEmployments(ctx, db, empIDs, parsedStart, parsedEnd)
 	if err != nil {
 		return nil, err
 	}
-	if intervalBreakPunchMode == string(buckets.BreakPunchModeRequired) {
-		breakPunchMode = buckets.BreakPunchModeRequired
+
+	byKey := make(map[string]*reprocessDailyGroup)
+	var ordered []*reprocessDailyGroup
+	for _, r := range rawRows {
+		day, parseErr := time.Parse("2006-01-02", r.dateStr)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		policy, ok := FindResolvedPolicyForDate(policiesByEmp[r.empID], day)
+		if !ok {
+			return nil, api.ErrAttendancePolicyMissing
+		}
+		breakWindows, breakStart, breakEnd, scheduledBreak, breakPunchMode, err := parseBreakWindowsSnapshot(r.breaks)
+		if err != nil {
+			return nil, err
+		}
+		if r.intervalBreakPunchMode == string(buckets.BreakPunchModeRequired) {
+			breakPunchMode = buckets.BreakPunchModeRequired
+		}
+		key := r.empID.String() + ":" + r.dateStr
+		item := byKey[key]
+		if item == nil {
+			item = &reprocessDailyGroup{
+				employmentID: r.empID,
+				date:         r.dateStr,
+				otAggMode:    buckets.OtAggregationMode(policy.OTAggregationMode),
+			}
+			byKey[key] = item
+			ordered = append(ordered, item)
+		}
+		item.actual += int(r.punchOut.Sub(r.punchIn) / time.Minute)
+		item.scheduledBreak += int(scheduledBreak)
+		if r.startAt != nil {
+			item.lateMinutes += int(matcher.ComputeLateMinutes(r.punchIn, *r.startAt, policy.LateArrivalGraceMinutes, false))
+		}
+		var maxEarly32 *int32
+		if policy.EarlyOTMaxMinutes != nil {
+			v := int32(*policy.EarlyOTMaxMinutes)
+			maxEarly32 = &v
+		}
+		item.inputs = append(item.inputs, buckets.DailyCalcInput{
+			PunchIn: r.punchIn, PunchOut: r.punchOut, ShiftStart: r.startAt, ShiftEnd: r.endAt,
+			ScheduledBreakMinutes: scheduledBreak, ActualBreakMinutes: int32(r.actualBreakMins),
+			ApprovedBreakWorkedMinutes: int32(r.approvedBreakWorked), ActualBreakCount: r.actualBreakCount,
+			HasOpenActualBreak: r.hasOpenBreak, BreakPunchMode: breakPunchMode,
+			BreakStart: breakStart, BreakEnd: breakEnd, BreakWindows: breakWindows,
+			WorkUnit: int32(max(1, policy.WorkUnitMinutes)), RoundingPolicy: buckets.RoundingPolicy(policy.RoundingPolicy),
+			EarlyArrivalStrategy: policy.EarlyArrivalStrategy, GracePeriodMinutes: int32(policy.EarlyOTQualificationGraceMinutes),
+			AllowEarlyOT: policy.EarlyOTEnabled, IsBreakAutoDeduct: policy.BreakAutoDeduct, IsBreakOvertime: policy.BreakIsOvertime,
+			MaxEarlyOTMinutes: maxEarly32, SegmentID: r.segmentID, OTAggregationMode: buckets.OtAggregationMode(policy.OTAggregationMode),
+		})
+		policyVerID := policy.VersionID
+		item.policyID = &policyVerID
+		item.shiftID = r.shiftID
 	}
-	attRules := decodeReprocessAttendanceRules(attRulesRaw)
-	key := empID.String() + ":" + dateStr
-	item := byKey[key]
-	var created *reprocessDailyGroup
-	if item == nil {
-		item = &reprocessDailyGroup{employmentID: empID, date: dateStr, otAggMode: buckets.OtAggregationMode(otAggMode)}
-		byKey[key] = item
-		created = item
-	}
-	item.actual += int(punchOut.Sub(punchIn) / time.Minute)
-	item.scheduledBreak += int(scheduledBreak)
-	if startAt != nil {
-		item.lateMinutes += int(matcher.ComputeLateMinutes(punchIn, *startAt, lateGrace, false))
-	}
-	var maxEarly32 *int32
-	if maxEarly != nil {
-		v := int32(*maxEarly)
-		maxEarly32 = &v
-	}
-	item.inputs = append(item.inputs, buckets.DailyCalcInput{
-		PunchIn: punchIn, PunchOut: punchOut, ShiftStart: startAt, ShiftEnd: endAt,
-		ScheduledBreakMinutes: scheduledBreak, ActualBreakMinutes: int32(actualBreakMins),
-		ApprovedBreakWorkedMinutes: int32(approvedBreakWorked), ActualBreakCount: actualBreakCount,
-		HasOpenActualBreak: hasOpenBreak, BreakPunchMode: breakPunchMode,
-		BreakStart: breakStart, BreakEnd: breakEnd, BreakWindows: breakWindows,
-		WorkUnit: int32(max(1, attRules.WorkUnitMinutes)), RoundingPolicy: buckets.RoundingPolicy(attRules.RoundingPolicy),
-		EarlyArrivalStrategy: attRules.EarlyArrivalStrategy, GracePeriodMinutes: int32(earlyGrace),
-		AllowEarlyOT: earlyEnabled, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT,
-		MaxEarlyOTMinutes: maxEarly32, SegmentID: segmentID, OTAggregationMode: buckets.OtAggregationMode(otAggMode),
-	})
-	item.policyID = policyID
-	item.shiftID = shiftID
-	return created, nil
+	return ordered, nil
 }
 
 func upsertReprocessSummary(ctx context.Context, db DBTX, item *reprocessDailyGroup) error {
@@ -924,21 +927,8 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, startD
 		return api.PaginatedSummaries{}, err
 	}
 
-	dataQuery := fmt.Sprintf(`SELECT s.id, s.employment_id, s.date::text, s.actual_work_minutes, s.standard_minutes, s.system_detected_ot_minutes, s.claimed_ot_minutes, s.approved_ot_minutes, s.early_ot_minutes, s.late_ot_minutes, s.break_ot_minutes, s.scheduled_break_minutes, s.actual_break_minutes, s.deducted_break_minutes, s.net_work_minutes, s.net_paid_minutes, s.break_provisional, s.break_exception_code, COALESCE(policy.minutes_per_credit, 0)::double precision, policy.version_id, s.shift_version_id, s.ot_status::text, s.ot_reason, s.manager_note, s.is_weekend, s.is_holiday, s.holiday_name, s.created_at, s.updated_at
+	dataQuery := fmt.Sprintf(`SELECT s.id, s.employment_id, s.date::text, s.actual_work_minutes, s.standard_minutes, s.system_detected_ot_minutes, s.claimed_ot_minutes, s.approved_ot_minutes, s.early_ot_minutes, s.late_ot_minutes, s.break_ot_minutes, s.scheduled_break_minutes, s.actual_break_minutes, s.deducted_break_minutes, s.net_work_minutes, s.net_paid_minutes, s.break_provisional, s.break_exception_code, s.work_policy_version_id, s.shift_version_id, s.ot_status::text, s.ot_reason, s.manager_note, s.is_weekend, s.is_holiday, s.holiday_name, s.created_at, s.updated_at
 FROM attendance_daily_summaries s
-LEFT JOIN LATERAL (
-	SELECT wc.minutes_per_credit, v.id AS version_id
-	FROM labor_policy_memberships m
-	JOIN labor_policy_group_versions v ON v.group_id = m.group_id
-	JOIN work_credit_policies wc ON wc.id = v.work_credit_policy_id
-	WHERE m.employment_id = s.employment_id
-	  AND m.effective_from <= s.date
-	  AND (m.effective_to IS NULL OR m.effective_to > s.date)
-	  AND v.effective_from <= s.date
-	  AND (v.effective_to IS NULL OR v.effective_to > s.date)
-	ORDER BY v.effective_from DESC, v.id DESC
-	LIMIT 1
-) policy ON TRUE
 WHERE %s ORDER BY s.date DESC LIMIT $%d OFFSET $%d`, whereSQL, idx, idx+1)
 	args = append(args, limit, offset)
 
@@ -949,19 +939,52 @@ WHERE %s ORDER BY s.date DESC LIMIT $%d OFFSET $%d`, whereSQL, idx, idx+1)
 	defer rows.Close()
 
 	var data []api.AttendanceDailySummaryRecord
+	empSet := make(map[uuid.UUID]struct{})
+	empIDs := make([]uuid.UUID, 0)
+	var minDate, maxDate time.Time
 	for rows.Next() {
 		var rec api.AttendanceDailySummaryRecord
-		var minutesPerCredit float64
-		if err := rows.Scan(&rec.ID, &rec.EmploymentID, &rec.Date, &rec.ActualWorkMinutes, &rec.StandardMinutes, &rec.SystemDetectedOTMinutes, &rec.ClaimedOTMinutes, &rec.ApprovedOTMinutes, &rec.EarlyOTMinutes, &rec.LateOTMinutes, &rec.BreakOTMinutes, &rec.ScheduledBreakMinutes, &rec.ActualBreakMinutes, &rec.DeductedBreakMinutes, &rec.NetWorkMinutes, &rec.NetPaidMinutes, &rec.BreakProvisional, &rec.BreakExceptionCode, &minutesPerCredit, &rec.WorkPolicyVersionID, &rec.ShiftVersionID, &rec.OTStatus, &rec.OTReason, &rec.ManagerNote, &rec.IsWeekend, &rec.IsHoliday, &rec.HolidayName, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
+		if err := rows.Scan(&rec.ID, &rec.EmploymentID, &rec.Date, &rec.ActualWorkMinutes, &rec.StandardMinutes, &rec.SystemDetectedOTMinutes, &rec.ClaimedOTMinutes, &rec.ApprovedOTMinutes, &rec.EarlyOTMinutes, &rec.LateOTMinutes, &rec.BreakOTMinutes, &rec.ScheduledBreakMinutes, &rec.ActualBreakMinutes, &rec.DeductedBreakMinutes, &rec.NetWorkMinutes, &rec.NetPaidMinutes, &rec.BreakProvisional, &rec.BreakExceptionCode, &rec.WorkPolicyVersionID, &rec.ShiftVersionID, &rec.OTStatus, &rec.OTReason, &rec.ManagerNote, &rec.IsWeekend, &rec.IsHoliday, &rec.HolidayName, &rec.CreatedAt, &rec.UpdatedAt); err != nil {
 			return api.PaginatedSummaries{}, err
 		}
-		if minutesPerCredit > 0 {
-			rec.StandardCredits = math.Round(float64(rec.StandardMinutes)/minutesPerCredit*100) / 100
+		if _, seen := empSet[rec.EmploymentID]; !seen {
+			empSet[rec.EmploymentID] = struct{}{}
+			empIDs = append(empIDs, rec.EmploymentID)
+		}
+		if d, parseErr := time.Parse("2006-01-02", rec.Date); parseErr == nil {
+			if minDate.IsZero() || d.Before(minDate) {
+				minDate = d
+			}
+			if maxDate.IsZero() || d.After(maxDate) {
+				maxDate = d
+			}
 		}
 		data = append(data, rec)
 	}
+	if err := rows.Err(); err != nil {
+		return api.PaginatedSummaries{}, err
+	}
+	rows.Close()
 	if data == nil {
 		data = []api.AttendanceDailySummaryRecord{}
+	} else if len(empIDs) > 0 && !minDate.IsZero() {
+		policiesByEmp, err := (WorkPolicyResolver{}).ResolveRangeForEmployments(ctx, db, empIDs, minDate, maxDate)
+		if err != nil {
+			return api.PaginatedSummaries{}, err
+		}
+		for i := range data {
+			if d, parseErr := time.Parse("2006-01-02", data[i].Date); parseErr == nil {
+				if policy, ok := FindResolvedPolicyForDate(policiesByEmp[data[i].EmploymentID], d); ok {
+					if data[i].WorkPolicyVersionID == nil {
+						vid := policy.VersionID
+						data[i].WorkPolicyVersionID = &vid
+					}
+					if policy.MinutesPerCredit > 0 {
+						data[i].StandardCredits = math.Round(float64(data[i].StandardMinutes)/float64(policy.MinutesPerCredit)*100) / 100
+					}
+				}
+			}
+		}
 	}
 	return api.PaginatedSummaries{
 		Data:  data,

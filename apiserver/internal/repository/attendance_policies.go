@@ -2,17 +2,12 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
 type AttendancePolicyRepository struct {
@@ -28,21 +23,6 @@ func (r AttendancePolicyRepository) db(ctx context.Context) (DBTX, error) {
 	return r.DB, nil
 }
 
-func (r AttendancePolicyRepository) begin(ctx context.Context) (TxBeginner, error) {
-	if r.BeginTx != nil {
-		return r.BeginTx(ctx)
-	}
-	db, err := r.db(ctx)
-	if err != nil {
-		return nil, err
-	}
-	beginner, ok := db.(TxBeginner)
-	if !ok {
-		return nil, errors.New("attendance policy repository: database does not support transactions")
-	}
-	return beginner, nil
-}
-
 func (r AttendancePolicyRepository) validateBehalfAssignee(ctx context.Context, userID uuid.UUID) error {
 	db := r.SystemDB
 	if db == nil {
@@ -54,272 +34,6 @@ func (r AttendancePolicyRepository) validateBehalfAssignee(ctx context.Context, 
 	}
 	if !isMember {
 		return apperror.Forbidden(apperror.KeyNotOrganizationMember)
-	}
-	return nil
-}
-
-func decodeAttendanceRules(raw []byte) api.AttendanceRules {
-	rules := api.DefaultAttendanceRules()
-	if len(raw) == 0 || json.Unmarshal(raw, &rules) != nil || !validStoredRules(rules) {
-		return api.DefaultAttendanceRules()
-	}
-	return rules
-}
-
-func validStoredRules(rules api.AttendanceRules) bool {
-	if rules.WorkUnitMinutes <= 0 || (rules.RoundingPolicy != "floor" && rules.RoundingPolicy != "round" && rules.RoundingPolicy != "ceil" && rules.RoundingPolicy != "none") {
-		return false
-	}
-	return rules.EarlyArrivalStrategy == "allow" || rules.EarlyArrivalStrategy == "block" || rules.EarlyArrivalStrategy == "clamp"
-}
-
-func parsePolicyTime(raw *string) (time.Time, error) {
-	if raw == nil || strings.TrimSpace(*raw) == "" {
-		return time.Now().UTC(), nil
-	}
-	value := strings.TrimSpace(*raw)
-	if parsed, err := time.Parse(time.RFC3339, value); err == nil {
-		return parsed.UTC(), nil
-	}
-	parsed, err := time.Parse("2006-01-02", value)
-	if err != nil {
-		return time.Time{}, apperror.Validation(apperror.KeyInvalidDateFormat)
-	}
-	return parsed.UTC(), nil
-}
-
-func policyVersionResponse(id uuid.UUID, rules api.AttendanceRules, validFrom time.Time, validTo *time.Time, createdBy *uuid.UUID, createdAt time.Time) api.AttendancePolicyVersionResponse {
-	grace := api.DefaultGracePeriodMinutes
-	if rules.GracePeriodMinutes != nil {
-		grace = *rules.GracePeriodMinutes
-	}
-	var validToValue, createdByValue *string
-	if validTo != nil {
-		value := validTo.UTC().Format(time.RFC3339)
-		validToValue = &value
-	}
-	if createdBy != nil {
-		value := createdBy.String()
-		createdByValue = &value
-	}
-	return api.AttendancePolicyVersionResponse{
-		ID: id.String(), WorkUnitMinutes: rules.WorkUnitMinutes, RoundingPolicy: rules.RoundingPolicy,
-		EarlyArrivalStrategy: rules.EarlyArrivalStrategy, GracePeriodMinutes: grace,
-		ValidFrom: validFrom.UTC().Format(time.RFC3339), ValidTo: validToValue,
-		CreatedBy: createdByValue, CreatedAt: createdAt.UTC().Format(time.RFC3339),
-	}
-}
-
-func (r AttendancePolicyRepository) GetDefaultPolicyRules(ctx context.Context) (api.AttendanceRules, error) {
-	db, err := r.db(ctx)
-	if err != nil {
-		return api.AttendanceRules{}, err
-	}
-	var raw []byte
-	err = db.QueryRow(ctx, `SELECT v.rules FROM attendance_policy_versions v JOIN attendance_policies p ON p.id = v.policy_id WHERE p.is_default = TRUE ORDER BY v.valid_from DESC, v.created_at DESC LIMIT 1`).Scan(&raw)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return api.DefaultAttendanceRules(), nil
-	}
-	if err != nil {
-		return api.AttendanceRules{}, err
-	}
-	return decodeAttendanceRules(raw), nil
-}
-
-func (r AttendancePolicyRepository) GetDefaultPolicyVersions(ctx context.Context) ([]api.AttendancePolicyVersionResponse, error) {
-	db, err := r.db(ctx)
-	if err != nil {
-		return nil, err
-	}
-	rows, err := db.Query(ctx, `SELECT v.id, v.rules, v.valid_from, v.valid_to, v.created_by, v.created_at FROM attendance_policy_versions v JOIN attendance_policies p ON p.id = v.policy_id WHERE p.is_default = TRUE ORDER BY v.valid_from DESC, v.created_at DESC`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	result := make([]api.AttendancePolicyVersionResponse, 0)
-	for rows.Next() {
-		var id uuid.UUID
-		var raw []byte
-		var validFrom, createdAt time.Time
-		var validTo *time.Time
-		var createdBy *uuid.UUID
-		if err := rows.Scan(&id, &raw, &validFrom, &validTo, &createdBy, &createdAt); err != nil {
-			return nil, err
-		}
-		result = append(result, policyVersionResponse(id, decodeAttendanceRules(raw), validFrom, validTo, createdBy, createdAt))
-	}
-	return result, rows.Err()
-}
-
-func (r AttendancePolicyRepository) UpdateDefaultPolicyRules(ctx context.Context, userID uuid.UUID, req api.UpdateAttendanceRulesRequest) (api.AttendancePolicyVersionResponse, error) {
-	validFrom, err := parsePolicyTime(req.ValidFrom)
-	if err != nil {
-		return api.AttendancePolicyVersionResponse{}, err
-	}
-	beginner, err := r.begin(ctx)
-	if err != nil {
-		return api.AttendancePolicyVersionResponse{}, err
-	}
-	var result api.AttendancePolicyVersionResponse
-	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
-		var policyID uuid.UUID
-		err := tx.QueryRow(ctx, `SELECT id FROM attendance_policies WHERE is_default = TRUE LIMIT 1`).Scan(&policyID)
-		if errors.Is(err, pgx.ErrNoRows) {
-			policyID = uuid.New()
-			if _, err = tx.Exec(ctx, `INSERT INTO attendance_policies (id, name, is_default, created_at, updated_at) VALUES ($1, 'Default Policy', TRUE, NOW(), NOW())`, policyID); err != nil {
-				return err
-			}
-		} else if err != nil {
-			return err
-		}
-		var raw []byte
-		err = tx.QueryRow(ctx, `SELECT rules FROM attendance_policy_versions WHERE policy_id = $1 ORDER BY valid_from DESC, created_at DESC LIMIT 1`, policyID).Scan(&raw)
-		rules := api.DefaultAttendanceRules()
-		if err == nil {
-			rules = decodeAttendanceRules(raw)
-		} else if !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
-		if req.WorkUnitMinutes != nil {
-			rules.WorkUnitMinutes = *req.WorkUnitMinutes
-		}
-		if req.RoundingPolicy != nil {
-			rules.RoundingPolicy = *req.RoundingPolicy
-		}
-		if req.EarlyArrivalStrategy != nil {
-			rules.EarlyArrivalStrategy = *req.EarlyArrivalStrategy
-		}
-		if req.GracePeriodMinutes != nil {
-			rules.GracePeriodMinutes = req.GracePeriodMinutes
-		}
-		payload, err := json.Marshal(rules)
-		if err != nil {
-			return err
-		}
-		if _, err = tx.Exec(ctx, `UPDATE attendance_policy_versions SET valid_to = $2 WHERE policy_id = $1 AND valid_to IS NULL`, policyID, validFrom); err != nil {
-			return err
-		}
-		versionID := uuid.New()
-		createdAt := time.Now().UTC()
-		if _, err = tx.Exec(ctx, `INSERT INTO attendance_policy_versions (id, policy_id, rules, valid_from, valid_to, created_by, created_at) VALUES ($1, $2, $3, $4, NULL, $5, $6)`, versionID, policyID, payload, validFrom, userID, createdAt); err != nil {
-			return err
-		}
-		result = policyVersionResponse(versionID, rules, validFrom, nil, &userID, createdAt)
-		return nil
-	})
-	return result, err
-}
-
-func (r AttendancePolicyRepository) ListPolicyAssignments(ctx context.Context, page, limit int, query, targetType string) (api.PolicyAssignmentListResponse, error) {
-	db, err := r.db(ctx)
-	if err != nil {
-		return api.PolicyAssignmentListResponse{}, err
-	}
-	offset := (page - 1) * limit
-	search := "%" + query + "%"
-	const assignmentQuery = `
-		SELECT DISTINCT ON (a.id) a.id, a.target_type, a.target_id, a.valid_from, a.valid_to, v.rules,
-			CASE WHEN a.target_type = 'GROUP' THEN d.name WHEN a.target_type = 'USER' THEN e.full_name ELSE NULL END,
-			CASE WHEN a.target_type = 'USER' THEN tenure.employee_number ELSE NULL END,
-			CASE WHEN a.target_type = 'USER' THEN dept.name ELSE NULL END
-		FROM attendance_policy_assignments a
-		JOIN attendance_policies p ON p.id = a.policy_id
-		JOIN attendance_policy_versions v ON v.policy_id = a.policy_id
-		LEFT JOIN departments d ON a.target_type = 'GROUP' AND d.id = a.target_id
-		LEFT JOIN employees e ON a.target_type = 'USER' AND e.id = a.target_id AND e.deleted_at IS NULL
-		LEFT JOIN employments em ON em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL
-		LEFT JOIN departments dept ON dept.id = em.department_id
-		LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE
-		WHERE a.valid_from <= NOW() AND (a.valid_to IS NULL OR a.valid_to >= NOW())
-		  AND v.valid_from <= NOW() AND (v.valid_to IS NULL OR v.valid_to >= NOW())
-		  AND ($1 = '%%' OR COALESCE(d.name, e.full_name, tenure.employee_number, '') ILIKE $1)
-		  AND ($2 = '' OR a.target_type = $2)
-		ORDER BY a.id, v.valid_from DESC, v.created_at DESC
-		LIMIT $3 OFFSET $4`
-	rows, err := db.Query(ctx, assignmentQuery, search, targetType, limit, offset)
-	if err != nil {
-		return api.PolicyAssignmentListResponse{}, err
-	}
-	defer rows.Close()
-	result := api.PolicyAssignmentListResponse{Data: make([]api.PolicyAssignmentResponse, 0), Page: page, Limit: limit}
-	for rows.Next() {
-		var id, targetID uuid.UUID
-		var targetTypeValue string
-		var validFrom time.Time
-		var validTo *time.Time
-		var raw []byte
-		var targetName, targetCode, departmentName *string
-		if err := rows.Scan(&id, &targetTypeValue, &targetID, &validFrom, &validTo, &raw, &targetName, &targetCode, &departmentName); err != nil {
-			return api.PolicyAssignmentListResponse{}, err
-		}
-		var validToValue *string
-		if validTo != nil {
-			value := validTo.UTC().Format(time.RFC3339)
-			validToValue = &value
-		}
-		result.Data = append(result.Data, api.PolicyAssignmentResponse{ID: id.String(), TargetType: targetTypeValue, TargetID: targetID.String(), TargetName: targetName, TargetCode: targetCode, DepartmentName: departmentName, ValidFrom: validFrom.UTC().Format(time.RFC3339), ValidTo: validToValue, Rules: decodeAttendanceRules(raw)})
-	}
-	if err := rows.Err(); err != nil {
-		return api.PolicyAssignmentListResponse{}, err
-	}
-	countQuery := `SELECT count(*) FROM attendance_policy_assignments a LEFT JOIN departments d ON a.target_type = 'GROUP' AND d.id = a.target_id LEFT JOIN employees e ON a.target_type = 'USER' AND e.id = a.target_id AND e.deleted_at IS NULL LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE WHERE a.valid_from <= NOW() AND (a.valid_to IS NULL OR a.valid_to >= NOW()) AND ($1 = '%%' OR COALESCE(d.name, e.full_name, tenure.employee_number, '') ILIKE $1) AND ($2 = '' OR a.target_type = $2)`
-	if err := db.QueryRow(ctx, countQuery, search, targetType).Scan(&result.Total); err != nil {
-		return api.PolicyAssignmentListResponse{}, err
-	}
-	return result, nil
-}
-
-func (r AttendancePolicyRepository) UpsertPolicyAssignment(ctx context.Context, userID uuid.UUID, req api.UpsertPolicyAssignmentRequest) (api.PolicyAssignmentResponse, error) {
-	validFrom, err := parsePolicyTime(req.ValidFrom)
-	if err != nil {
-		return api.PolicyAssignmentResponse{}, err
-	}
-	beginner, err := r.begin(ctx)
-	if err != nil {
-		return api.PolicyAssignmentResponse{}, err
-	}
-	var result api.PolicyAssignmentResponse
-	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
-		var assignmentID, policyID uuid.UUID
-		err := tx.QueryRow(ctx, `SELECT a.id, a.policy_id FROM attendance_policy_assignments a WHERE a.target_type = $1 AND a.target_id = $2 AND a.valid_to IS NULL LIMIT 1 FOR UPDATE`, req.TargetType, req.TargetID).Scan(&assignmentID, &policyID)
-		if errors.Is(err, pgx.ErrNoRows) {
-			policyID, assignmentID = uuid.New(), uuid.New()
-			if _, err = tx.Exec(ctx, `INSERT INTO attendance_policies (id, name, is_default, created_at, updated_at) VALUES ($1, $2, FALSE, NOW(), NOW())`, policyID, fmt.Sprintf("%s %s Override", req.TargetType, req.TargetID)); err != nil {
-				return err
-			}
-			if _, err = tx.Exec(ctx, `INSERT INTO attendance_policy_assignments (id, policy_id, target_type, target_id, valid_from, valid_to, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NULL, NOW(), NOW())`, assignmentID, policyID, req.TargetType, req.TargetID, validFrom); err != nil {
-				return err
-			}
-		} else if err != nil {
-			return err
-		} else if _, err = tx.Exec(ctx, `UPDATE attendance_policy_versions SET valid_to = $2 WHERE policy_id = $1 AND valid_to IS NULL`, policyID, validFrom); err != nil {
-			return err
-		}
-		rules := api.AttendanceRules{WorkUnitMinutes: req.WorkUnitMinutes, RoundingPolicy: req.RoundingPolicy, EarlyArrivalStrategy: req.EarlyArrivalStrategy, GracePeriodMinutes: req.GracePeriodMinutes}
-		payload, err := json.Marshal(rules)
-		if err != nil {
-			return err
-		}
-		if _, err = tx.Exec(ctx, `INSERT INTO attendance_policy_versions (id, policy_id, rules, valid_from, valid_to, created_by, created_at) VALUES ($1, $2, $3, $4, NULL, $5, NOW())`, uuid.New(), policyID, payload, validFrom, userID); err != nil {
-			return err
-		}
-		result = api.PolicyAssignmentResponse{ID: assignmentID.String(), TargetType: req.TargetType, TargetID: req.TargetID.String(), ValidFrom: validFrom.UTC().Format(time.RFC3339), Rules: rules}
-		return nil
-	})
-	return result, err
-}
-
-func (r AttendancePolicyRepository) DeletePolicyAssignment(ctx context.Context, assignmentID uuid.UUID) error {
-	db, err := r.db(ctx)
-	if err != nil {
-		return err
-	}
-	result, err := db.Exec(ctx, `UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW() WHERE id = $1 AND valid_to IS NULL`, assignmentID)
-	if err != nil {
-		return err
-	}
-	if result.RowsAffected() == 0 {
-		return pgx.ErrNoRows
 	}
 	return nil
 }
@@ -381,7 +95,7 @@ func (r AttendancePolicyRepository) DeleteBehalfAssignment(ctx context.Context, 
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return apperror.NotFound(apperror.KeyNotFound)
 	}
 	return nil
 }

@@ -8,11 +8,11 @@ import (
 )
 
 func TestValidateConfigEntry(t *testing.T) {
-	text := "fixed"
+	weight := decimal.RequireFromString("0.6")
 	valid := ConfigEntryRequest{
 		ScopeType:     "organization",
-		ConfigKey:     "payroll.std_working_day_mode",
-		Value:         ConfigValue{Text: &text},
+		ConfigKey:     "payroll.kpi.output_weight",
+		Value:         ConfigValue{Decimal: &weight},
 		EffectiveFrom: "2026-11-12",
 	}
 	if err := validateConfigEntry(valid); err != nil {
@@ -24,7 +24,8 @@ func TestValidateConfigEntry(t *testing.T) {
 		edit func(*ConfigEntryRequest)
 	}{
 		{"unknown key", func(r *ConfigEntryRequest) { r.ConfigKey = "payroll.unknown" }},
-		{"wrong type", func(r *ConfigEntryRequest) { value := decimal.NewFromInt(1); r.Value = ConfigValue{Decimal: &value} }},
+		{"removed legacy key", func(r *ConfigEntryRequest) { r.ConfigKey = "payroll.fixed_std_days" }},
+		{"wrong type", func(r *ConfigEntryRequest) { text := "fixed"; r.Value = ConfigValue{Text: &text} }},
 		{"wrong scope", func(r *ConfigEntryRequest) { r.ScopeType = "employee"; id := uuid.New(); r.ScopeID = &id }},
 		{"missing scope id", func(r *ConfigEntryRequest) { r.ScopeType = "department" }},
 		{"invalid date", func(r *ConfigEntryRequest) { r.EffectiveFrom = "12/11/2026" }},

@@ -176,15 +176,31 @@
   },
   "closure": {
     "title": "Attendance closure",
-    "status": { "closed": "Attendance is closed", "open": "Attendance is open" },
-    "badge": { "closed": "Closed", "open": "Open" },
+    "status": {
+      "closed": "Attendance is closed",
+      "open": "Attendance is open"
+    },
+    "badge": {
+      "closed": "Closed",
+      "open": "Open"
+    },
     "reason": "Reason",
     "reason_placeholder": "Explain this attendance period change",
     "reason_hint": "Required. Maximum 2,000 characters.",
     "retry": "Retry",
-    "actions": { "close": "Close period", "reopen": "Reopen period" },
-    "evidence": { "number": "Closure #", "days": "Snapshot days", "hash": "Snapshot hash" },
-    "empty": { "title": "No closure status", "description": "Select employer to view attendance closure status." },
+    "actions": {
+      "close": "Close period",
+      "reopen": "Reopen period"
+    },
+    "evidence": {
+      "number": "Closure #",
+      "days": "Snapshot days",
+      "hash": "Snapshot hash"
+    },
+    "empty": {
+      "title": "No closure status",
+      "description": "Select employer to view attendance closure status."
+    },
     "errors": {
       "load": "Unable to load attendance closure status.",
       "generic": "Attendance closure failed.",
@@ -235,42 +251,10 @@
     "view_reports": "View Summary Report"
   },
   "attendance_policy_overrides": {
-    "add_button": "ADD OVERRIDE",
-    "description": "Configure specific rules for departments or individuals.",
-    "drawer": {
-      "add_subtitle": "Configure specific rules for a target",
-      "add_title": "Add Policy Override",
-      "grace_period_placeholder": "Using default organization value",
-      "override_notice": "Note: The settings below will override the default organization configuration for this target starting from the effective date.",
-      "save_button": "SAVE OVERRIDE",
-      "search_placeholder": "Search {{type}}...",
-      "select_target_type": "Select {{type}}",
-      "step_rules": "2. Configure Rules",
-      "step_target": "1. Select Target"
-    },
-    "empty_state": {
-      "description": "Everyone is following the organization default policy.",
-      "title": "No active overrides"
-    },
-    "filters": {
-      "all": "ALL",
-      "depts": "DEPTS",
-      "users": "USERS"
-    },
     "labels": {
       "department": "DEPARTMENT",
-      "employee": "EMPLOYEE",
-      "minutes": "mins",
-      "not_set": "Not Set"
-    },
-    "messages": {
-      "delete_message": "Delete this attendance policy assignment?",
-      "delete_success": "Policy override removed",
-      "delete_title": "Delete assignment",
-      "save_success": "Policy override saved",
-      "validation_select_target": "Please select a department or employee"
-    },
-    "title": "Overrides & Exceptions"
+      "employee": "EMPLOYEE"
+    }
   },
   "holidays": {
     "add_btn": "Add Holiday",

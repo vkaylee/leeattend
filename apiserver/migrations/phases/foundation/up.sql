@@ -812,30 +812,6 @@ DELETE FROM public.leave_policy_assignments
 
 
 
-DELETE FROM public.overtime_policy_assignments
-
-
-
-        WHERE assignee_type = 'department' AND assignee_id = OLD.id;
-
-
-
-
-
-
-
-DELETE FROM public.attendance_policy_assignments
-
-
-
-        WHERE target_type = 'GROUP' AND target_id = OLD.id;
-
-
-
-
-
-
-
 RETURN OLD;
 
 
@@ -907,30 +883,6 @@ DELETE FROM public.leave_policy_assignments
 
 
         WHERE assignee_type = 'employee' AND assignee_id = OLD.id;
-
-
-
-
-
-
-
-DELETE FROM public.overtime_policy_assignments
-
-
-
-        WHERE assignee_type = 'employee' AND assignee_id = OLD.id;
-
-
-
-
-
-
-
-DELETE FROM public.attendance_policy_assignments
-
-
-
-        WHERE target_type = 'USER' AND target_id = OLD.id;
 
 
 
@@ -1509,120 +1461,6 @@ BEGIN
     RETURN NEW;
 
 END;
-
-$$;
-
-
-
-
-
---
-
--- Name: fn_validate_target_fk(); Type: FUNCTION; Schema: public; Owner: -
-
---
-
-
-
-CREATE FUNCTION public.fn_validate_target_fk() RETURNS trigger
-
-    LANGUAGE plpgsql
-
-    AS $$
-
-
-
-BEGIN
-
-
-
-    IF NEW.target_id IS NULL THEN
-
-
-
-        RAISE EXCEPTION 'target_id cannot be NULL';
-
-
-
-    END IF;
-
-
-
-
-
-
-
-    IF NEW.target_type = 'USER' THEN
-
-
-
-        IF NOT EXISTS (SELECT 1 FROM public.employees WHERE id = NEW.target_id) THEN
-
-
-
-            RAISE EXCEPTION 'Invalid target_id: employee % does not exist', NEW.target_id;
-
-
-
-        END IF;
-
-
-
-    ELSIF NEW.target_type = 'GROUP' THEN
-
-
-
-        IF NOT EXISTS (SELECT 1 FROM public.departments WHERE id = NEW.target_id) THEN
-
-
-
-            RAISE EXCEPTION 'Invalid target_id: department % does not exist', NEW.target_id;
-
-
-
-        END IF;
-
-
-
-    ELSIF NEW.target_type = 'EMPLOYMENT' THEN
-
-
-
-        IF NOT EXISTS (SELECT 1 FROM public.employments WHERE id = NEW.target_id) THEN
-
-
-
-            RAISE EXCEPTION 'Invalid target_id: employment % does not exist', NEW.target_id;
-
-
-
-        END IF;
-
-
-
-    ELSE
-
-
-
-        RAISE EXCEPTION 'Unknown target_type: %', NEW.target_type;
-
-
-
-    END IF;
-
-
-
-
-
-
-
-    RETURN NEW;
-
-
-
-END;
-
-
 
 $$;
 

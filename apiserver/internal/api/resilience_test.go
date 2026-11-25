@@ -46,18 +46,6 @@ func (m *mockFailingDBRepo) DeleteDepartment(ctx context.Context, deptID uuid.UU
 	return nil
 }
 
-func (m *mockFailingDBRepo) GetDepartmentPayrollConfigs(ctx context.Context, deptID uuid.UUID) ([]DepartmentPayrollConfig, error) {
-	return nil, nil
-}
-
-func (m *mockFailingDBRepo) ListDepartmentPayrollReconciliation(ctx context.Context, page, limit int, status string) (DepartmentPayrollReconciliationResponse, error) {
-	return DepartmentPayrollReconciliationResponse{}, nil
-}
-
-func (m *mockFailingDBRepo) SetDepartmentPayrollConfig(ctx context.Context, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, actorID uuid.UUID) (DepartmentPayrollConfig, error) {
-	return DepartmentPayrollConfig{}, nil
-}
-
 type contextWaitingDepartmentRepo struct {
 	mockDepartmentRepo
 	canceled atomic.Bool

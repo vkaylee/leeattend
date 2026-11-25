@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -28,27 +29,36 @@ const (
 )
 
 // ErrOvertimeValidation marks overtime payload validation failures surfaced by repositories.
-var ErrOvertimeValidation = errors.New("overtime: validation failed")
+var (
+	ErrOvertimeValidation = errors.New("overtime: validation failed")
+	ErrOvertimeConflict   = errors.New("overtime: conflict")
+)
 
 type OvertimePolicy struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description *string   `json:"description"`
-	CreatedAt   string    `json:"created_at"`
-	UpdatedAt   string    `json:"updated_at"`
+	ID                       uuid.UUID  `json:"id"`
+	Name                     string     `json:"name"`
+	Description              *string    `json:"description"`
+	LatestPublishedVersionID *uuid.UUID `json:"latest_published_version_id,omitempty"`
+	LatestPublishedVersionNo *int       `json:"latest_published_version_no,omitempty"`
+	CreatedAt                string     `json:"created_at"`
+	UpdatedAt                string     `json:"updated_at"`
 }
 
-type OvertimeRule struct {
-	ID         uuid.UUID       `json:"id"`
-	PolicyID   uuid.UUID       `json:"policy_id"`
-	Priority   int             `json:"priority"`
-	Multiplier decimal.Decimal `json:"multiplier"`
-	TimeStart  *string         `json:"time_start"`
-	TimeEnd    *string         `json:"time_end"`
-	DaysOfWeek int             `json:"days_of_week"`
-	IsHoliday  bool            `json:"is_holiday"`
-	CreatedAt  string          `json:"created_at"`
-	UpdatedAt  string          `json:"updated_at"`
+type OvertimePolicyVersion struct {
+	ID              uuid.UUID                 `json:"id"`
+	PolicyID        uuid.UUID                 `json:"policy_id"`
+	VersionNo       int                       `json:"version_no"`
+	Status          workpolicy.VersionStatus  `json:"status"`
+	RowVersion      int64                     `json:"row_version"`
+	DailyCapMinutes *int                      `json:"daily_cap_minutes,omitempty"`
+	MonthlyCapHours *decimal.Decimal          `json:"monthly_cap_hours,omitempty"`
+	YearlyCapHours  *decimal.Decimal          `json:"yearly_cap_hours,omitempty"`
+	Rules           []workpolicy.OvertimeRule `json:"rules"`
+	CreatedBy       uuid.UUID                 `json:"created_by"`
+	CreatedAt       string                    `json:"created_at"`
+	UpdatedAt       string                    `json:"updated_at"`
+	PublishedBy     *uuid.UUID                `json:"published_by,omitempty"`
+	PublishedAt     *string                   `json:"published_at,omitempty"`
 }
 
 type OvertimePolicyListResponse struct {
@@ -59,29 +69,36 @@ type OvertimePolicyListResponse struct {
 }
 
 type CreateOvertimePolicyRequest struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description"`
+	Name            string                    `json:"name"`
+	Description     *string                   `json:"description"`
+	DailyCapMinutes *int                      `json:"daily_cap_minutes,omitempty"`
+	MonthlyCapHours *decimal.Decimal          `json:"monthly_cap_hours,omitempty"`
+	YearlyCapHours  *decimal.Decimal          `json:"yearly_cap_hours,omitempty"`
+	Rules           []workpolicy.OvertimeRule `json:"rules,omitempty"`
 }
 
-type CreateOvertimeRuleRequest struct {
-	Priority   int             `json:"priority"`
-	Multiplier decimal.Decimal `json:"multiplier"`
-	TimeStart  *string         `json:"time_start"`
-	TimeEnd    *string         `json:"time_end"`
-	DaysOfWeek int             `json:"days_of_week"`
-	IsHoliday  bool            `json:"is_holiday"`
+type CreateOvertimePolicyVersionRequest struct {
+	DailyCapMinutes *int                      `json:"daily_cap_minutes,omitempty"`
+	MonthlyCapHours *decimal.Decimal          `json:"monthly_cap_hours,omitempty"`
+	YearlyCapHours  *decimal.Decimal          `json:"yearly_cap_hours,omitempty"`
+	Rules           []workpolicy.OvertimeRule `json:"rules"`
 }
 
-type AssignOvertimePolicyRequest struct {
-	AssigneeType  string     `json:"assignee_type"`
-	AssigneeID    *uuid.UUID `json:"assignee_id"`
-	PolicyID      uuid.UUID  `json:"policy_id"`
-	EffectiveFrom string     `json:"effective_from"`
+type PatchOvertimePolicyVersionRequest struct {
+	ExpectedRowVersion int64                     `json:"expected_row_version"`
+	DailyCapMinutes    *int                      `json:"daily_cap_minutes,omitempty"`
+	MonthlyCapHours    *decimal.Decimal          `json:"monthly_cap_hours,omitempty"`
+	YearlyCapHours     *decimal.Decimal          `json:"yearly_cap_hours,omitempty"`
+	Rules              []workpolicy.OvertimeRule `json:"rules"`
+}
+
+type PublishOvertimePolicyVersionRequest struct {
+	ExpectedRowVersion int64 `json:"expected_row_version"`
 }
 
 type OvertimePolicyDetail struct {
-	Policy OvertimePolicy `json:"policy"`
-	Rules  []OvertimeRule `json:"rules"`
+	Policy   OvertimePolicy          `json:"policy"`
+	Versions []OvertimePolicyVersion `json:"versions"`
 }
 
 type OvertimeRequest struct {
@@ -159,10 +176,12 @@ type ApproveOTRequest struct {
 
 type OvertimeRepository interface {
 	ListOvertimePolicies(context.Context, int, int) (OvertimePolicyListResponse, error)
-	CreateOvertimePolicy(context.Context, CreateOvertimePolicyRequest) (OvertimePolicy, error)
+	CreateOvertimePolicy(context.Context, CreateOvertimePolicyRequest, uuid.UUID) (OvertimePolicyDetail, error)
 	GetOvertimePolicy(context.Context, uuid.UUID) (OvertimePolicyDetail, error)
-	AddOvertimeRule(context.Context, uuid.UUID, CreateOvertimeRuleRequest) (OvertimeRule, error)
-	AssignOvertimePolicy(context.Context, AssignOvertimePolicyRequest) error
+	ListOvertimePolicyVersions(context.Context, uuid.UUID) ([]OvertimePolicyVersion, error)
+	CreateOvertimePolicyVersion(context.Context, uuid.UUID, CreateOvertimePolicyVersionRequest, uuid.UUID) (OvertimePolicyVersion, error)
+	PatchOvertimePolicyVersion(context.Context, uuid.UUID, uuid.UUID, PatchOvertimePolicyVersionRequest) (OvertimePolicyVersion, error)
+	PublishOvertimePolicyVersion(context.Context, uuid.UUID, uuid.UUID, PublishOvertimePolicyVersionRequest, uuid.UUID) (OvertimePolicyVersion, error)
 	ListOvertimeRequests(context.Context, int, int) (OvertimeRequestListResponse, error)
 	CreateOvertimeRequest(context.Context, uuid.UUID, CreateOvertimeRequest) (OvertimeRequest, error)
 	GetOvertimeRequest(context.Context, uuid.UUID) (OvertimeRequestDetail, error)
@@ -205,6 +224,10 @@ func (h *OvertimeHandler) fail(w http.ResponseWriter, r *http.Request, err error
 	}
 	if errors.Is(err, ErrOvertimeValidation) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if errors.Is(err, ErrOvertimeConflict) || errors.Is(err, ErrConflict) {
+		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}
 	var appErr *apperror.AppError
@@ -252,8 +275,8 @@ func (h *OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
-
-	if !h.allowed(r, PermissionOvertimePoliciesManage) {
+	userID, userOK := h.userID(r)
+	if !userOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
 	}
@@ -262,7 +285,17 @@ func (h *OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.CreateOvertimePolicy(r.Context(), req)
+	spec := workpolicy.OvertimePolicyVersionSpec{
+		DailyCapMinutes: req.DailyCapMinutes,
+		MonthlyCapHours: req.MonthlyCapHours,
+		YearlyCapHours:  req.YearlyCapHours,
+		Rules:           req.Rules,
+	}
+	if err := spec.Validate(); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.CreateOvertimePolicy(r.Context(), req, userID)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -271,10 +304,13 @@ func (h *OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
-
+	if _, userOK := h.userID(r); !userOK {
+		h.forbidden(w, r)
+		return
+	}
 	policyID, policyOK := pathUUID(r, "policy_id")
 	if !policyOK {
-		h.forbidden(w, r)
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 	result, err := h.Repository.GetOvertimePolicy(r.Context(), policyID)
@@ -285,19 +321,51 @@ func (h *OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h *OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
-
-	policyID, policyOK := pathUUID(r, "policy_id")
-	if !policyOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
+func (h *OvertimeHandler) ListPolicyVersions(w http.ResponseWriter, r *http.Request) {
+	if _, userOK := h.userID(r); !userOK {
 		h.forbidden(w, r)
 		return
 	}
-	req, err := DecodeJSON[CreateOvertimeRuleRequest](r, 1<<20)
-	if err != nil || !req.Multiplier.IsPositive() || !validOvertimeClock(req.TimeStart) || !validOvertimeClock(req.TimeEnd) || req.DaysOfWeek < 0 || req.DaysOfWeek > 127 {
+	policyID, policyOK := pathUUID(r, "policy_id")
+	if !policyOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	result, err := h.Repository.AddOvertimeRule(r.Context(), policyID, req)
+	result, err := h.Repository.ListOvertimePolicyVersions(r.Context(), policyID)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h *OvertimeHandler) CreatePolicyVersion(w http.ResponseWriter, r *http.Request) {
+	userID, userOK := h.userID(r)
+	if !userOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
+		h.forbidden(w, r)
+		return
+	}
+	policyID, policyOK := pathUUID(r, "policy_id")
+	if !policyOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	req, err := DecodeJSON[CreateOvertimePolicyVersionRequest](r, 1<<20)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	spec := workpolicy.OvertimePolicyVersionSpec{
+		DailyCapMinutes: req.DailyCapMinutes,
+		MonthlyCapHours: req.MonthlyCapHours,
+		YearlyCapHours:  req.YearlyCapHours,
+		Rules:           req.Rules,
+	}
+	if err := spec.Validate(); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.CreateOvertimePolicyVersion(r.Context(), policyID, req, userID)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -305,37 +373,63 @@ func (h *OvertimeHandler) AddRule(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusCreated, result)
 }
 
-func (h *OvertimeHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
-
+func (h *OvertimeHandler) PatchPolicyVersion(w http.ResponseWriter, r *http.Request) {
 	if !h.allowed(r, PermissionOvertimePoliciesManage) {
 		h.forbidden(w, r)
 		return
 	}
-	req, err := DecodeJSON[AssignOvertimePolicyRequest](r, 1<<20)
-	if err != nil || req.PolicyID == uuid.Nil || !validOvertimeDate(req.EffectiveFrom) {
+	policyID, policyOK := pathUUID(r, "policy_id")
+	versionID, versionOK := pathUUID(r, "version_id")
+	if !policyOK || !versionOK {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	switch req.AssigneeType {
-	case "organization":
-		if req.AssigneeID != nil {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-			return
-		}
-	case "department", "employee", "user":
-		if req.AssigneeID == nil {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-			return
-		}
-	default:
+	req, err := DecodeJSON[PatchOvertimePolicyVersionRequest](r, 1<<20)
+	if err != nil || req.ExpectedRowVersion < 1 {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if err := h.Repository.AssignOvertimePolicy(r.Context(), req); err != nil {
+	spec := workpolicy.OvertimePolicyVersionSpec{
+		DailyCapMinutes: req.DailyCapMinutes,
+		MonthlyCapHours: req.MonthlyCapHours,
+		YearlyCapHours:  req.YearlyCapHours,
+		Rules:           req.Rules,
+	}
+	if err := spec.Validate(); err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.PatchOvertimePolicyVersion(r.Context(), policyID, versionID, req)
+	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	apperror.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h *OvertimeHandler) PublishPolicyVersion(w http.ResponseWriter, r *http.Request) {
+	userID, userOK := h.userID(r)
+	if !userOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
+		h.forbidden(w, r)
+		return
+	}
+	policyID, policyOK := pathUUID(r, "policy_id")
+	versionID, versionOK := pathUUID(r, "version_id")
+	if !policyOK || !versionOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	req, err := DecodeJSON[PublishOvertimePolicyVersionRequest](r, 1<<20)
+	if err != nil || req.ExpectedRowVersion < 1 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	result, err := h.Repository.PublishOvertimePolicyVersion(r.Context(), policyID, versionID, req, userID)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
 func (h *OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {

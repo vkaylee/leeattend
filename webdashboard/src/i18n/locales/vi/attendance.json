@@ -176,15 +176,31 @@
   },
   "closure": {
     "title": "Chốt kỳ công",
-    "status": { "closed": "Kỳ công đã chốt", "open": "Kỳ công đang mở" },
-    "badge": { "closed": "Đã chốt", "open": "Đang mở" },
+    "status": {
+      "closed": "Kỳ công đã chốt",
+      "open": "Kỳ công đang mở"
+    },
+    "badge": {
+      "closed": "Đã chốt",
+      "open": "Đang mở"
+    },
     "reason": "Lý do",
     "reason_placeholder": "Giải thích thay đổi kỳ công",
     "reason_hint": "Bắt buộc. Tối đa 2.000 ký tự.",
     "retry": "Thử lại",
-    "actions": { "close": "Chốt kỳ", "reopen": "Mở lại kỳ" },
-    "evidence": { "number": "Lần chốt", "days": "Số ngày snapshot", "hash": "Mã snapshot" },
-    "empty": { "title": "Chưa có trạng thái chốt", "description": "Chọn đơn vị trả lương để xem trạng thái." },
+    "actions": {
+      "close": "Chốt kỳ",
+      "reopen": "Mở lại kỳ"
+    },
+    "evidence": {
+      "number": "Lần chốt",
+      "days": "Số ngày snapshot",
+      "hash": "Mã snapshot"
+    },
+    "empty": {
+      "title": "Chưa có trạng thái chốt",
+      "description": "Chọn đơn vị trả lương để xem trạng thái."
+    },
     "errors": {
       "load": "Không thể tải trạng thái chốt kỳ công.",
       "generic": "Chốt kỳ công thất bại.",
@@ -235,42 +251,10 @@
     "view_reports": "Xem Báo Cáo Tổng Hợp"
   },
   "attendance_policy_overrides": {
-    "add_button": "THÊM GHI ĐÈ",
-    "description": "Cấu hình quy tắc cụ thể cho phòng ban hoặc cá nhân.",
-    "drawer": {
-      "add_subtitle": "Cấu hình quy tắc cụ thể cho đối tượng",
-      "add_title": "Thêm Ghi đè Chính sách",
-      "grace_period_placeholder": "Sử dụng giá trị mặc định của tổ chức",
-      "override_notice": "Lưu ý: Các thiết lập dưới đây sẽ ghi đè cấu hình mặc định của tổ chức dành riêng cho đối tượng này kể từ ngày hiệu lực.",
-      "save_button": "LƯU GHI ĐÈ",
-      "search_placeholder": "Tìm kiếm {{type}}...",
-      "select_target_type": "Chọn {{type}}",
-      "step_rules": "2. Cấu hình Quy tắc",
-      "step_target": "1. Chọn Đối tượng"
-    },
-    "empty_state": {
-      "description": "Mọi người đang áp dụng chính sách mặc định của tổ chức.",
-      "title": "Chưa có ghi đè nào"
-    },
-    "filters": {
-      "all": "TẤT CẢ",
-      "depts": "PHÒNG BAN",
-      "users": "NHÂN VIÊN"
-    },
     "labels": {
       "department": "PHÒNG BAN",
-      "employee": "NHÂN VIÊN",
-      "minutes": "phút",
-      "not_set": "Chưa Thiết Lập"
-    },
-    "messages": {
-      "delete_message": "Bạn có chắc muốn xóa phân công chính sách chấm công này không?",
-      "delete_success": "Đã xóa ghi đè chính sách",
-      "delete_title": "Xóa phân công",
-      "save_success": "Đã lưu ghi đè chính sách",
-      "validation_select_target": "Vui lòng chọn phòng ban hoặc nhân viên"
-    },
-    "title": "Ghi đè & Ngoại lệ"
+      "employee": "NHÂN VIÊN"
+    }
   },
   "holidays": {
     "add_btn": "Thêm ngày lễ",

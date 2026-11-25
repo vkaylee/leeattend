@@ -4,9 +4,12 @@ BEGIN;
 
 -- This is destructive and must not run against production data.
 
-DROP VIEW IF EXISTS public.department_payroll_reconciliation;
+DROP TRIGGER IF EXISTS trg_employment_relationships_policy_bounds_guard ON public.employment_relationships;
 
-DROP TABLE IF EXISTS public.work_credit_policies CASCADE;
+ALTER TABLE IF EXISTS public.attendance_daily_summaries
+    DROP CONSTRAINT IF EXISTS attendance_daily_summaries_work_policy_version_id_fkey;
+
+DROP INDEX IF EXISTS public.attendance_daily_summaries_policy_provenance_idx;
 
 DROP TABLE IF EXISTS public.payslips CASCADE;
 
@@ -42,13 +45,17 @@ DROP TABLE IF EXISTS public.payroll_formula_rule_versions CASCADE;
 
 DROP TABLE IF EXISTS public.payroll_calculation_runs CASCADE;
 
-DROP TABLE IF EXISTS public.pay_basis_policies CASCADE;
+DROP TABLE IF EXISTS public.work_policy_memberships CASCADE;
 
-DROP TABLE IF EXISTS public.labor_policy_memberships CASCADE;
+DROP TABLE IF EXISTS public.work_policy_versions CASCADE;
 
-DROP TABLE IF EXISTS public.labor_policy_groups CASCADE;
+DROP TABLE IF EXISTS public.work_policy_groups CASCADE;
 
-DROP TABLE IF EXISTS public.labor_policy_group_versions CASCADE;
+DROP FUNCTION IF EXISTS public.fn_validate_relationship_policy_bounds_guard();
+
+DROP FUNCTION IF EXISTS public.fn_validate_work_policy_membership_rel_bounds();
+
+DROP FUNCTION IF EXISTS public.fn_guard_work_policy_version_immutability();
 
 DELETE FROM public.schema_migrations WHERE version = 'fresh_payroll_v1';
 

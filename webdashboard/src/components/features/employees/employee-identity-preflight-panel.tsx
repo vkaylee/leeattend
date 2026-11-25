@@ -47,6 +47,8 @@ function getReasonLabel(reason: EmployeeMatchCandidate["reasons"][number], t: TF
       return t("employees.preflight.reasons.name_dob_review", { defaultValue: "Trùng họ tên và ngày sinh" });
     case "name_phone_review":
       return t("employees.preflight.reasons.name_phone_review", { defaultValue: "Trùng họ tên và số điện thoại gần đúng" });
+    default:
+      return String(reason);
   }
 }
 

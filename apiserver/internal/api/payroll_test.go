@@ -22,7 +22,6 @@ import (
 )
 
 type mockPayrollRepository struct {
-	settingsNotFound  bool
 	listPayslipsErr   error
 	listComponentsErr error
 }
@@ -58,8 +57,20 @@ func (mockPayrollRepository) CorrectPayrollInput(_ context.Context, inputID ids.
 	return PayrollInput{ID: uuid.UUID(inputID), Value: req.Value, Unit: req.Unit, Status: "corrected"}, nil
 }
 
-func (mockPayrollRepository) ListPayrollCalculationRuns(context.Context, ids.EmploymentID, int, int) ([]PayrollCalculationRun, error) {
+func (mockPayrollRepository) ListPayrollCalculationRuns(context.Context, ids.EmploymentID, int, int, int) ([]PayrollCalculationRun, error) {
 	return []PayrollCalculationRun{}, nil
+}
+
+func (mockPayrollRepository) SimulateWorkPolicyVersionBatch(_ context.Context, groupID, versionID uuid.UUID, req WorkPolicyBatchSimulationRequest) (WorkPolicyBatchSimulationResponse, error) {
+	return WorkPolicyBatchSimulationResponse{
+		GroupID:     groupID,
+		VersionID:   versionID,
+		PeriodYear:  req.Year,
+		PeriodMonth: req.Month,
+		Total:       len(req.EmploymentRelationshipIDs),
+		Computed:    len(req.EmploymentRelationshipIDs),
+		Items:       []WorkPolicyBatchSimulationItem{},
+	}, nil
 }
 
 func (mockPayrollRepository) ComparePayrollImpact(context.Context, ids.EmploymentID, int, int, uuid.UUID, uuid.UUID) (PayrollImpactResponse, error) {
@@ -163,95 +174,6 @@ func (mockPayrollRepository) AssignEmploymentSalaryComponent(_ context.Context, 
 		EffectiveDate:         req.EffectiveDate,
 		CreatedAt:             "2026-01-01T00:00:00Z",
 		UpdatedAt:             "2026-01-01T00:00:00Z",
-	}, nil
-}
-
-func (m mockPayrollRepository) GetPayrollSettings(context.Context) (*PayrollSettings, error) {
-	if m.settingsNotFound {
-		return nil, ErrPayrollSettingsNotFound
-	}
-	return &PayrollSettings{
-		StdWorkingDayMode:  "fixed",
-		FixedStdDays:       decimal.RequireFromString("26"),
-		WorkingDaysPerWeek: 5,
-		HoursPerDay:        decimal.RequireFromString("8"),
-		EffectiveDate:      "2026-01-01",
-		CreatedAt:          "2026-01-01T00:00:00Z",
-		UpdatedAt:          "2026-01-01T00:00:00Z",
-	}, nil
-}
-
-func (mockPayrollRepository) GetPayrollSettingsHistory(context.Context) ([]PayrollSettings, error) {
-	return []PayrollSettings{
-		{
-			StdWorkingDayMode:  "fixed",
-			FixedStdDays:       decimal.RequireFromString("26"),
-			WorkingDaysPerWeek: 5,
-			HoursPerDay:        decimal.RequireFromString("8"),
-			EffectiveDate:      "2026-01-01",
-			CreatedAt:          "2026-01-01T00:00:00Z",
-			UpdatedAt:          "2026-01-01T00:00:00Z",
-		},
-	}, nil
-}
-
-func (mockPayrollRepository) UpdatePayrollSettings(_ context.Context, req UpdatePayrollSettingsRequest) (PayrollSettings, error) {
-	mode := "fixed"
-	if req.StdWorkingDayMode != nil {
-		mode = *req.StdWorkingDayMode
-	}
-	fixedDays := decimal.RequireFromString("26")
-	if req.FixedStdDays != nil {
-		fixedDays = *req.FixedStdDays
-	}
-	effDate := "2026-01-01"
-	if req.EffectiveDate != nil {
-		effDate = *req.EffectiveDate
-	}
-	return PayrollSettings{
-		StdWorkingDayMode:  mode,
-		FixedStdDays:       fixedDays,
-		WorkingDaysPerWeek: 5,
-		HoursPerDay:        decimal.RequireFromString("8"),
-		EffectiveDate:      effDate,
-		CreatedAt:          "2026-01-01T00:00:00Z",
-		UpdatedAt:          "2026-01-01T00:00:00Z",
-	}, nil
-}
-
-func (mockPayrollRepository) GetEmployeePayrollConfigs(_ context.Context, employeeID ids.EmployeeID) ([]EmployeePayrollConfig, error) {
-	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
-		return nil, ErrEmployeeNotFound
-	}
-	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000040") {
-		return nil, ErrNoActiveEmployment
-	}
-	return []EmployeePayrollConfig{
-		{
-			ID:             uuid.New(),
-			EmploymentID:   uuid.New(),
-			StdWorkingDays: decimal.RequireFromString("24"),
-			HoursPerDay:    decimal.RequireFromString("8"),
-			EffectiveDate:  "2026-01-01",
-			CreatedAt:      "2026-01-01T00:00:00Z",
-		},
-	}, nil
-}
-
-func (mockPayrollRepository) SetEmployeePayrollConfig(_ context.Context, employeeID ids.EmployeeID, req SetEmployeePayrollConfigRequest, _ ids.UserID) (EmployeePayrollConfig, error) {
-	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000044") {
-		return EmployeePayrollConfig{}, ErrEmployeeNotFound
-	}
-	if uuid.UUID(employeeID) == uuid.MustParse("00000000-0000-0000-0000-000000000040") {
-		return EmployeePayrollConfig{}, ErrNoActiveEmployment
-	}
-	return EmployeePayrollConfig{
-		ID:             uuid.New(),
-		EmploymentID:   uuid.New(),
-		StdWorkingDays: req.StdWorkingDays,
-		HoursPerDay:    req.HoursPerDay,
-		EffectiveDate:  req.EffectiveDate,
-		CreatedAt:      "2026-01-01T00:00:00Z",
 	}, nil
 }
 
@@ -778,180 +700,51 @@ func TestPayrollEmploymentSalaryComponentsEndpoints(t *testing.T) {
 	}
 }
 
-func TestPayrollSettingsEndpoints(t *testing.T) {
-	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true}}
-
-	// 1. GET /payroll-settings (200 OK)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/payroll-settings", nil)
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec := httptest.NewRecorder()
-	handler.GetPayrollSettings(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if !contains(rec.Body.String(), `"std_working_day_mode":"fixed"`) || !contains(rec.Body.String(), `"fixed_std_days":"26"`) {
-		t.Fatalf("unexpected settings body: %s", rec.Body.String())
-	}
-
-	// 1b. GET /payroll-settings (404 Not Found)
-	notFoundHandler := PayrollHandler{Repository: mockPayrollRepository{settingsNotFound: true}, Authorizer: payrollAuthorizer{isMember: true}}
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/payroll-settings", nil)
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	notFoundHandler.GetPayrollSettings(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
-	}
-
-	// 1c. GET /payroll-settings forbidden (403)
-	forbiddenHandler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{}, isMember: false}}
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/payroll-settings", nil)
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	forbiddenHandler.GetPayrollSettings(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d: %s", rec.Code, rec.Body.String())
-	}
-
-	// 1d. PATCH /payroll-settings requires payroll:manage even for members.
-	memberOnlyHandler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true, allowedPerms: map[string]bool{"payroll:manage": false}}}
-	req = httptest.NewRequest(http.MethodPatch, "/api/v1/payroll-settings", bytes.NewBufferString(`{"fixed_std_days":"25","effective_date":"2026-06-01"}`))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	memberOnlyHandler.UpdatePayrollSettings(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 for member without payroll:manage, got %d", rec.Code)
-	}
-
-	// 2. PATCH /payroll-settings (200 OK)
-	patchBody := `{"std_working_day_mode":"custom","fixed_std_days":"25","effective_date":"2026-06-01"}`
-	req = httptest.NewRequest(http.MethodPatch, "/api/v1/payroll-settings", bytes.NewBufferString(patchBody))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	handler.UpdatePayrollSettings(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if !contains(rec.Body.String(), `"std_working_day_mode":"custom"`) || !contains(rec.Body.String(), `"fixed_std_days":"25"`) {
-		t.Fatalf("unexpected patch response: %s", rec.Body.String())
-	}
-
-	// 2b. PATCH /payroll-settings invalid date (400)
-	badPatchBody := `{"effective_date":"not-a-date"}`
-	req = httptest.NewRequest(http.MethodPatch, "/api/v1/payroll-settings", bytes.NewBufferString(badPatchBody))
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	handler.UpdatePayrollSettings(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 for bad date, got %d: %s", rec.Code, rec.Body.String())
-	}
-
-	// 3. GET /payroll-settings/history (200 OK)
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/payroll-settings/history", nil)
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	handler.GetPayrollSettingsHistory(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if !contains(rec.Body.String(), `"effective_date":"2026-01-01"`) {
-		t.Fatalf("expected history entries, got: %s", rec.Body.String())
-	}
+func newBatchSimReq(groupID, versionID, userID uuid.UUID, body string) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/work-policy-groups/"+groupID.String()+"/versions/"+versionID.String()+"/simulate", bytes.NewBufferString(body))
+	req.SetPathValue("group_id", groupID.String())
+	req.SetPathValue("version_id", versionID.String())
+	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 }
 
-func TestEmployeePayrollConfigEndpoints(t *testing.T) {
-	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true}}
-	validEmpID := uuid.New()
-	missingEmpID := uuid.MustParse("00000000-0000-0000-0000-000000000044")
-	noActiveEmpID := uuid.MustParse("00000000-0000-0000-0000-000000000040")
+func TestWorkPolicyBatchSimulationEndpoint(t *testing.T) {
+	groupID, versionID, userID, relID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	validBody := `{"year":2026,"month":3,"employment_relationship_ids":["` + relID.String() + `"]}`
 
-	// 4. GET /employees/{id}/payroll-config (200 OK)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/employees/"+validEmpID.String()+"/payroll-config", nil)
-	req.SetPathValue("id", validEmpID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	noPerm := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:read": true}}}
 	rec := httptest.NewRecorder()
-	handler.GetEmployeePayrollConfig(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if !contains(rec.Body.String(), `"std_working_days":"24"`) {
-		t.Fatalf("unexpected employee config body: %s", rec.Body.String())
-	}
-
-	// 4b. GET /employees/{id}/payroll-config employee not found (404)
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/employees/"+missingEmpID.String()+"/payroll-config", nil)
-	req.SetPathValue("id", missingEmpID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	handler.GetEmployeePayrollConfig(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
-	}
-
-	// 4c. GET /employees/{id}/payroll-config no active employment (400)
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/employees/"+noActiveEmpID.String()+"/payroll-config", nil)
-	req.SetPathValue("id", noActiveEmpID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	handler.GetEmployeePayrollConfig(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
-	}
-
-	// 4d. POST /employees/{id}/payroll-config requires payroll:manage even for members.
-	memberOnlyHandler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{isMember: true, allowedPerms: map[string]bool{"payroll:manage": false}}}
-	createBody := `{"std_working_days":"22","hours_per_day":"8","effective_date":"2026-06-01"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+validEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
-	req.SetPathValue("id", validEmpID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	memberOnlyHandler.SetEmployeePayrollConfig(rec, req)
+	noPerm.SimulateWorkPolicyVersionBatch(rec, newBatchSimReq(groupID, versionID, userID, validBody))
 	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 for member without payroll:manage, got %d", rec.Code)
+		t.Fatalf("expected 403 without payroll:sensitive:read, got %d", rec.Code)
 	}
 
-	// 5. POST /employees/{id}/payroll-config (201 Created)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+validEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
-	req.SetPathValue("id", validEmpID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	handler.SetEmployeePayrollConfig(rec, req)
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	handler := PayrollHandler{Repository: mockPayrollRepository{}, Authorizer: payrollAuthorizer{allowedPerms: map[string]bool{"payroll:sensitive:read": true}}}
+	var over bytes.Buffer
+	over.WriteString(`{"year":2026,"month":3,"employment_relationship_ids":[`)
+	for i := 0; i < 101; i++ {
+		if i > 0 {
+			over.WriteString(",")
+		}
+		over.WriteString(`"` + uuid.NewString() + `"`)
 	}
-	if !contains(rec.Body.String(), `"std_working_days":"22"`) {
-		t.Fatalf("unexpected set config response: %s", rec.Body.String())
-	}
-
-	// 5b. POST /employees/{id}/payroll-config bad date (400)
-	badBody := `{"std_working_days":"22","hours_per_day":"8","effective_date":"invalid"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+validEmpID.String()+"/payroll-config", bytes.NewBufferString(badBody))
-	req.SetPathValue("id", validEmpID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	handler.SetEmployeePayrollConfig(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	over.WriteString(`]}`)
+	recOver := httptest.NewRecorder()
+	handler.SimulateWorkPolicyVersionBatch(recOver, newBatchSimReq(groupID, versionID, userID, over.String()))
+	if recOver.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for >100 batch, got %d", recOver.Code)
 	}
 
-	// 5c. POST /employees/{id}/payroll-config employee not found (404)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+missingEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
-	req.SetPathValue("id", missingEmpID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	handler.SetEmployeePayrollConfig(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
+	dupBody := `{"year":2026,"month":3,"employment_relationship_ids":["` + relID.String() + `","` + relID.String() + `"]}`
+	recDup := httptest.NewRecorder()
+	handler.SimulateWorkPolicyVersionBatch(recDup, newBatchSimReq(groupID, versionID, userID, dupBody))
+	if recDup.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for duplicate IDs, got %d", recDup.Code)
 	}
 
-	// 5d. POST /employees/{id}/payroll-config no active employment (400)
-	req = httptest.NewRequest(http.MethodPost, "/api/v1/employees/"+noActiveEmpID.String()+"/payroll-config", bytes.NewBufferString(createBody))
-	req.SetPathValue("id", noActiveEmpID.String())
-	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
-	rec = httptest.NewRecorder()
-	handler.SetEmployeePayrollConfig(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	recOK := httptest.NewRecorder()
+	handler.SimulateWorkPolicyVersionBatch(recOK, newBatchSimReq(groupID, versionID, userID, validBody))
+	if recOK.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recOK.Code, recOK.Body.String())
 	}
 }
 

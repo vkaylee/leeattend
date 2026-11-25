@@ -2,10 +2,15 @@
 
 | Property | Value |
 |---|---|
-| Status | Blocked pending canonical cross-consumer gate |
-| Date | 2026-11-16 |
+| Status | Superseded by Work Policy v2 (`docs/plans/work-policy-v2-refactor.md`) |
+| Date | 2026-11-16 (Superseded 2026-11-25) |
 | Owner | LeeAttend backend, payroll, attendance, and reporting domain owners |
 | Scope | Work-policy configuration activation and consumer cutover |
+
+> **Superseding Decision (2026-11-25 — Pre-Go-Live):** Because LeeAttend has not yet gone live and Employee Tenures v2 landed on `main`, the transitional dual-source activation boundary is superseded by Work Policy v2:
+> - Single canonical gate: `work_policy_versions.status = 'published'` consumed exclusively through `WorkPolicyResolver` (`apiserver/internal/repository/work_policy_resolver.go`) across Attendance Reprocess, Attendance Summaries, Reports, Payroll, Batch Simulation, and Impact Staleness.
+> - All competing legacy policy tables, `config_entries` payroll/OT keys, and legacy routes were removed pre-go-live.
+> - Atomic publish enforces `expected_row_version` (`409` on concurrent edits), `Idempotency-Key` replay, live cross-policy revalidation, locked payroll period guards, and PII-free audit logging.
 
 ## Context
 

@@ -83,7 +83,7 @@ func TestReportRepository_GetAttendanceReportEmploymentNotFound(t *testing.T) {
 	}
 }
 
-func TestReportRepository_GetAttendanceReportSummaryGroupsEffectiveHours(t *testing.T) {
+func TestReportRepository_GetAttendanceReportSummaryGroupsByEmployment(t *testing.T) {
 	var dataQuery string
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
@@ -101,8 +101,8 @@ func TestReportRepository_GetAttendanceReportSummaryGroupsEffectiveHours(t *test
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(dataQuery, "em.name, hours.hours_per_day") {
-		t.Fatalf("summary query must group effective hours: %s", dataQuery)
+	if !strings.Contains(dataQuery, "GROUP BY emp.id, e.id") || strings.Contains(dataQuery, "config_entries") {
+		t.Fatalf("summary query must group by employment without legacy config_entries: %s", dataQuery)
 	}
 }
 
@@ -151,7 +151,7 @@ func TestReportRepository_GetAttendanceReportDailyMapsOTClaimStatus(t *testing.T
 		rows = append(rows, []any{
 			"2026-01-01", employmentID, employeeID, "Alice", "EMP01",
 			"", "", "", "", "",
-			480, 0, 0, 0, 480, 480, false, nil, 480, 0, status, 8.0, 0.0,
+			480, 0, 0, 0, 480, 480, false, nil, 480, 0, status,
 		})
 	}
 
@@ -164,6 +164,9 @@ func TestReportRepository_GetAttendanceReportDailyMapsOTClaimStatus(t *testing.T
 			}}
 		},
 		queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
+			if strings.Contains(query, "work_policy_memberships") {
+				return &fakeRows{}, nil
+			}
 			dataQuery = query
 			return &fakeRows{rows: rows}, nil
 		},
@@ -194,18 +197,21 @@ func TestReportRepository_GetAttendanceReportDailyMapsOTClaimStatus(t *testing.T
 }
 
 func TestReportRepository_GetAttendanceReportDailyUsesEffectiveWorkCreditPolicy(t *testing.T) {
-	employmentID, employeeID := uuid.New(), uuid.New()
-	var dataQuery string
+	employmentID, employeeID, relID := uuid.New(), uuid.New(), uuid.New()
+	var resolverQuery string
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
 			return fakeRow{scanFn: func(dest ...any) error { *(dest[0].(*int64)) = 1; return nil }}
 		},
 		queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
-			dataQuery = query
+			if strings.Contains(query, "work_policy_memberships") {
+				resolverQuery = query
+				return &resolvedPolicyCustomRows{empID: employmentID, relID: relID, minutesPerCredit: 450}, nil
+			}
 			return &reportRows{rows: [][]any{{
 				"2026-01-01", employmentID, employeeID, "Employee", "EMP01",
 				nil, nil, nil, nil, nil,
-				480, 0, 0, 0, 480, 480, false, nil, 480, 0, "approved", 8.0, 450.0,
+				480, 0, 0, 0, 480, 480, false, nil, 480, 0, "approved",
 			}}}, nil
 		},
 	}
@@ -215,8 +221,8 @@ func TestReportRepository_GetAttendanceReportDailyUsesEffectiveWorkCreditPolicy(
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(dataQuery, "JOIN work_credit_policies wc") || !strings.Contains(dataQuery, "m.effective_to IS NULL OR m.effective_to > ads.date") {
-		t.Fatalf("daily query must resolve effective work-credit policy: %s", dataQuery)
+	if !strings.Contains(resolverQuery, "v.status = 'published'") {
+		t.Fatalf("daily report must resolve published work policy via WorkPolicyResolver: %s", resolverQuery)
 	}
 	var rows []api.DailyAttendanceRow
 	if err := json.Unmarshal(response.Data, &rows); err != nil {
@@ -228,7 +234,7 @@ func TestReportRepository_GetAttendanceReportDailyUsesEffectiveWorkCreditPolicy(
 }
 
 func TestReportRepository_GetAttendanceReportDailyUsesEffectiveHoursForUnits(t *testing.T) {
-	employmentID, employeeID := uuid.New(), uuid.New()
+	employmentID, employeeID, relID := uuid.New(), uuid.New(), uuid.New()
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, _ string, _ ...any) pgx.Row {
 			return fakeRow{scanFn: func(dest ...any) error {
@@ -237,13 +243,13 @@ func TestReportRepository_GetAttendanceReportDailyUsesEffectiveHoursForUnits(t *
 			}}
 		},
 		queryFn: func(_ context.Context, query string, _ ...any) (pgx.Rows, error) {
-			if !strings.Contains(query, "COALESCE(hours.hours_per_day, 8.0)") {
-				t.Fatalf("daily query must use effective hours: %s", query)
+			if strings.Contains(query, "work_policy_memberships") {
+				return &resolvedPolicyCustomRows{empID: employmentID, relID: relID, minutesPerCredit: 360}, nil
 			}
 			return &reportRows{rows: [][]any{{
 				"2026-01-01", employmentID, employeeID, "Employee", "EMP01",
 				nil, nil, nil, nil, nil,
-				480, 0, 0, 0, 480, 480, false, nil, 480, 60, "approved", 6.0, 450.0,
+				480, 0, 0, 0, 480, 480, false, nil, 480, 60, "approved",
 			}}}, nil
 		},
 	}

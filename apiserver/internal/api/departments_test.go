@@ -5,11 +5,9 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -62,46 +60,6 @@ func (m mockDepartmentRepo) DeleteDepartment(_ context.Context, _ uuid.UUID) err
 	return nil
 }
 
-func (m mockDepartmentRepo) GetDepartmentPayrollConfigs(_ context.Context, deptID uuid.UUID) ([]DepartmentPayrollConfig, error) {
-	if m.notFound {
-		return []DepartmentPayrollConfig{}, nil
-	}
-	return []DepartmentPayrollConfig{
-		{
-			ID:             uuid.New(),
-			DepartmentID:   deptID,
-			StdWorkingDays: decimal.NewFromFloat(22),
-			HoursPerDay:    decimal.NewFromFloat(8),
-			EffectiveDate:  "2026-01-01",
-		},
-	}, nil
-}
-
-func (m mockDepartmentRepo) ListDepartmentPayrollReconciliation(_ context.Context, page, limit int, status string) (DepartmentPayrollReconciliationResponse, error) {
-	if m.notFound {
-		return DepartmentPayrollReconciliationResponse{}, ErrDepartmentNotFound
-	}
-	return DepartmentPayrollReconciliationResponse{
-		Data: []DepartmentPayrollReconciliation{{
-			DepartmentID: uuid.New(), DepartmentName: "Engineering", Status: status,
-		}},
-		Total: 1, Page: page, Limit: limit,
-	}, nil
-}
-
-func (m mockDepartmentRepo) SetDepartmentPayrollConfig(_ context.Context, deptID uuid.UUID, req SetDepartmentPayrollConfigRequest, _ uuid.UUID) (DepartmentPayrollConfig, error) {
-	if m.notFound {
-		return DepartmentPayrollConfig{}, ErrDepartmentNotFound
-	}
-	return DepartmentPayrollConfig{
-		ID:             uuid.New(),
-		DepartmentID:   deptID,
-		StdWorkingDays: req.StdWorkingDays,
-		HoursPerDay:    req.HoursPerDay,
-		EffectiveDate:  req.EffectiveDate,
-	}, nil
-}
-
 type mockDepartmentAuthz struct {
 	permissions map[string]bool
 }
@@ -139,35 +97,6 @@ func departmentRequest(method, path, body string, userID uuid.UUID) *http.Reques
 	return req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 }
 
-func TestDepartmentHandler_PayrollReconciliation(t *testing.T) {
-	userID := uuid.New()
-	h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{"payroll:read": true}}}
-	req := departmentRequest(http.MethodGet, "/api/v1/departments/payroll-reconciliation?status=value_mismatch&page=2&limit=10", "", userID)
-	rec := httptest.NewRecorder()
-	h.ListPayrollReconciliation(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if !strings.Contains(rec.Body.String(), `"reconciliation_status":"value_mismatch"`) {
-		t.Fatalf("expected reconciliation status in response: %s", rec.Body.String())
-	}
-
-	req = departmentRequest(http.MethodGet, "/api/v1/departments/payroll-reconciliation?status=unknown", "", userID)
-	rec = httptest.NewRecorder()
-	h.ListPayrollReconciliation(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 for invalid status, got %d", rec.Code)
-	}
-
-	h = DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{}}}
-	req = departmentRequest(http.MethodGet, "/api/v1/departments/payroll-reconciliation", "", userID)
-	rec = httptest.NewRecorder()
-	h.ListPayrollReconciliation(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 without payroll read permission, got %d", rec.Code)
-	}
-}
-
 func TestDepartmentHandler_List(t *testing.T) {
 	userID := uuid.New()
 	h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{"departments:read": true}}}
@@ -187,7 +116,6 @@ func TestDepartmentHandler_Create(t *testing.T) {
 		Authorizer: mockDepartmentAuthz{permissions: map[string]bool{"departments:create": true}},
 	}
 
-	// Success
 	req := departmentRequest(http.MethodPost, "/api/v1/departments", `{"name":"Finance","description":"Finance team"}`, userID)
 	rec := httptest.NewRecorder()
 	h.Create(rec, req)
@@ -195,7 +123,6 @@ func TestDepartmentHandler_Create(t *testing.T) {
 		t.Fatalf("expected 201, got %d", rec.Code)
 	}
 
-	// Forbidden
 	hNoAuth := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{}}}
 	req = departmentRequest(http.MethodPost, "/api/v1/departments", `{"name":"Finance"}`, userID)
 	rec = httptest.NewRecorder()
@@ -204,7 +131,6 @@ func TestDepartmentHandler_Create(t *testing.T) {
 		t.Fatalf("expected 403, got %d", rec.Code)
 	}
 
-	// Empty name
 	req = departmentRequest(http.MethodPost, "/api/v1/departments", `{"name":""}`, userID)
 	rec = httptest.NewRecorder()
 	h.Create(rec, req)
@@ -223,7 +149,6 @@ func TestDepartmentHandler_UpdateAndDelete(t *testing.T) {
 		}},
 	}
 
-	// Update
 	req := departmentRequest(http.MethodPatch, "/api/v1/departments/"+deptID.String(), `{"name":"R&D"}`, userID)
 	req.SetPathValue("id", deptID.String())
 	rec := httptest.NewRecorder()
@@ -232,74 +157,11 @@ func TestDepartmentHandler_UpdateAndDelete(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
 
-	// Delete
 	req = departmentRequest(http.MethodDelete, "/api/v1/departments/"+deptID.String(), "", userID)
 	req.SetPathValue("id", deptID.String())
 	rec = httptest.NewRecorder()
 	h.Delete(rec, req)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", rec.Code)
-	}
-}
-
-func TestDepartmentHandler_PayrollConfigValidationAndPermission(t *testing.T) {
-	deptID, userID := uuid.New(), uuid.New()
-	body := `{"std_working_days":"22.00","hours_per_day":"8.00","effective_date":"2026-01-01"}`
-	h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{}}}
-	req := departmentRequest(http.MethodPost, "/api/v1/departments/"+deptID.String()+"/payroll-config", body, userID)
-	req.SetPathValue("id", deptID.String())
-	rec := httptest.NewRecorder()
-	h.SetPayrollConfig(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 without department update permission, got %d", rec.Code)
-	}
-
-	h = DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{"departments:update": true}}}
-	for _, invalid := range []string{
-		`{"std_working_days":"22.00","hours_per_day":"8.00","effective_date":"not-a-date"}`,
-		`{"std_working_days":"-1","hours_per_day":"8.00","effective_date":"2026-01-01"}`,
-		`{"std_working_days":"22.00","hours_per_day":"-1","effective_date":"2026-01-01"}`,
-	} {
-		req = departmentRequest(http.MethodPost, "/api/v1/departments/"+deptID.String()+"/payroll-config", invalid, userID)
-		req.SetPathValue("id", deptID.String())
-		rec = httptest.NewRecorder()
-		h.SetPayrollConfig(rec, req)
-		if rec.Code != http.StatusBadRequest {
-			t.Fatalf("invalid payroll config %s: expected 400, got %d", invalid, rec.Code)
-		}
-	}
-}
-
-func TestDepartmentHandler_PayrollConfig(t *testing.T) {
-	deptID, userID := uuid.New(), uuid.New()
-	h := DepartmentHandler{Repository: mockDepartmentRepo{}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{"departments:update": true}}}
-
-	// Get
-	req := departmentRequest(http.MethodGet, "/api/v1/departments/"+deptID.String()+"/payroll-config", "", userID)
-	req.SetPathValue("id", deptID.String())
-	rec := httptest.NewRecorder()
-	h.GetPayrollConfig(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
-	}
-
-	// Set
-	body := `{"std_working_days":"22.00","hours_per_day":"8.00","effective_date":"2026-01-01"}`
-	req = departmentRequest(http.MethodPost, "/api/v1/departments/"+deptID.String()+"/payroll-config", body, userID)
-	req.SetPathValue("id", deptID.String())
-	rec = httptest.NewRecorder()
-	h.SetPayrollConfig(rec, req)
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d", rec.Code)
-	}
-
-	// Set on non-existent department returns 404
-	hNotFound := DepartmentHandler{Repository: mockDepartmentRepo{notFound: true}, Authorizer: mockDepartmentAuthz{permissions: map[string]bool{"departments:update": true}}}
-	req = departmentRequest(http.MethodPost, "/api/v1/departments/"+deptID.String()+"/payroll-config", body, userID)
-	req.SetPathValue("id", deptID.String())
-	rec = httptest.NewRecorder()
-	hNotFound.SetPayrollConfig(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 for missing department, got %d", rec.Code)
 	}
 }

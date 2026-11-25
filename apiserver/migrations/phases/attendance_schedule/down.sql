@@ -83,12 +83,6 @@ DROP TABLE IF EXISTS public.attendance_sources CASCADE;
 
 DROP TABLE IF EXISTS public.attendance_source_pull_states CASCADE;
 
-DROP TABLE IF EXISTS public.attendance_policy_versions CASCADE;
-
-DROP TABLE IF EXISTS public.attendance_policy_assignments CASCADE;
-
-DROP TABLE IF EXISTS public.attendance_policies CASCADE;
-
 DROP TABLE IF EXISTS public.attendance_periods CASCADE;
 
 DROP TABLE IF EXISTS public.attendance_log_errors CASCADE;

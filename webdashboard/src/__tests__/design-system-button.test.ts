@@ -27,8 +27,6 @@ const LEGACY_VIOLATIONS = new Set([
   "components/members/invite-member-dialog.tsx",
   "components/members/member-table.tsx",
   "components/payroll/adjustment-drawer.tsx",
-  "components/payroll/assign-overtime-policy-components/assign-overtime-policy-fields.tsx",
-  "components/payroll/assign-overtime-policy-modal.tsx",
   "components/payroll/batch-calculation-modal.tsx",
   "components/payroll/bonus-policy-manager.tsx",
   "components/payroll/employee-salary-config.tsx",

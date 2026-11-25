@@ -15,10 +15,9 @@ func TestIntegrationWorkPolicyRulesLateGraceOTAggregationAndBreaks(t *testing.T)
 
 	employerID := uuid.New()
 	actorID := uuid.New()
-	attPolicyID := uuid.New()
 	patternID := uuid.New()
-	payBasisID := uuid.New()
 	otPolicyID := uuid.New()
+	otVerID := uuid.New()
 	batchID := uuid.New()
 
 	mustExec := func(query string, args ...any) {
@@ -30,11 +29,9 @@ func TestIntegrationWorkPolicyRulesLateGraceOTAggregationAndBreaks(t *testing.T)
 
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'wp-reprocess-employer')`, employerID)
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
-	mustExec(`INSERT INTO attendance_policies (id, name, is_default) VALUES ($1, 'WP Att Policy', false)`, attPolicyID)
-	mustExec(`INSERT INTO attendance_policy_versions (id, policy_id, rules, valid_from, created_by) VALUES (gen_random_uuid(), $1, '{"work_unit_minutes":15,"rounding_policy":"floor","early_arrival_strategy":"clamp"}'::jsonb, TIMESTAMPTZ '2026-01-01 00:00:00+00', $2)`, attPolicyID, actorID)
 	mustExec(`INSERT INTO working_patterns (id, name, pattern_type, is_active) VALUES ($1, 'WP Pattern', 'weekly', true)`, patternID)
-	mustExec(`INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, 'WP Pay Basis', 'monthly', 'fixed', 22, $2)`, payBasisID, actorID)
 	mustExec(`INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'WP OT Policy')`, otPolicyID)
+	mustExec(`INSERT INTO overtime_policy_versions (id, policy_id, version_no, status, rules, created_by, published_by, published_at) VALUES ($1, $2, 1, 'published', '[{"priority":10,"day_type":"any","days_of_week":127,"multiplier":"1.5"}]'::jsonb, $3, $3, NOW())`, otVerID, otPolicyID, actorID)
 	mustExec(`INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, reason, timezone, range_start, range_end) VALUES ($1, $2, repeat('e', 64), 'rotating', 'published', $3, 'publish', '{}'::jsonb, 'wp fixture', 'Asia/Ho_Chi_Minh', DATE '2026-11-10', DATE '2026-11-16')`, batchID, batchID.String(), actorID)
 
 	tplID, verID := uuid.New(), uuid.New()
@@ -45,11 +42,14 @@ func TestIntegrationWorkPolicyRulesLateGraceOTAggregationAndBreaks(t *testing.T)
 		empID, employmentID := uuid.New(), uuid.New()
 		seedIntegrationEmployeeGraphWithRange(t, ctx, pool, empID, employerID, employmentID, label+"-"+empID.String()[:8], label, "2026-01-01", "2026-01-01", "2026-12-31")
 		if assignPolicy {
-			wcID, groupID, verGroupID := uuid.New(), uuid.New(), uuid.New()
-			mustExec(`INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, late_arrival_grace_minutes, early_ot_enabled, early_ot_qualification_grace_minutes, early_ot_max_minutes, break_auto_deduct, break_is_overtime, ot_aggregation_mode, created_by) VALUES ($1, $2, 480, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, wcID, "WC-"+label, attPolicyID, patternID, lateGrace, earlyEnabled, earlyGrace, earlyMax, breakAuto, breakOT, aggMode, actorID)
-			mustExec(`INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, $2, $3)`, groupID, "Grp-"+label+"-"+groupID.String()[:8], actorID)
-			mustExec(`INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, created_by) VALUES ($1, $2, $3, $4, $5, DATE '2026-01-01', $6)`, verGroupID, groupID, wcID, payBasisID, otPolicyID, actorID)
-			mustExec(`INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, created_by) VALUES (gen_random_uuid(), $1, $2, DATE '2026-01-01', $3)`, employmentID, groupID, actorID)
+			var relID uuid.UUID
+			if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
+				t.Fatalf("lookup relationship_id: %v", err)
+			}
+			groupID, verGroupID := uuid.New(), uuid.New()
+			mustExec(`INSERT INTO work_policy_groups (id, code, name, created_by) VALUES ($1, $2, $3, $4)`, groupID, "GRP-"+groupID.String()[:8], "Grp-"+label, actorID)
+			mustExec(`INSERT INTO work_policy_versions (id, group_id, version_no, status, effective_from, created_by, published_by, published_at, minutes_per_credit, work_unit_minutes, rounding_policy, early_arrival_strategy, late_arrival_grace_minutes, early_ot_enabled, early_ot_qualification_grace_minutes, early_ot_max_minutes, break_auto_deduct, break_is_overtime, ot_aggregation_mode, working_pattern_id, pay_method, monthly_denominator, monthly_standard_days, overtime_policy_version_id) VALUES ($1, $2, 1, 'published', DATE '2026-01-01', $3, $3, NOW(), 480, 15, 'floor', 'clamp', $4, $5, $6, $7, $8, $9, $10, $11, 'monthly', 'fixed', 22, $12)`, verGroupID, groupID, actorID, lateGrace, earlyEnabled, earlyGrace, earlyMax, breakAuto, breakOT, aggMode, patternID, otVerID)
+			mustExec(`INSERT INTO work_policy_memberships (id, employment_relationship_id, group_id, effective_from, effective_to, created_by) VALUES (gen_random_uuid(), $1, $2, DATE '2026-01-01', DATE '2027-01-01', $3)`, relID, groupID, actorID)
 		}
 		return empID, employmentID
 	}

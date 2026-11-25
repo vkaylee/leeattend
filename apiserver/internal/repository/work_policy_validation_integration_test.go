@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 )
 
-func TestIntegrationValidateWorkPolicyGroupVersionChecksLiveReferences(t *testing.T) {
+func TestIntegrationValidateWorkPolicyVersionChecksLiveReferences(t *testing.T) {
 	pool, ctx := requireIntegrationDatabase(t)
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -21,76 +22,54 @@ func TestIntegrationValidateWorkPolicyGroupVersionChecksLiveReferences(t *testin
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	userID := uuid.New()
-	groupID := uuid.New()
-	versionID := uuid.New()
-	workCreditID := uuid.New()
-	payBasisID := uuid.New()
-	attendanceID := uuid.New()
-	patternID := uuid.New()
-	overtimeID := uuid.New()
+	userID, patternID, otPolicyID, otVerID, groupID, versionID := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	if _, err := tx.Exec(ctx, `INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, userID, userID.String()+"@invalid.test"); err != nil {
 		t.Fatalf("insert user: %v", err)
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO attendance_policies (id, name) VALUES ($1, 'validation-attendance')`, attendanceID); err != nil {
-		t.Fatalf("insert attendance policy: %v", err)
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO working_patterns (id, name, is_active) VALUES ($1, 'validation-pattern', true)`, patternID); err != nil {
 		t.Fatalf("insert working pattern: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'validation-overtime')`, overtimeID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'validation-overtime')`, otPolicyID); err != nil {
 		t.Fatalf("insert overtime policy: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, 'validation-group', $2)`, groupID, userID); err != nil {
-		t.Fatalf("insert labor policy group: %v", err)
+	if _, err := tx.Exec(ctx, `INSERT INTO overtime_policy_versions (id, policy_id, version_no, status, rules, created_by, published_by, published_at) VALUES ($1, $2, 1, 'published', '[{"priority":10,"day_type":"any","days_of_week":127,"multiplier":"1.5"}]'::jsonb, $3, $3, NOW())`, otVerID, otPolicyID, userID); err != nil {
+		t.Fatalf("insert overtime policy version: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, 'validation-credit', 480, $2, $3, $4)`, workCreditID, attendanceID, patternID, userID); err != nil {
-		t.Fatalf("insert work credit policy: %v", err)
+	if _, err := tx.Exec(ctx, `INSERT INTO work_policy_groups (id, code, name, created_by) VALUES ($1, $2, 'validation-group', $3)`, groupID, "VAL-"+groupID.String()[:8], userID); err != nil {
+		t.Fatalf("insert work policy group: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, 'validation-pay', 'monthly', 'fixed', 26, $2)`, payBasisID, userID); err != nil {
-		t.Fatalf("insert pay basis policy: %v", err)
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, created_by) VALUES ($1, $2, $3, $4, $5, DATE '2026-01-01', $6)`, versionID, groupID, workCreditID, payBasisID, overtimeID, userID); err != nil {
-		t.Fatalf("insert policy version: %v", err)
+	if _, err := tx.Exec(ctx, `INSERT INTO work_policy_versions (id, group_id, version_no, status, effective_from, created_by, working_pattern_id, pay_method, monthly_denominator, monthly_standard_days, overtime_policy_version_id) VALUES ($1, $2, 1, 'draft', DATE '2026-01-01', $3, $4, 'monthly', 'fixed', 26, $5)`, versionID, groupID, userID, patternID, otVerID); err != nil {
+		t.Fatalf("insert work policy version: %v", err)
 	}
 
 	repo := WorkPolicyRepository{DB: tx}
-	detail, err := repo.GetWorkPolicyGroupVersion(ctx, workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
+	detail, err := repo.GetWorkPolicyVersion(ctx, workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
 	if err != nil {
 		t.Fatalf("load persisted policy detail: %v", err)
 	}
 	if detail.ID != versionID || detail.GroupID != groupID || detail.EffectiveFrom != "2026-01-01" {
 		t.Fatalf("unexpected persisted policy detail: %+v", detail)
 	}
-	history, err := repo.ListWorkPolicyGroupHistory(ctx, workpolicy.GroupID(groupID), 1, 20)
-	if err != nil {
-		t.Fatalf("load policy history: %v", err)
-	}
-	if history.Total != 1 || len(history.Data) != 1 || history.Data[0].ID != versionID {
-		t.Fatalf("unexpected policy history: %+v", history)
+	versions, err := repo.ListWorkPolicyGroupVersions(ctx, workpolicy.GroupID(groupID), "draft", 1, 20)
+	if err != nil || versions.Total != 1 || len(versions.Data) != 1 || versions.Data[0].ID != versionID {
+		t.Fatalf("unexpected policy versions: %+v err=%v", versions, err)
 	}
 
-	valid, err := repo.ValidateWorkPolicyGroupVersion(ctx, workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
-	if err != nil {
-		t.Fatalf("validate active references: %v", err)
-	}
-	if !valid.Valid || len(valid.Blockers) != 0 {
-		t.Fatalf("active references should validate: %+v", valid)
+	valid, err := repo.ValidateWorkPolicyVersion(ctx, workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
+	if err != nil || !valid.Valid || len(valid.Blockers) != 0 {
+		t.Fatalf("active references should validate: %+v err=%v", valid, err)
 	}
 
 	if _, err := tx.Exec(ctx, `UPDATE working_patterns SET is_active = false WHERE id = $1`, patternID); err != nil {
 		t.Fatalf("deactivate working pattern: %v", err)
 	}
-	blocked, err := repo.ValidateWorkPolicyGroupVersion(ctx, workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
-	if err != nil {
-		t.Fatalf("validate inactive pattern: %v", err)
-	}
-	if blocked.Valid || len(blocked.Blockers) != 1 || blocked.Blockers[0].Code != "reference_missing_or_inactive" {
-		t.Fatalf("inactive pattern must block validation: %+v", blocked)
+	blocked, err := repo.ValidateWorkPolicyVersion(ctx, workpolicy.GroupID(groupID), workpolicy.VersionID(versionID))
+	if err != nil || blocked.Valid || len(blocked.Blockers) != 1 || blocked.Blockers[0].Code != "working_pattern_inactive_or_missing" {
+		t.Fatalf("inactive pattern must block validation: %+v err=%v", blocked, err)
 	}
 }
 
-func TestIntegrationCreateWorkPolicyGroupVersionRollsBackDefinitionsOnVersionConflict(t *testing.T) {
+func TestIntegrationPublishWorkPolicyVersionRejectsOverlapWithoutAutoClose(t *testing.T) {
 	pool, ctx := requireIntegrationDatabase(t)
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -98,75 +77,76 @@ func TestIntegrationCreateWorkPolicyGroupVersionRollsBackDefinitionsOnVersionCon
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	userID, groupID := uuid.New(), uuid.New()
-	attendanceID, patternID, overtimeID := uuid.New(), uuid.New(), uuid.New()
+	userID, otPolicyID, otVerID := uuid.New(), uuid.New(), uuid.New()
 	if _, err := tx.Exec(ctx, `INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, userID, userID.String()+"@invalid.test"); err != nil {
 		t.Fatalf("insert user: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO attendance_policies (id, name) VALUES ($1, 'rollback-attendance')`, attendanceID); err != nil {
-		t.Fatalf("insert attendance policy: %v", err)
+	if _, err := tx.Exec(ctx, `INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'overlap-ot')`, otPolicyID); err != nil {
+		t.Fatalf("insert ot policy: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO working_patterns (id, name, is_active) VALUES ($1, 'rollback-pattern', true)`, patternID); err != nil {
-		t.Fatalf("insert working pattern: %v", err)
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'rollback-overtime')`, overtimeID); err != nil {
-		t.Fatalf("insert overtime policy: %v", err)
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, 'rollback-group', $2)`, groupID, userID); err != nil {
-		t.Fatalf("insert policy group: %v", err)
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, 'existing-credit', 480, $2, $3, $4)`, uuid.New(), attendanceID, patternID, userID); err != nil {
-		t.Fatalf("insert existing credit policy: %v", err)
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, 'existing-pay', 'monthly', 'fixed', 26, $2)`, uuid.New(), userID); err != nil {
-		t.Fatalf("insert existing pay policy: %v", err)
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, effective_to, created_by) SELECT $1, $2, wc.id, pb.id, $3, DATE '2026-01-01', DATE '2026-01-31', $4 FROM work_credit_policies wc CROSS JOIN pay_basis_policies pb WHERE wc.name = 'existing-credit' AND pb.name = 'existing-pay'`, uuid.New(), groupID, overtimeID, userID); err != nil {
-		t.Fatalf("insert existing version: %v", err)
+	if _, err := tx.Exec(ctx, `INSERT INTO overtime_policy_versions (id, policy_id, version_no, status, rules, created_by, published_by, published_at) VALUES ($1, $2, 1, 'published', '[{"priority":10,"day_type":"any","days_of_week":127,"multiplier":"1.5"}]'::jsonb, $3, $3, NOW())`, otVerID, otPolicyID, userID); err != nil {
+		t.Fatalf("insert ot version: %v", err)
 	}
 
 	repo := WorkPolicyRepository{DB: tx, BeginTx: func(context.Context) (TxBeginner, error) { return tx, nil }}
-	_, err = repo.CreateWorkPolicyGroupVersion(ctx, workpolicy.CreateGroupVersionInput{
-		GroupID:            workpolicy.GroupID(groupID),
-		Name:               "rollback-group",
-		MinutesPerCredit:   450,
-		AttendancePolicyID: ids.AttendancePolicyID(attendanceID),
-		WorkingPatternID:   ids.WorkingPatternID(patternID),
-		OTAggregationMode:  "aggregate",
-		PayMethod:          workpolicy.PayMethodMonthly,
-		OvertimePolicyID:   ids.OvertimePolicyID(overtimeID),
-		EffectiveFrom:      "2026-01-01",
-	}, ids.UserID(userID))
-	if !errors.Is(err, api.ErrConflict) {
-		t.Fatalf("create conflicting version error = %v, want conflict", err)
-	}
-	var count int
-	if err := tx.QueryRow(ctx, `SELECT count(*) FROM work_credit_policies WHERE name = 'rollback-group'`).Scan(&count); err != nil {
-		t.Fatalf("count rolled back credit policies: %v", err)
-	}
-	if count != 0 {
-		t.Fatalf("rolled-back credit policy count = %d, want 0", count)
-	}
-	if err := tx.QueryRow(ctx, `SELECT count(*) FROM pay_basis_policies WHERE name = 'rollback-group'`).Scan(&count); err != nil {
-		t.Fatalf("count rolled back pay policies: %v", err)
-	}
-	if count != 0 {
-		t.Fatalf("rolled-back pay policy count = %d, want 0", count)
-	}
-
-	// Rollback leaves no partial definitions, so retry with a non-overlapping date can proceed.
-	_, err = repo.CreateWorkPolicyGroupVersion(ctx, workpolicy.CreateGroupVersionInput{
-		GroupID:            workpolicy.GroupID(groupID),
-		Name:               "rollback-group",
-		MinutesPerCredit:   450,
-		AttendancePolicyID: ids.AttendancePolicyID(attendanceID),
-		WorkingPatternID:   ids.WorkingPatternID(patternID),
-		OTAggregationMode:  "aggregate",
-		PayMethod:          workpolicy.PayMethodMonthly,
-		OvertimePolicyID:   ids.OvertimePolicyID(overtimeID),
-		EffectiveFrom:      "2026-02-01",
+	denom := workpolicy.MonthlyDenominatorFixed
+	days26 := decimal.NewFromInt(26)
+	v1, err := repo.CreateWorkPolicyGroup(ctx, workpolicy.CreateGroupInput{
+		Code: "OVL-" + uuid.NewString()[:8], Name: "Overlap Test",
+		Draft: workpolicy.VersionDraftFields{
+			EffectiveFrom: "2026-01-01", MinutesPerCredit: 480, WorkUnitMinutes: 1, RoundingPolicy: "none",
+			EarlyArrivalStrategy: "clamp", BreakAutoDeduct: true, OTAggregationMode: "aggregate",
+			PayMethod: workpolicy.PayMethodMonthly, MonthlyDenominator: &denom, MonthlyStandardDays: &days26,
+			PaidLeaveCreditMode: workpolicy.PaidLeaveCreditStandardDay, OvertimePolicyVersionID: otVerID,
+		},
 	}, ids.UserID(userID))
 	if err != nil {
-		t.Fatalf("retry after rolled-back conflict: %v", err)
+		t.Fatalf("create group: %v", err)
+	}
+	if _, err := repo.PublishWorkPolicyVersion(ctx, workpolicy.PublishVersionInput{
+		GroupID: workpolicy.GroupID(v1.GroupID), VersionID: workpolicy.VersionID(v1.ID), ExpectedRowVersion: v1.RowVersion, ActorID: ids.UserID(userID),
+	}); err != nil {
+		t.Fatalf("publish v1: %v", err)
+	}
+
+	days22 := decimal.NewFromInt(22)
+	v2, err := repo.CreateWorkPolicyVersion(ctx, workpolicy.CreateVersionInput{
+		GroupID: workpolicy.GroupID(v1.GroupID),
+		Draft: &workpolicy.VersionDraftFields{
+			EffectiveFrom: "2026-03-01", MinutesPerCredit: 480, WorkUnitMinutes: 1, RoundingPolicy: "none",
+			EarlyArrivalStrategy: "clamp", BreakAutoDeduct: true, OTAggregationMode: "aggregate",
+			PayMethod: workpolicy.PayMethodMonthly, MonthlyDenominator: &denom, MonthlyStandardDays: &days22,
+			PaidLeaveCreditMode: workpolicy.PaidLeaveCreditStandardDay, OvertimePolicyVersionID: otVerID,
+		},
+	}, ids.UserID(userID))
+	if err != nil {
+		t.Fatalf("create draft v2: %v", err)
+	}
+
+	// Without auto_close_previous -> 409 conflict
+	if _, err := repo.PublishWorkPolicyVersion(ctx, workpolicy.PublishVersionInput{
+		GroupID: workpolicy.GroupID(v1.GroupID), VersionID: workpolicy.VersionID(v2.ID), ExpectedRowVersion: v2.RowVersion, AutoClosePrevious: false, ActorID: ids.UserID(userID),
+	}); !errors.Is(err, api.ErrWorkPolicyVersionConflict) {
+		t.Fatalf("expected conflict without auto_close_previous, got %v", err)
+	}
+
+	// With auto_close_previous -> succeeds and closes v1 at 2026-03-01
+	pubV2, err := repo.PublishWorkPolicyVersion(ctx, workpolicy.PublishVersionInput{
+		GroupID: workpolicy.GroupID(v1.GroupID), VersionID: workpolicy.VersionID(v2.ID), ExpectedRowVersion: v2.RowVersion, AutoClosePrevious: true, IdempotencyKey: "pub-v2-idem", ActorID: ids.UserID(userID),
+	})
+	if err != nil || pubV2.Status != workpolicy.StatusPublished {
+		t.Fatalf("publish v2 with auto_close_previous failed: %+v err=%v", pubV2, err)
+	}
+	closedV1, err := repo.GetWorkPolicyVersion(ctx, workpolicy.GroupID(v1.GroupID), workpolicy.VersionID(v1.ID))
+	if err != nil || closedV1.EffectiveTo == nil || *closedV1.EffectiveTo != "2026-03-01" {
+		t.Fatalf("expected v1 closed at 2026-03-01, got %+v err=%v", closedV1.EffectiveTo, err)
+	}
+
+	// Idempotency replay returns same published v2 without error
+	replayed, err := repo.PublishWorkPolicyVersion(ctx, workpolicy.PublishVersionInput{
+		GroupID: workpolicy.GroupID(v1.GroupID), VersionID: workpolicy.VersionID(v2.ID), ExpectedRowVersion: v2.RowVersion, IdempotencyKey: "pub-v2-idem", ActorID: ids.UserID(userID),
+	})
+	if err != nil || replayed.ID != pubV2.ID {
+		t.Fatalf("expected idempotent replay, got %+v err=%v", replayed, err)
 	}
 }

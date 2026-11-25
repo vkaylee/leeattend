@@ -642,6 +642,10 @@ func closeOpenTenureChildren(ctx context.Context, tx pgx.Tx, openRelIDs []uuid.U
 		return 0, 0, mapEmployeeWriteError(err)
 	}
 
+	if err := closeRelationshipPolicyMemberships(ctx, tx, openRelIDs, req.EndDate); err != nil {
+		return 0, 0, mapEmployeeWriteError(err)
+	}
+
 	relTag, err := tx.Exec(ctx, `
 		UPDATE employment_relationships
 		SET status = 'terminated',

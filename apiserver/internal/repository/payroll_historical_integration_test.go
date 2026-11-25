@@ -71,15 +71,15 @@ func TestIntegrationPayrollPolicySnapshotsAreAppendOnlyAcrossReruns(t *testing.T
 		t.Fatalf("insert payslip: %v", err)
 	}
 
-	policyA := &api.WorkPolicyGroupVersion{
-		ID: uuid.New(), GroupID: uuid.New(), EffectiveFrom: "2026-01-01",
-		WorkCreditPolicyID: uuid.New(), PayBasisPolicyID: uuid.New(), OvertimePolicyID: uuid.New(),
-		PayMethod: workpolicy.PayMethodMonthly,
+	policyA := &workpolicy.ResolvedPolicy{
+		VersionID: uuid.New(), GroupID: uuid.New(), GroupCode: "A", VersionNo: 1,
+		EffectiveFrom:           time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		OvertimePolicyVersionID: uuid.New(), PayMethod: workpolicy.PayMethodMonthly,
 	}
-	policyB := &api.WorkPolicyGroupVersion{
-		ID: uuid.New(), GroupID: uuid.New(), EffectiveFrom: "2026-06-01",
-		WorkCreditPolicyID: uuid.New(), PayBasisPolicyID: uuid.New(), OvertimePolicyID: uuid.New(),
-		PayMethod: workpolicy.PayMethodHourly,
+	policyB := &workpolicy.ResolvedPolicy{
+		VersionID: uuid.New(), GroupID: uuid.New(), GroupCode: "B", VersionNo: 1,
+		EffectiveFrom:           time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC),
+		OvertimePolicyVersionID: uuid.New(), PayMethod: workpolicy.PayMethodHourly,
 	}
 
 	if err := persistKPICalculation(ctx, tx, employmentID, payslipID, 2026, 6, kpiCalculation{Policy: policyA}, &actorID); err != nil {
@@ -136,11 +136,11 @@ func TestIntegrationPayrollPolicySnapshotsAreAppendOnlyAcrossReruns(t *testing.T
 	if len(seenVersions) != 2 {
 		t.Fatalf("expected two distinct policy snapshots, got %d", len(seenVersions))
 	}
-	if !seenVersions[policyA.ID.String()] {
-		t.Fatalf("old policy snapshot provenance missing: %s", policyA.ID)
+	if !seenVersions[policyA.VersionID.String()] {
+		t.Fatalf("old policy snapshot provenance missing: %s", policyA.VersionID)
 	}
-	if !seenVersions[policyB.ID.String()] {
-		t.Fatalf("new policy snapshot provenance missing: %s", policyB.ID)
+	if !seenVersions[policyB.VersionID.String()] {
+		t.Fatalf("new policy snapshot provenance missing: %s", policyB.VersionID)
 	}
 }
 
@@ -234,7 +234,7 @@ func TestIntegrationConcurrentPolicyMembershipInsertHasSingleWinner(t *testing.T
 		{`INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date) VALUES ($1, $2, $3, 'initial', DATE '2026-01-01')`, []any{tenureID, employeeID, employeeID.String()}},
 		{`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{relID, employeeID, employerID, tenureID}},
 		{`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID, relID}},
-		{`INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, 'concurrent-membership-group', $2)`, []any{groupID, userID}},
+		{`INSERT INTO work_policy_groups (id, code, name, created_by) VALUES ($1, $2, 'concurrent-membership-group', $3)`, []any{groupID, "CONC-" + groupID.String()[:8], userID}},
 	} {
 		if _, err := setup.Exec(ctx, query.sql, query.args...); err != nil {
 			_ = setup.Rollback(ctx)
@@ -258,7 +258,7 @@ func TestIntegrationConcurrentPolicyMembershipInsertHasSingleWinner(t *testing.T
 				return
 			}
 			<-start
-			_, insertErr := tx.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, DATE '2026-04-01', DATE '2026-08-01', $4)`, uuid.New(), employmentID, groupID, userID)
+			_, insertErr := tx.Exec(ctx, `INSERT INTO work_policy_memberships (id, employment_relationship_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, DATE '2026-04-01', DATE '2026-08-01', $4)`, uuid.New(), relID, groupID, userID)
 			if insertErr == nil {
 				insertErr = tx.Commit(ctx)
 			} else {
@@ -284,22 +284,22 @@ func TestIntegrationConcurrentPolicyMembershipInsertHasSingleWinner(t *testing.T
 
 func attachDefaultMonthlyWorkPolicy(t *testing.T, pool *pgxpool.Pool, ctx context.Context, employmentID uuid.UUID, label string) {
 	t.Helper()
+	var relID uuid.UUID
+	if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
+		t.Fatalf("lookup relationship_id (%s): %v", label, err)
+	}
 	actorID := uuid.New()
-	attPolicyID, patternID, workCreditID, payBasisID, otPolicyID, groupID, versionID := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	otPolicyID, otVerID, groupID, versionID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	for _, q := range []struct {
 		sql  string
 		args []any
 	}{
 		{`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, []any{actorID, actorID.String() + "@invalid.test"}},
-		{`INSERT INTO attendance_policies (id, name, is_default) VALUES ($1, $2, false)`, []any{attPolicyID, label + "-att-" + attPolicyID.String()[:8]}},
-		{`INSERT INTO working_patterns (id, name, pattern_type, is_active) VALUES ($1, $2, 'weekly', true)`, []any{patternID, label + "-pat-" + patternID.String()[:8]}},
-		{`INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, 480, $3, $4, $5)`, []any{workCreditID, label + "-wc-" + workCreditID.String()[:8], attPolicyID, patternID, actorID}},
-		{`INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, $2, 'monthly', 'fixed', 26, $3)`, []any{payBasisID, label + "-pb-" + payBasisID.String()[:8], actorID}},
 		{`INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, $2)`, []any{otPolicyID, label + "-ot-" + otPolicyID.String()[:8]}},
-		{`INSERT INTO overtime_rules (id, policy_id, priority, multiplier) VALUES (gen_random_uuid(), $1, 1, 1.50)`, []any{otPolicyID}},
-		{`INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, $2, $3)`, []any{groupID, label + "-grp-" + groupID.String()[:8], actorID}},
-		{`INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, created_by) VALUES ($1, $2, $3, $4, $5, DATE '2026-01-01', $6)`, []any{versionID, groupID, workCreditID, payBasisID, otPolicyID, actorID}},
-		{`INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, created_by) VALUES (gen_random_uuid(), $1, $2, DATE '2026-01-01', $3)`, []any{employmentID, groupID, actorID}},
+		{`INSERT INTO overtime_policy_versions (id, policy_id, version_no, status, rules, created_by, published_by, published_at) VALUES ($1, $2, 1, 'published', '[{"priority":10,"day_type":"any","days_of_week":127,"multiplier":"1.50"}]'::jsonb, $3, $3, NOW())`, []any{otVerID, otPolicyID, actorID}},
+		{`INSERT INTO work_policy_groups (id, code, name, created_by) VALUES ($1, $2, $3, $4)`, []any{groupID, "DEF-" + groupID.String()[:8], label + "-grp", actorID}},
+		{`INSERT INTO work_policy_versions (id, group_id, version_no, status, effective_from, created_by, published_by, published_at, minutes_per_credit, pay_method, monthly_denominator, monthly_standard_days, overtime_policy_version_id) VALUES ($1, $2, 1, 'published', DATE '2026-01-01', $3, $3, NOW(), 480, 'monthly', 'fixed', 26, $4)`, []any{versionID, groupID, actorID, otVerID}},
+		{`INSERT INTO work_policy_memberships (id, employment_relationship_id, group_id, effective_from, created_by) VALUES (gen_random_uuid(), $1, $2, DATE '2026-01-01', $3)`, []any{relID, groupID, actorID}},
 	} {
 		if _, err := pool.Exec(ctx, q.sql, q.args...); err != nil {
 			t.Fatalf("attach default work policy (%s): %v", label, err)
@@ -488,116 +488,79 @@ func TestIntegrationResolveWorkPolicyUsesExclusiveMembershipAndVersionBoundaries
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	userID := uuid.New()
-	employerID := uuid.New()
-	employeeID := uuid.New()
-	employmentID := uuid.New()
-	attendancePolicyID := uuid.New()
-	workingPatternID := uuid.New()
-	overtimePolicyID := uuid.New()
-	groupID := uuid.New()
-	workCreditA := uuid.New()
-	payBasisA := uuid.New()
-	versionA := uuid.New()
-	workCreditB := uuid.New()
-	payBasisB := uuid.New()
-	versionB := uuid.New()
-	missingMembershipEmploymentID := uuid.New()
+	userID, employerID, employeeID, employmentID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	otPolicyID, otVerID, groupID, versionA, versionB := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	missingRelID := uuid.New()
 
-	_, err = tx.Exec(ctx, `INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, userID, userID.String()+"@invalid.test")
-	if err != nil {
-		t.Fatalf("insert resolver user: %v", err)
+	if _, err = tx.Exec(ctx, `INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, userID, userID.String()+"@invalid.test"); err != nil {
+		t.Fatalf("insert user: %v", err)
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'resolver-test-employer')`, employerID)
-	if err != nil {
-		t.Fatalf("insert resolver employer: %v", err)
+	if _, err = tx.Exec(ctx, `INSERT INTO employers (id, name) VALUES ($1, 'resolver-test-employer')`, employerID); err != nil {
+		t.Fatalf("insert employer: %v", err)
 	}
 	seedIntegrationEmployeeGraphWithRange(t, ctx, tx, employeeID, employerID, employmentID, employeeID.String(), "resolver-test-employee", "2026-01-01", "2026-01-01", "")
-	_, err = tx.Exec(ctx, `INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'resolver-test-overtime')`, overtimePolicyID)
-	if err != nil {
-		t.Fatalf("insert resolver overtime policy: %v", err)
+	var relID uuid.UUID
+	if err := tx.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
+		t.Fatalf("lookup relationship_id: %v", err)
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO attendance_policies (id, name) VALUES ($1, 'resolver-test-attendance')`, attendancePolicyID)
-	if err != nil {
-		t.Fatalf("insert resolver attendance policy: %v", err)
+	if _, err = tx.Exec(ctx, `INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'resolver-test-overtime')`, otPolicyID); err != nil {
+		t.Fatalf("insert ot def: %v", err)
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO working_patterns (id, name) VALUES ($1, 'resolver-test-pattern')`, workingPatternID)
-	if err != nil {
-		t.Fatalf("insert resolver working pattern: %v", err)
+	if _, err = tx.Exec(ctx, `INSERT INTO overtime_policy_versions (id, policy_id, version_no, status, rules, created_by, published_by, published_at) VALUES ($1, $2, 1, 'published', '[{"priority":10,"day_type":"any","days_of_week":127,"multiplier":"1.5"}]'::jsonb, $3, $3, NOW())`, otVerID, otPolicyID, userID); err != nil {
+		t.Fatalf("insert ot ver: %v", err)
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, 'resolver-test-group', $2)`, groupID, userID)
-	if err != nil {
-		t.Fatalf("insert resolver group: %v", err)
+	if _, err = tx.Exec(ctx, `INSERT INTO work_policy_groups (id, code, name, created_by) VALUES ($1, $2, 'resolver-test-group', $3)`, groupID, "RES-"+groupID.String()[:8], userID); err != nil {
+		t.Fatalf("insert group: %v", err)
 	}
-	for _, definition := range []struct {
-		workCredit, payBasis, version uuid.UUID
-		minutes, days                 int
-		from, to                      string
+	for idx, def := range []struct {
+		version       uuid.UUID
+		minutes, days int
+		from, to      string
 	}{
-		{workCreditA, payBasisA, versionA, 480, 26, "2026-01-01", "2026-06-01"},
-		{workCreditB, payBasisB, versionB, 450, 22, "2026-06-01", ""},
+		{versionA, 480, 26, "2026-01-01", "2026-06-01"},
+		{versionB, 450, 22, "2026-06-01", ""},
 	} {
-		_, err = tx.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, definition.workCredit, definition.version.String(), definition.minutes, attendancePolicyID, workingPatternID, userID)
-		if err != nil {
-			t.Fatalf("insert resolver work credit policy: %v", err)
+		var effTo any
+		if def.to != "" {
+			effTo = def.to
 		}
-		_, err = tx.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, $2, 'monthly', 'fixed', $3, $4)`, definition.payBasis, definition.version.String(), definition.days, userID)
-		if err != nil {
-			t.Fatalf("insert resolver pay basis policy: %v", err)
-		}
-		var effectiveTo any
-		if definition.to != "" {
-			effectiveTo = definition.to
-		}
-		_, err = tx.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6::date, $7::date, $8)`, definition.version, groupID, definition.workCredit, definition.payBasis, overtimePolicyID, definition.from, effectiveTo, userID)
-		if err != nil {
-			t.Fatalf("insert resolver version: %v", err)
+		if _, err = tx.Exec(ctx, `INSERT INTO work_policy_versions (id, group_id, version_no, status, effective_from, effective_to, created_by, published_by, published_at, minutes_per_credit, pay_method, monthly_denominator, monthly_standard_days, overtime_policy_version_id) VALUES ($1, $2, $3, 'published', $4::date, $5::date, $6, $6, NOW(), $7, 'monthly', 'fixed', $8, $9)`,
+			def.version, groupID, idx+1, def.from, effTo, userID, def.minutes, def.days, otVerID); err != nil {
+			t.Fatalf("insert version %d: %v", idx+1, err)
 		}
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, DATE '2026-01-01', NULL, $4)`, uuid.New(), employmentID, groupID, userID)
-	if err != nil {
-		t.Fatalf("insert resolver membership: %v", err)
+	if _, err = tx.Exec(ctx, `INSERT INTO work_policy_memberships (id, employment_relationship_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, DATE '2026-01-01', NULL, $4)`, uuid.New(), relID, groupID, userID); err != nil {
+		t.Fatalf("insert membership: %v", err)
 	}
 	if _, err := tx.Exec(ctx, `SAVEPOINT overlapping_membership`); err != nil {
-		t.Fatalf("create overlap savepoint: %v", err)
+		t.Fatalf("savepoint: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, DATE '2026-05-01', DATE '2026-07-01', $4)`, uuid.New(), employmentID, groupID, userID); err == nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO work_policy_memberships (id, employment_relationship_id, group_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, DATE '2026-05-01', DATE '2026-07-01', $4)`, uuid.New(), relID, groupID, userID); err == nil {
 		t.Fatal("overlapping membership must be rejected by database constraint")
 	}
 	if _, err := tx.Exec(ctx, `ROLLBACK TO SAVEPOINT overlapping_membership`); err != nil {
-		t.Fatalf("rollback overlap savepoint: %v", err)
+		t.Fatalf("rollback savepoint: %v", err)
 	}
 
 	repo := WorkPolicyRepository{DB: tx}
-	beforeBoundary, err := repo.ResolveWorkPolicy(ctx, ids.EmploymentID(employmentID), time.Date(2026, 5, 31, 0, 0, 0, 0, time.UTC))
-	if err != nil {
-		t.Fatalf("resolve before version boundary: %v", err)
+	beforeBoundary, err := repo.ResolveWorkPolicyByRelationship(ctx, relID, time.Date(2026, 5, 31, 0, 0, 0, 0, time.UTC))
+	if err != nil || beforeBoundary.VersionID != versionA || beforeBoundary.MinutesPerCredit != 480 {
+		t.Fatalf("before boundary resolved %+v err=%v", beforeBoundary, err)
 	}
-	if beforeBoundary.ID != versionA || beforeBoundary.MinutesPerCredit != 480 {
-		t.Fatalf("before boundary resolved %+v, want version A/480 minutes", beforeBoundary)
+	onBoundary, err := repo.ResolveWorkPolicyByRelationship(ctx, relID, time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
+	if err != nil || onBoundary.VersionID != versionB || onBoundary.MinutesPerCredit != 450 {
+		t.Fatalf("on boundary resolved %+v err=%v", onBoundary, err)
 	}
-	onBoundary, err := repo.ResolveWorkPolicy(ctx, ids.EmploymentID(employmentID), time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
-	if err != nil {
-		t.Fatalf("resolve on version boundary: %v", err)
-	}
-	if onBoundary.ID != versionB || onBoundary.MinutesPerCredit != 450 {
-		t.Fatalf("on boundary resolved %+v, want version B/450 minutes", onBoundary)
-	}
-	_, err = repo.ResolveWorkPolicy(ctx, ids.EmploymentID(missingMembershipEmploymentID), time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
-	if !errors.Is(err, api.ErrWorkPolicyResolutionNotFound) {
+	if _, err = repo.ResolveWorkPolicyByRelationship(ctx, missingRelID, time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)); !errors.Is(err, api.ErrWorkPolicyResolutionNotFound) {
 		t.Fatalf("missing membership error = %v, want not found", err)
 	}
 }
 
 func TestIntegrationPayrollCreditsUseExactMinutesPerEffectivePolicySegment(t *testing.T) {
 	pool, ctx := requireIntegrationDatabase(t)
-	employerID, employeeID, employmentID := uuid.New(), uuid.New(), uuid.New()
-	userID := uuid.New()
+	employerID, employeeID, employmentID, userID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	componentID, componentDefinitionID := uuid.New(), uuid.New()
-	attendancePolicyID, workingPatternID, overtimePolicyID := uuid.New(), uuid.New(), uuid.New()
-	groupID, workCreditA, payBasisA, versionA := uuid.New(), uuid.New(), uuid.New(), uuid.New()
-	workCreditB, payBasisB, versionB := uuid.New(), uuid.New(), uuid.New()
-
+	otPolicyID, otVerID, groupID, versionA, versionB := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	tenureID, relID := uuid.New(), uuid.New()
 	for _, query := range []struct {
 		sql  string
@@ -611,39 +574,32 @@ func TestIntegrationPayrollCreditsUseExactMinutesPerEffectivePolicySegment(t *te
 		{`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID, relID}},
 		{`INSERT INTO salary_component_definitions (id, name, code, component_type) VALUES ($1, 'Credit parity base salary', $2, 'base_salary')`, []any{componentDefinitionID, "CREDIT_PARITY_BASE_" + componentDefinitionID.String()[:8]}},
 		{`INSERT INTO employee_salary_components (id, component_definition_id, amount, effective_date, employment_id) VALUES ($1, $2, 2600, DATE '2026-01-01', $3)`, []any{componentID, componentDefinitionID, employmentID}},
-		{`INSERT INTO attendance_policies (id, name) VALUES ($1, 'credit-parity-attendance')`, []any{attendancePolicyID}},
-		{`INSERT INTO working_patterns (id, name) VALUES ($1, 'credit-parity-pattern')`, []any{workingPatternID}},
-		{`INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'credit-parity-overtime')`, []any{overtimePolicyID}},
-		{`INSERT INTO overtime_rules (id, policy_id, priority, multiplier) VALUES (gen_random_uuid(), $1, 1, 1.50)`, []any{overtimePolicyID}},
-		{`INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, 'credit-parity-group', $2)`, []any{groupID, userID}},
+		{`INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'credit-parity-overtime')`, []any{otPolicyID}},
+		{`INSERT INTO overtime_policy_versions (id, policy_id, version_no, status, rules, created_by, published_by, published_at) VALUES ($1, $2, 1, 'published', '[{"priority":10,"day_type":"any","days_of_week":127,"multiplier":"1.50"}]'::jsonb, $3, $3, NOW())`, []any{otVerID, otPolicyID, userID}},
+		{`INSERT INTO work_policy_groups (id, code, name, created_by) VALUES ($1, $2, 'credit-parity-group', $3)`, []any{groupID, "CRD-" + groupID.String()[:8], userID}},
 	} {
 		if _, err := pool.Exec(ctx, query.sql, query.args...); err != nil {
 			t.Fatalf("insert credit parity fixture: %v", err)
 		}
 	}
-	for _, definition := range []struct {
-		workCredit, payBasis, version uuid.UUID
-		minutes, days                 int
-		from, to                      string
+	for idx, def := range []struct {
+		version       uuid.UUID
+		minutes, days int
+		from, to      string
 	}{
-		{workCreditA, payBasisA, versionA, 480, 26, "2026-06-01", "2026-06-15"},
-		{workCreditB, payBasisB, versionB, 450, 22, "2026-06-15", ""},
+		{versionA, 480, 26, "2026-06-01", "2026-06-15"},
+		{versionB, 450, 22, "2026-06-15", ""},
 	} {
-		if _, err := pool.Exec(ctx, `INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)`, definition.workCredit, definition.version.String(), definition.minutes, attendancePolicyID, workingPatternID, userID); err != nil {
-			t.Fatalf("insert credit work policy: %v", err)
+		var effTo any
+		if def.to != "" {
+			effTo = def.to
 		}
-		if _, err := pool.Exec(ctx, `INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, $2, 'monthly', 'fixed', $3, $4)`, definition.payBasis, definition.version.String(), definition.days, userID); err != nil {
-			t.Fatalf("insert credit pay policy: %v", err)
-		}
-		var effectiveTo any
-		if definition.to != "" {
-			effectiveTo = definition.to
-		}
-		if _, err := pool.Exec(ctx, `INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, effective_to, created_by) VALUES ($1, $2, $3, $4, $5, $6::date, $7::date, $8)`, definition.version, groupID, definition.workCredit, definition.payBasis, overtimePolicyID, definition.from, effectiveTo, userID); err != nil {
+		if _, err := pool.Exec(ctx, `INSERT INTO work_policy_versions (id, group_id, version_no, status, effective_from, effective_to, created_by, published_by, published_at, minutes_per_credit, pay_method, monthly_denominator, monthly_standard_days, overtime_policy_version_id) VALUES ($1, $2, $3, 'published', $4::date, $5::date, $6, $6, NOW(), $7, 'monthly', 'fixed', $8, $9)`,
+			def.version, groupID, idx+1, def.from, effTo, userID, def.minutes, def.days, otVerID); err != nil {
 			t.Fatalf("insert credit policy version: %v", err)
 		}
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, created_by) VALUES ($1, $2, $3, DATE '2026-06-01', $4)`, uuid.New(), employmentID, groupID, userID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO work_policy_memberships (id, employment_relationship_id, group_id, effective_from, created_by) VALUES ($1, $2, $3, DATE '2026-06-01', $4)`, uuid.New(), relID, groupID, userID); err != nil {
 		t.Fatalf("insert credit policy membership: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, date, employment_id, standard_minutes) VALUES ($1, DATE '2026-06-14', $2, 90), ($3, DATE '2026-06-15', $2, 450)`, uuid.New(), employmentID, uuid.New()); err != nil {
@@ -659,10 +615,7 @@ func TestIntegrationPayrollCreditsUseExactMinutesPerEffectivePolicySegment(t *te
 		t.Fatalf("read policy credit snapshot: %v", err)
 	}
 	credits, err := decimal.NewFromString(rawCredits)
-	if err != nil {
-		t.Fatalf("parse policy credit snapshot %q: %v", rawCredits, err)
-	}
-	if !credits.Equal(decimal.RequireFromString("1.1875")) {
-		t.Fatalf("standard credits = %s, want 1.1875 from 90/480 + 450/450", credits)
+	if err != nil || !credits.Equal(decimal.RequireFromString("1.1875")) {
+		t.Fatalf("standard credits = %q (err=%v), want 1.1875 from 90/480 + 450/450", rawCredits, err)
 	}
 }

@@ -1,6 +1,6 @@
 # Cải tiến cấu hình chính sách làm việc và tính lương
 
-Status: In progress — domain/API/membership/version/resolver/payroll-snapshot slices implemented; policy-only payroll snapshots are append-only and exclusive effective-date boundaries are hardened; payroll work-credit calculation now preserves exact minutes per effective policy segment; append-only migration and disposable PostgreSQL historical-rerun rehearsal passed 2026-11-15; activation boundary is documented in `docs/decisions/2026-11-16-work-policy-activation-boundary.md`; UI acceptance and full web regression remain.
+Status: Superseded by `docs/plans/work-policy-v2-refactor.md` (Pre-Go-Live HRM Standardization Refactor — single source of truth on `work_policy_groups`, `work_policy_versions`, `work_policy_memberships`, `overtime_policy_versions`, shared `WorkPolicyResolver`, and Pure Payroll Engine).
 
 ## Mục tiêu và phạm vi
 HR quản lý chính sách theo nhóm lao động, hỗ trợ lương tháng/giờ/ca và quy đổi công theo thời lượng cấu hình được. Tách nghĩa vụ theo lịch, công quy đổi, căn cứ trả lương và OT; không hardcode giá trị, tên nhóm hoặc tự chọn quy chế trả lương. Không tạo payroll/formula engine thứ hai. Mục tiêu đo được: HR cấu hình nhanh hơn, sai ít hơn và giải thích được kết quả mà không đọc log; không tuyên bố vượt trội thị trường khi chưa có benchmark.

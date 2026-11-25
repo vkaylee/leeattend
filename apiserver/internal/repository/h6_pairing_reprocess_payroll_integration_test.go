@@ -21,11 +21,9 @@ func TestIntegrationRawLogsToSessionsSummariesAndClosureGuard(t *testing.T) {
 	tplNight, verNight := uuid.New(), uuid.New()
 	batchID := uuid.New()
 
-	attPolicyID := uuid.New()
 	patternID := uuid.New()
-	workCreditID := uuid.New()
-	payBasisID := uuid.New()
 	otPolicyID := uuid.New()
+	otVerID := uuid.New()
 	policyGroupID := uuid.New()
 	policyVersionID := uuid.New()
 
@@ -39,15 +37,17 @@ func TestIntegrationRawLogsToSessionsSummariesAndClosureGuard(t *testing.T) {
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'h6-employer')`, employerID)
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, empID, employerID, employmentID, "H6-"+empID.String()[:8], "H6 Worker", "2026-01-01", "2026-01-01", "2026-12-31")
+	var relID uuid.UUID
+	if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
+		t.Fatalf("lookup h6 relationship_id: %v", err)
+	}
 
-	mustExec(`INSERT INTO attendance_policies (id, name, is_default) VALUES ($1, 'H6 Att Policy', false)`, attPolicyID)
 	mustExec(`INSERT INTO working_patterns (id, name, pattern_type, is_active) VALUES ($1, 'H6 Pattern', 'weekly', true)`, patternID)
-	mustExec(`INSERT INTO work_credit_policies (id, name, minutes_per_credit, attendance_policy_id, working_pattern_id, early_ot_enabled, early_ot_qualification_grace_minutes, early_ot_max_minutes, break_auto_deduct, break_is_overtime, created_by) VALUES ($1, 'H6 Work Credit', 480, $2, $3, true, 0, 60, true, true, $4)`, workCreditID, attPolicyID, patternID, actorID)
-	mustExec(`INSERT INTO pay_basis_policies (id, name, method, monthly_denominator, monthly_standard_days, created_by) VALUES ($1, 'H6 Pay Basis', 'monthly', 'fixed', 22, $2)`, payBasisID, actorID)
 	mustExec(`INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'H6 OT Policy')`, otPolicyID)
-	mustExec(`INSERT INTO labor_policy_groups (id, name, created_by) VALUES ($1, 'H6 Group', $2)`, policyGroupID, actorID)
-	mustExec(`INSERT INTO labor_policy_group_versions (id, group_id, work_credit_policy_id, pay_basis_policy_id, overtime_policy_id, effective_from, created_by) VALUES ($1, $2, $3, $4, $5, DATE '2026-01-01', $6)`, policyVersionID, policyGroupID, workCreditID, payBasisID, otPolicyID, actorID)
-	mustExec(`INSERT INTO labor_policy_memberships (id, employment_id, group_id, effective_from, created_by) VALUES (gen_random_uuid(), $1, $2, DATE '2026-01-01', $3)`, employmentID, policyGroupID, actorID)
+	mustExec(`INSERT INTO overtime_policy_versions (id, policy_id, version_no, status, rules, created_by, published_by, published_at) VALUES ($1, $2, 1, 'published', '[{"priority":10,"day_type":"any","days_of_week":127,"multiplier":"1.5"}]'::jsonb, $3, $3, NOW())`, otVerID, otPolicyID, actorID)
+	mustExec(`INSERT INTO work_policy_groups (id, code, name, created_by) VALUES ($1, $2, 'H6 Group', $3)`, policyGroupID, "H6-"+policyGroupID.String()[:8], actorID)
+	mustExec(`INSERT INTO work_policy_versions (id, group_id, version_no, status, effective_from, created_by, published_by, published_at, minutes_per_credit, work_unit_minutes, rounding_policy, early_arrival_strategy, early_ot_enabled, early_ot_qualification_grace_minutes, early_ot_max_minutes, break_auto_deduct, break_is_overtime, ot_aggregation_mode, working_pattern_id, pay_method, monthly_denominator, monthly_standard_days, overtime_policy_version_id) VALUES ($1, $2, 1, 'published', DATE '2026-01-01', $3, $3, NOW(), 480, 30, 'floor', 'block', false, 0, 60, true, true, 'aggregate', $4, 'monthly', 'fixed', 22, $5)`, policyVersionID, policyGroupID, actorID, patternID, otVerID)
+	mustExec(`INSERT INTO work_policy_memberships (id, employment_relationship_id, group_id, effective_from, effective_to, created_by) VALUES (gen_random_uuid(), $1, $2, DATE '2026-01-01', DATE '2027-01-01', $3)`, relID, policyGroupID, actorID)
 
 	for _, sh := range []struct {
 		tpl, ver uuid.UUID

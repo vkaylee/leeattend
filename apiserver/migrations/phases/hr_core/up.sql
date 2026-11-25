@@ -904,38 +904,6 @@ CREATE TABLE public.leave_types (
 
 --
 
--- Name: overtime_policy_assignments; Type: TABLE; Schema: public; Owner: -
-
---
-
-
-
-CREATE TABLE public.overtime_policy_assignments (
-
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-
-    assignee_type text NOT NULL,
-
-    assignee_id uuid,
-
-    policy_id uuid NOT NULL,
-
-    effective_from date NOT NULL,
-
-    effective_to date,
-
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT overtime_policy_assignments_assignee_type_check CHECK ((assignee_type = ANY (ARRAY['organization'::text, 'department'::text, 'employee'::text, 'user'::text])))
-
-);
-
-
-
-
-
---
-
 -- Name: overtime_policy_definitions; Type: TABLE; Schema: public; Owner: -
 
 --
@@ -954,6 +922,48 @@ CREATE TABLE public.overtime_policy_definitions (
 
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 
+);
+
+
+
+
+
+--
+
+-- Name: overtime_policy_versions; Type: TABLE; Schema: public; Owner: -
+
+--
+
+
+
+CREATE TABLE public.overtime_policy_versions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    policy_id uuid NOT NULL,
+    version_no integer NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    row_version bigint DEFAULT 1 NOT NULL,
+    daily_cap_minutes integer,
+    monthly_cap_hours numeric(8,2),
+    yearly_cap_hours numeric(8,2),
+    rules jsonb DEFAULT '[]'::jsonb NOT NULL,
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    published_by uuid,
+    published_at timestamp with time zone,
+    CONSTRAINT overtime_policy_versions_version_no_check CHECK (version_no >= 1),
+    CONSTRAINT overtime_policy_versions_row_version_check CHECK (row_version >= 1),
+    CONSTRAINT overtime_policy_versions_status_check CHECK (status IN ('draft', 'published', 'archived')),
+    CONSTRAINT overtime_policy_versions_caps_check CHECK (
+        (daily_cap_minutes IS NULL OR daily_cap_minutes >= 0)
+        AND (monthly_cap_hours IS NULL OR monthly_cap_hours >= 0)
+        AND (yearly_cap_hours IS NULL OR yearly_cap_hours >= 0)
+    ),
+    CONSTRAINT overtime_policy_versions_rules_array_check CHECK (jsonb_typeof(rules) = 'array'),
+    CONSTRAINT overtime_policy_versions_published_meta_check CHECK (
+        (status = 'draft' AND published_by IS NULL AND published_at IS NULL)
+        OR (status IN ('published', 'archived') AND published_by IS NOT NULL AND published_at IS NOT NULL)
+    )
 );
 
 
@@ -1041,42 +1051,6 @@ CREATE TABLE public.overtime_requests (
     attachment_file_ids uuid[],
 
     CONSTRAINT overtime_requests_planned_minutes_check CHECK ((planned_minutes > 0))
-
-);
-
-
-
-
-
---
-
--- Name: overtime_rules; Type: TABLE; Schema: public; Owner: -
-
---
-
-
-
-CREATE TABLE public.overtime_rules (
-
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-
-    policy_id uuid NOT NULL,
-
-    priority integer DEFAULT 0 NOT NULL,
-
-    multiplier numeric(5,2) DEFAULT 1.50 NOT NULL,
-
-    time_start time without time zone,
-
-    time_end time without time zone,
-
-    days_of_week integer DEFAULT 127 NOT NULL,
-
-    is_holiday boolean DEFAULT false NOT NULL,
-
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 
 );
 
@@ -1734,38 +1708,6 @@ ALTER TABLE ONLY public.leave_types
 
 --
 
--- Name: overtime_policy_assignments overtime_policy_assignments_organization_assignee_type_coa_excl; Type: CONSTRAINT; Schema: public; Owner: -
-
---
-
-
-
-ALTER TABLE ONLY public.overtime_policy_assignments
-
-    ADD CONSTRAINT overtime_policy_assignments_organization_assignee_type_coa_excl EXCLUDE USING gist (assignee_type WITH =, COALESCE(assignee_id, '00000000-0000-0000-0000-000000000000'::uuid) WITH =, daterange(effective_from, effective_to, '[)'::text) WITH &&);
-
-
-
-
-
---
-
--- Name: overtime_policy_assignments overtime_policy_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
-
---
-
-
-
-ALTER TABLE ONLY public.overtime_policy_assignments
-
-    ADD CONSTRAINT overtime_policy_assignments_pkey PRIMARY KEY (id);
-
-
-
-
-
---
-
 -- Name: overtime_policy_definitions overtime_policy_definitions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 
 --
@@ -1775,6 +1717,24 @@ ALTER TABLE ONLY public.overtime_policy_assignments
 ALTER TABLE ONLY public.overtime_policy_definitions
 
     ADD CONSTRAINT overtime_policy_definitions_pkey PRIMARY KEY (id);
+
+
+
+
+
+--
+
+-- Name: overtime_policy_versions overtime_policy_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+
+--
+
+
+
+ALTER TABLE ONLY public.overtime_policy_versions
+    ADD CONSTRAINT overtime_policy_versions_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.overtime_policy_versions
+    ADD CONSTRAINT overtime_policy_versions_policy_version_unique UNIQUE (policy_id, version_no);
 
 
 
@@ -1823,22 +1783,6 @@ ALTER TABLE ONLY public.overtime_request_employees
 ALTER TABLE ONLY public.overtime_requests
 
     ADD CONSTRAINT overtime_requests_pkey PRIMARY KEY (id);
-
-
-
-
-
---
-
--- Name: overtime_rules overtime_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
-
---
-
-
-
-ALTER TABLE ONLY public.overtime_rules
-
-    ADD CONSTRAINT overtime_rules_pkey PRIMARY KEY (id);
 
 
 
@@ -2808,41 +2752,13 @@ CREATE INDEX idx_otre_request ON public.overtime_request_employees USING btree (
 
 --
 
--- Name: idx_overtime_policy_assignments_assignee; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_overtime_policy_versions_policy_status; Type: INDEX; Schema: public; Owner: -
 
 --
 
 
 
-CREATE INDEX idx_overtime_policy_assignments_assignee ON public.overtime_policy_assignments USING btree (assignee_type, assignee_id);
-
-
-
-
-
---
-
--- Name: idx_overtime_policy_assignments_policy_id; Type: INDEX; Schema: public; Owner: -
-
---
-
-
-
-CREATE INDEX idx_overtime_policy_assignments_policy_id ON public.overtime_policy_assignments USING btree (policy_id);
-
-
-
-
-
---
-
--- Name: idx_overtime_policy_assignments_scope; Type: INDEX; Schema: public; Owner: -
-
---
-
-
-
-CREATE INDEX idx_overtime_policy_assignments_scope ON public.overtime_policy_assignments USING btree (assignee_type, assignee_id);
+CREATE INDEX idx_overtime_policy_versions_policy_status ON public.overtime_policy_versions USING btree (policy_id, status, version_no DESC);
 
 
 
@@ -2857,20 +2773,6 @@ CREATE INDEX idx_overtime_policy_assignments_scope ON public.overtime_policy_ass
 
 
 CREATE INDEX idx_overtime_request_employees_employment_id ON public.overtime_request_employees USING btree (employment_id);
-
-
-
-
-
---
-
--- Name: idx_overtime_rules_policy_id; Type: INDEX; Schema: public; Owner: -
-
---
-
-
-
-CREATE INDEX idx_overtime_rules_policy_id ON public.overtime_rules USING btree (policy_id);
 
 
 
@@ -3242,20 +3144,6 @@ CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.leave_requests FOR EACH RO
 
 --
 
--- Name: overtime_policy_assignments trg_validate_assignee_fk; Type: TRIGGER; Schema: public; Owner: -
-
---
-
-
-
-CREATE TRIGGER trg_validate_assignee_fk BEFORE INSERT OR UPDATE OF assignee_type, assignee_id ON public.overtime_policy_assignments FOR EACH ROW EXECUTE FUNCTION public.fn_validate_assignee_fk();
-
-
-
-
-
---
-
 -- Name: overtime_policy_definitions trg_updated_at; Type: TRIGGER; Schema: public; Owner: -
 
 --
@@ -3268,15 +3156,51 @@ CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.overtime_policy_definition
 
 
 
---
+CREATE OR REPLACE FUNCTION public.fn_guard_overtime_policy_version_immutability() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        IF OLD.status IN ('published', 'archived') THEN
+            RAISE EXCEPTION 'published or archived overtime policy version cannot be deleted'
+                USING ERRCODE = '23514';
+        END IF;
+        RETURN OLD;
+    END IF;
 
--- Name: overtime_rules trg_updated_at; Type: TRIGGER; Schema: public; Owner: -
+    IF OLD.status = 'archived' THEN
+        RAISE EXCEPTION 'archived overtime policy version is immutable'
+            USING ERRCODE = '23514';
+    END IF;
 
---
+    IF OLD.status = 'published' THEN
+        IF NEW.status NOT IN ('published', 'archived') THEN
+            RAISE EXCEPTION 'published overtime policy version cannot revert to draft'
+                USING ERRCODE = '23514';
+        END IF;
 
+        IF NEW.policy_id IS DISTINCT FROM OLD.policy_id
+           OR NEW.version_no IS DISTINCT FROM OLD.version_no
+           OR NEW.daily_cap_minutes IS DISTINCT FROM OLD.daily_cap_minutes
+           OR NEW.monthly_cap_hours IS DISTINCT FROM OLD.monthly_cap_hours
+           OR NEW.yearly_cap_hours IS DISTINCT FROM OLD.yearly_cap_hours
+           OR NEW.rules IS DISTINCT FROM OLD.rules
+           OR NEW.created_by IS DISTINCT FROM OLD.created_by
+           OR NEW.created_at IS DISTINCT FROM OLD.created_at
+           OR NEW.published_by IS DISTINCT FROM OLD.published_by
+           OR NEW.published_at IS DISTINCT FROM OLD.published_at THEN
+            RAISE EXCEPTION 'published overtime policy version rules are immutable'
+                USING ERRCODE = '23514';
+        END IF;
+    END IF;
 
+    RETURN NEW;
+END;
+$$;
 
-CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.overtime_rules FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
+CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.overtime_policy_versions FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
+
+CREATE TRIGGER trg_guard_overtime_policy_version_immutability BEFORE UPDATE OR DELETE ON public.overtime_policy_versions FOR EACH ROW EXECUTE FUNCTION public.fn_guard_overtime_policy_version_immutability();
 
 
 
@@ -4080,15 +4004,20 @@ ALTER TABLE ONLY public.leave_requests
 
 --
 
--- Name: overtime_policy_assignments overtime_policy_assignments_policy_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: overtime_policy_versions overtime_policy_versions_policy_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 
 --
 
 
 
-ALTER TABLE ONLY public.overtime_policy_assignments
+ALTER TABLE ONLY public.overtime_policy_versions
+    ADD CONSTRAINT overtime_policy_versions_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.overtime_policy_definitions(id) ON DELETE RESTRICT;
 
-    ADD CONSTRAINT overtime_policy_assignments_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.overtime_policy_definitions(id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.overtime_policy_versions
+    ADD CONSTRAINT overtime_policy_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+ALTER TABLE ONLY public.overtime_policy_versions
+    ADD CONSTRAINT overtime_policy_versions_published_by_fkey FOREIGN KEY (published_by) REFERENCES public.users(id);
 
 
 
@@ -4137,22 +4066,6 @@ ALTER TABLE ONLY public.overtime_requests
 ALTER TABLE ONLY public.overtime_requests
 
     ADD CONSTRAINT overtime_requests_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES public.approval_workflows(id);
-
-
-
-
-
---
-
--- Name: overtime_rules overtime_rules_policy_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
-
---
-
-
-
-ALTER TABLE ONLY public.overtime_rules
-
-    ADD CONSTRAINT overtime_rules_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.overtime_policy_definitions(id) ON DELETE CASCADE;
 
 
 

@@ -275,6 +275,9 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 		if err := tx.QueryRow(ctx, `SELECT tenure_id FROM employment_relationships WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, relationshipID).Scan(&tenureID); err != nil {
 			return successCount, err
 		}
+		if err := closeRelationshipPolicyMemberships(ctx, tx, []uuid.UUID{relationshipID}, row.TerminationDate); err != nil {
+			return successCount, err
+		}
 		_, err = tx.Exec(ctx, `UPDATE employment_relationships
 				SET status = 'terminated', end_date = $1::date, termination_reason = $2, notes = $3, updated_at = NOW()
 				WHERE id = $4 AND deleted_at IS NULL`,

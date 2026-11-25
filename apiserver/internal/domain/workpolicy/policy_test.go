@@ -6,94 +6,122 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 )
 
-func TestWorkCreditPolicyValidateRejectsNonPositiveUnit(t *testing.T) {
-	policy := WorkCreditPolicy{Name: "Custom", MinutesPerCredit: 0, AttendancePolicyID: ids.AttendancePolicyID(uuid.New())}
-	if err := policy.Validate(); err != ErrMinutesPerCreditRequired {
-		t.Fatalf("expected non-positive unit error, got %v", err)
-	}
-}
-
-func TestWorkCreditPolicyValidateRequiresScheduleReference(t *testing.T) {
-	policy := WorkCreditPolicy{Name: "Custom", MinutesPerCredit: 450, AttendancePolicyID: ids.AttendancePolicyID(uuid.New())}
-	if err := policy.Validate(); err != ErrReferenceRequired {
-		t.Fatalf("expected missing working pattern error, got %v", err)
-	}
-}
-
-func TestWorkCreditPolicyCalculateUsesConfiguredMinutes(t *testing.T) {
-	policy := WorkCreditPolicy{Name: "Custom", MinutesPerCredit: 450, AttendancePolicyID: ids.AttendancePolicyID(uuid.New()), WorkingPatternID: ids.WorkingPatternID(uuid.New())}
-	result, err := policy.Calculate(675)
-	if err != nil {
-		t.Fatalf("calculate credits: %v", err)
-	}
-	if result.Credits.String() != "1.5" {
-		t.Fatalf("expected 1.5 credits, got %s", result.Credits)
-	}
-
-	invalidGrace := policy
-	invalidGrace.LateArrivalGraceMinutes = -1
-	if err := invalidGrace.Validate(); err != ErrGraceMinutesInvalid {
-		t.Fatalf("expected invalid grace error, got %v", err)
-	}
-
-	invalidMode := policy
-	invalidMode.OTAggregationMode = "daily"
-	if err := invalidMode.Validate(); err != ErrOTAggregationModeInvalid {
-		t.Fatalf("expected invalid aggregation error, got %v", err)
-	}
-	if _, err := policy.Calculate(-1); err != ErrEligibleMinutesInvalid {
-		t.Fatalf("expected negative eligible minutes error, got %v", err)
-	}
-}
-
-func TestPayBasisPolicyValidateUsesMonthlyOptionsOnlyForMonthlyPay(t *testing.T) {
-	denominator := MonthlyDenominatorFixed
+func validMonthlyFixedRules() VersionRules {
+	denom := MonthlyDenominatorFixed
 	days := decimal.NewFromInt(22)
-	monthly := PayBasisPolicy{Name: "Monthly", Method: PayMethodMonthly, MonthlyDenominator: &denominator, MonthlyStandardDays: &days}
-	if err := monthly.Validate(); err != nil {
-		t.Fatalf("valid monthly policy rejected: %v", err)
-	}
-
-	hourly := PayBasisPolicy{Name: "Hourly", Method: PayMethodHourly, MonthlyDenominator: &denominator}
-	if err := hourly.Validate(); err != ErrRateComponentRequired {
-		t.Fatalf("expected rate component requirement for hourly pay, got %v", err)
-	}
-	rateComponent := uuid.New()
-	hourly = PayBasisPolicy{Name: "Hourly", Method: PayMethodHourly, RateComponentDefinitionID: func() *ids.RateComponentDefinitionID {
-		converted := ids.RateComponentDefinitionID(rateComponent)
-		return &converted
-	}()}
-	if err := hourly.Validate(); err != nil {
-		t.Fatalf("valid hourly policy rejected: %v", err)
+	return VersionRules{
+		EffectiveFrom:           time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		MinutesPerCredit:        480,
+		WorkUnitMinutes:         15,
+		RoundingPolicy:          "floor",
+		EarlyArrivalStrategy:    "clamp",
+		LateArrivalGraceMinutes: 5,
+		BreakAutoDeduct:         true,
+		OTAggregationMode:       "aggregate",
+		PayMethod:               PayMethodMonthly,
+		MonthlyDenominator:      &denom,
+		MonthlyStandardDays:     &days,
+		PaidLeaveCreditMode:     PaidLeaveCreditStandardDay,
+		OvertimePolicyVersionID: uuid.New(),
 	}
 }
 
-func TestLaborPolicyGroupValidateRejectsInvalidEffectiveRange(t *testing.T) {
-	from := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
-	to := from
-	group := LaborPolicyGroup{
-		Name:               "Operations",
-		WorkCreditPolicyID: WorkCreditPolicyID(uuid.New()),
-		PayBasisPolicyID:   PayBasisPolicyID(uuid.New()),
-		OvertimePolicyID:   ids.OvertimePolicyID(uuid.New()),
-		EffectiveFrom:      from,
-		EffectiveTo:        &to,
+func TestVersionRulesValidation(t *testing.T) {
+	t.Run("valid monthly fixed has no blockers", func(t *testing.T) {
+		r := validMonthlyFixedRules()
+		blockers, warnings := r.Validate()
+		if len(blockers) != 0 {
+			t.Fatalf("expected 0 blockers, got %+v", blockers)
+		}
+		if len(warnings) != 0 {
+			t.Fatalf("expected 0 warnings, got %+v", warnings)
+		}
+	})
+
+	t.Run("early OT with block arrival produces blocker", func(t *testing.T) {
+		r := validMonthlyFixedRules()
+		r.EarlyOTEnabled = true
+		r.EarlyArrivalStrategy = "block"
+		blockers, _ := r.Validate()
+		if len(blockers) == 0 || blockers[0].Code != "early_ot_conflicts_with_block" {
+			t.Fatalf("expected early_ot_conflicts_with_block, got %+v", blockers)
+		}
+	})
+
+	t.Run("hourly requires rate component and rejects monthly fields", func(t *testing.T) {
+		r := validMonthlyFixedRules()
+		r.PayMethod = PayMethodHourly
+		blockers, _ := r.Validate()
+		if len(blockers) < 2 {
+			t.Fatalf("expected >=2 blockers, got %+v", blockers)
+		}
+		compID := uuid.New()
+		r.MonthlyDenominator = nil
+		r.MonthlyStandardDays = nil
+		r.RateComponentDefinitionID = &compID
+		blockers, _ = r.Validate()
+		if len(blockers) != 0 {
+			t.Fatalf("expected 0 blockers for valid hourly, got %+v", blockers)
+		}
+	})
+
+	t.Run("calculate credits divides eligible minutes by minutes per credit", func(t *testing.T) {
+		r := validMonthlyFixedRules()
+		res, err := r.CalculateCredits(240)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !res.Credits.Equal(decimal.RequireFromString("0.5")) {
+			t.Fatalf("expected 0.5 credits, got %s", res.Credits)
+		}
+	})
+}
+
+func TestOvertimePolicyVersionSpecValidation(t *testing.T) {
+	start, end := "22:00", "06:00"
+	daily := 240
+	monthly := decimal.NewFromInt(40)
+	spec := OvertimePolicyVersionSpec{
+		DailyCapMinutes: &daily,
+		MonthlyCapHours: &monthly,
+		Rules: []OvertimeRule{
+			{Priority: 100, DayType: OvertimeDayWeekday, DaysOfWeek: 127, TimeStart: &start, TimeEnd: &end, Multiplier: decimal.RequireFromString("2.0")},
+		},
 	}
-	if err := group.Validate(); err != ErrEffectiveRangeInvalid {
-		t.Fatalf("expected invalid effective range, got %v", err)
+	if err := spec.Validate(); err != nil {
+		t.Fatalf("expected valid spec, got %v", err)
+	}
+	bad := spec
+	bad.Rules = []OvertimeRule{{Priority: 10, DayType: "bogus", DaysOfWeek: 127, Multiplier: decimal.NewFromInt(1)}}
+	if err := bad.Validate(); err == nil {
+		t.Fatal("expected invalid day_type error")
+	}
+	halfWindow := spec
+	halfWindow.Rules = []OvertimeRule{{Priority: 10, DayType: OvertimeDayAny, DaysOfWeek: 127, TimeStart: &start, Multiplier: decimal.NewFromInt(2)}}
+	if err := halfWindow.Validate(); err == nil {
+		t.Fatal("expected half time window error")
 	}
 }
 
-func TestIntervalsOverlapTreatsOpenEndedRangesAsOverlapping(t *testing.T) {
-	from := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
-	later := from.AddDate(0, 1, 0)
-	if !IntervalsOverlap(from, nil, later, nil) {
-		t.Fatal("expected open-ended ranges to overlap")
+func TestResolvedPolicySegmentBounds(t *testing.T) {
+	mFrom := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	mTo := time.Date(2026, 3, 16, 0, 0, 0, 0, time.UTC)
+	vFrom := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
+	p := ResolvedPolicy{
+		MembershipEffectiveFrom: mFrom,
+		MembershipEffectiveTo:   &mTo,
+		EffectiveFrom:           vFrom,
 	}
-	if IntervalsOverlap(from, &later, later, nil) {
-		t.Fatal("adjacent half-open ranges must not overlap")
+	s, e, ok := p.SegmentBounds(
+		time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
+	)
+	if !ok {
+		t.Fatal("expected overlap")
+	}
+	if !s.Equal(vFrom) || !e.Equal(mTo) {
+		t.Fatalf("expected [%s, %s), got [%s, %s)", vFrom.Format("2006-01-02"), mTo.Format("2006-01-02"), s.Format("2006-01-02"), e.Format("2006-01-02"))
 	}
 }

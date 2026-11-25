@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
@@ -64,10 +65,71 @@ func formatClock(value *time.Time) *string {
 func scanPolicy(row interface{ Scan(...any) error }) (api.OvertimePolicy, error) {
 	var p api.OvertimePolicy
 	var created, updated time.Time
-	err := row.Scan(&p.ID, &p.Name, &p.Description, &created, &updated)
+	err := row.Scan(&p.ID, &p.Name, &p.Description, &p.LatestPublishedVersionID, &p.LatestPublishedVersionNo, &created, &updated)
 	p.CreatedAt = created.UTC().Format(time.RFC3339)
 	p.UpdatedAt = updated.UTC().Format(time.RFC3339)
 	return p, err
+}
+
+const overtimePolicyVersionColumns = `id, policy_id, version_no, status, row_version, daily_cap_minutes, monthly_cap_hours::text, yearly_cap_hours::text, rules, created_by, created_at, updated_at, published_by, published_at`
+
+func parseOptionalDecimal(raw *string) (*decimal.Decimal, error) {
+	if raw == nil || *raw == "" {
+		return nil, nil
+	}
+	d, err := decimal.NewFromString(*raw)
+	if err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+
+func scanOvertimePolicyVersion(row interface{ Scan(...any) error }) (api.OvertimePolicyVersion, error) {
+	var (
+		item        api.OvertimePolicyVersion
+		status      string
+		monthlyCap  *string
+		yearlyCap   *string
+		rulesRaw    []byte
+		createdAt   time.Time
+		updatedAt   time.Time
+		publishedAt *time.Time
+	)
+	if err := row.Scan(
+		&item.ID, &item.PolicyID, &item.VersionNo, &status, &item.RowVersion,
+		&item.DailyCapMinutes, &monthlyCap, &yearlyCap, &rulesRaw,
+		&item.CreatedBy, &createdAt, &updatedAt, &item.PublishedBy, &publishedAt,
+	); err != nil {
+		return api.OvertimePolicyVersion{}, err
+	}
+	item.Status = workpolicy.VersionStatus(status)
+	item.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+	item.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+	if publishedAt != nil {
+		v := publishedAt.UTC().Format(time.RFC3339)
+		item.PublishedAt = &v
+	}
+	var err error
+	if item.MonthlyCapHours, err = parseOptionalDecimal(monthlyCap); err != nil {
+		return api.OvertimePolicyVersion{}, err
+	}
+	if item.YearlyCapHours, err = parseOptionalDecimal(yearlyCap); err != nil {
+		return api.OvertimePolicyVersion{}, err
+	}
+	item.Rules = make([]workpolicy.OvertimeRule, 0)
+	if len(rulesRaw) > 0 {
+		if err := json.Unmarshal(rulesRaw, &item.Rules); err != nil {
+			return api.OvertimePolicyVersion{}, err
+		}
+	}
+	return item, nil
+}
+
+func marshalOvertimeRules(rules []workpolicy.OvertimeRule) ([]byte, error) {
+	if rules == nil {
+		rules = make([]workpolicy.OvertimeRule, 0)
+	}
+	return json.Marshal(rules)
 }
 
 func (r OvertimeRepository) ListOvertimePolicies(ctx context.Context, page, limit int) (api.OvertimePolicyListResponse, error) {
@@ -79,7 +141,18 @@ func (r OvertimeRepository) ListOvertimePolicies(ctx context.Context, page, limi
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM overtime_policy_definitions`).Scan(&out.Total); err != nil {
 		return out, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, name, description, created_at, updated_at FROM overtime_policy_definitions ORDER BY created_at DESC LIMIT $1 OFFSET $2`, limit, (page-1)*limit)
+	rows, err := db.Query(ctx, `
+		SELECT p.id, p.name, p.description, pub.id, pub.version_no, p.created_at, p.updated_at
+		FROM overtime_policy_definitions p
+		LEFT JOIN LATERAL (
+			SELECT id, version_no
+			FROM overtime_policy_versions
+			WHERE policy_id = p.id AND status = 'published'
+			ORDER BY version_no DESC
+			LIMIT 1
+		) pub ON TRUE
+		ORDER BY p.created_at DESC
+		LIMIT $1 OFFSET $2`, limit, (page-1)*limit)
 	if err != nil {
 		return out, err
 	}
@@ -94,23 +167,45 @@ func (r OvertimeRepository) ListOvertimePolicies(ctx context.Context, page, limi
 	return out, rows.Err()
 }
 
-func (r OvertimeRepository) CreateOvertimePolicy(ctx context.Context, req api.CreateOvertimePolicyRequest) (api.OvertimePolicy, error) {
-	db, err := r.db(ctx)
+func (r OvertimeRepository) CreateOvertimePolicy(ctx context.Context, req api.CreateOvertimePolicyRequest, actorID uuid.UUID) (api.OvertimePolicyDetail, error) {
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
-		return api.OvertimePolicy{}, err
+		return api.OvertimePolicyDetail{}, err
 	}
-	return scanPolicy(db.QueryRow(ctx, `INSERT INTO overtime_policy_definitions (id, name, description, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id, name, description, created_at, updated_at`, uuid.New(), req.Name, req.Description))
-}
-
-func scanRule(row interface{ Scan(...any) error }) (api.OvertimeRule, error) {
-	var item api.OvertimeRule
-	var start, end *time.Time
-	var created, updated time.Time
-	err := row.Scan(&item.ID, &item.PolicyID, &item.Priority, &item.Multiplier, &start, &end, &item.DaysOfWeek, &item.IsHoliday, &created, &updated)
-	item.TimeStart, item.TimeEnd = formatClock(start), formatClock(end)
-	item.CreatedAt = created.UTC().Format(time.RFC3339)
-	item.UpdatedAt = updated.UTC().Format(time.RFC3339)
-	return item, err
+	rulesJSON, err := marshalOvertimeRules(req.Rules)
+	if err != nil {
+		return api.OvertimePolicyDetail{}, err
+	}
+	var out api.OvertimePolicyDetail
+	err = service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
+		policyID := uuid.New()
+		var created, updated time.Time
+		if err := tx.QueryRow(ctx, `
+			INSERT INTO overtime_policy_definitions (id, name, description, created_at, updated_at)
+			VALUES ($1, $2, $3, NOW(), NOW())
+			RETURNING id, name, description, created_at, updated_at`,
+			policyID, req.Name, req.Description,
+		).Scan(&out.Policy.ID, &out.Policy.Name, &out.Policy.Description, &created, &updated); err != nil {
+			return err
+		}
+		out.Policy.CreatedAt = created.UTC().Format(time.RFC3339)
+		out.Policy.UpdatedAt = updated.UTC().Format(time.RFC3339)
+		version, err := scanOvertimePolicyVersion(tx.QueryRow(ctx, `
+			INSERT INTO overtime_policy_versions (
+				id, policy_id, version_no, status, row_version,
+				daily_cap_minutes, monthly_cap_hours, yearly_cap_hours, rules, created_by
+			)
+			VALUES ($1, $2, 1, 'draft', 1, $3, $4, $5, $6::jsonb, $7)
+			RETURNING `+overtimePolicyVersionColumns,
+			uuid.New(), policyID, req.DailyCapMinutes, req.MonthlyCapHours, req.YearlyCapHours, string(rulesJSON), actorID,
+		))
+		if err != nil {
+			return mapConstraintError(err)
+		}
+		out.Versions = []api.OvertimePolicyVersion{version}
+		return nil
+	})
+	return out, err
 }
 
 func (r OvertimeRepository) GetOvertimePolicy(ctx context.Context, id uuid.UUID) (api.OvertimePolicyDetail, error) {
@@ -118,67 +213,188 @@ func (r OvertimeRepository) GetOvertimePolicy(ctx context.Context, id uuid.UUID)
 	if err != nil {
 		return api.OvertimePolicyDetail{}, err
 	}
-	policy, err := scanPolicy(db.QueryRow(ctx, `SELECT id, name, description, created_at, updated_at FROM overtime_policy_definitions WHERE id = $1`, id))
+	policy, err := scanPolicy(db.QueryRow(ctx, `
+		SELECT p.id, p.name, p.description, pub.id, pub.version_no, p.created_at, p.updated_at
+		FROM overtime_policy_definitions p
+		LEFT JOIN LATERAL (
+			SELECT id, version_no
+			FROM overtime_policy_versions
+			WHERE policy_id = p.id AND status = 'published'
+			ORDER BY version_no DESC
+			LIMIT 1
+		) pub ON TRUE
+		WHERE p.id = $1`, id))
 	if err != nil {
 		return api.OvertimePolicyDetail{}, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, policy_id, priority, multiplier, time_start, time_end, days_of_week, is_holiday, created_at, updated_at FROM overtime_rules WHERE policy_id = $1 ORDER BY priority DESC, id`, id)
+	versions, err := r.ListOvertimePolicyVersions(ctx, id)
 	if err != nil {
 		return api.OvertimePolicyDetail{}, err
+	}
+	return api.OvertimePolicyDetail{Policy: policy, Versions: versions}, nil
+}
+
+func (r OvertimeRepository) ListOvertimePolicyVersions(ctx context.Context, policyID uuid.UUID) ([]api.OvertimePolicyVersion, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var exists bool
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $1)`, policyID).Scan(&exists); err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, pgx.ErrNoRows
+	}
+	rows, err := db.Query(ctx, `
+		SELECT `+overtimePolicyVersionColumns+`
+		FROM overtime_policy_versions
+		WHERE policy_id = $1
+		ORDER BY version_no DESC, id DESC`, policyID)
+	if err != nil {
+		return nil, err
 	}
 	defer rows.Close()
-	out := api.OvertimePolicyDetail{Policy: policy, Rules: []api.OvertimeRule{}}
+	out := make([]api.OvertimePolicyVersion, 0)
 	for rows.Next() {
-		rule, err := scanRule(rows)
+		v, err := scanOvertimePolicyVersion(rows)
 		if err != nil {
-			return out, err
+			return nil, err
 		}
-		out.Rules = append(out.Rules, rule)
+		out = append(out, v)
 	}
 	return out, rows.Err()
 }
 
-func (r OvertimeRepository) AddOvertimeRule(ctx context.Context, policyID uuid.UUID, req api.CreateOvertimeRuleRequest) (api.OvertimeRule, error) {
-	db, err := r.db(ctx)
+func (r OvertimeRepository) CreateOvertimePolicyVersion(ctx context.Context, policyID uuid.UUID, req api.CreateOvertimePolicyVersionRequest, actorID uuid.UUID) (api.OvertimePolicyVersion, error) {
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
-		return api.OvertimeRule{}, err
+		return api.OvertimePolicyVersion{}, err
 	}
-	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $1)`, policyID).Scan(&exists); err != nil {
-		return api.OvertimeRule{}, err
-	}
-	if !exists {
-		return api.OvertimeRule{}, pgx.ErrNoRows
-	}
-	start, err := parseClock(req.TimeStart)
+	rulesJSON, err := marshalOvertimeRules(req.Rules)
 	if err != nil {
-		return api.OvertimeRule{}, err
+		return api.OvertimePolicyVersion{}, err
 	}
-	end, err := parseClock(req.TimeEnd)
-	if err != nil {
-		return api.OvertimeRule{}, err
-	}
-	return scanRule(db.QueryRow(ctx, `INSERT INTO overtime_rules (id, policy_id, priority, multiplier, time_start, time_end, days_of_week, is_holiday, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING id, policy_id, priority, multiplier, time_start, time_end, days_of_week, is_holiday, created_at, updated_at`, uuid.New(), policyID, req.Priority, req.Multiplier, start, end, req.DaysOfWeek, req.IsHoliday))
+	var version api.OvertimePolicyVersion
+	err = service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
+		var exists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $1 FOR UPDATE)`, policyID).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return pgx.ErrNoRows
+		}
+		var nextVersion int
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(version_no), 0) + 1 FROM overtime_policy_versions WHERE policy_id = $1`, policyID).Scan(&nextVersion); err != nil {
+			return err
+		}
+		version, err = scanOvertimePolicyVersion(tx.QueryRow(ctx, `
+			INSERT INTO overtime_policy_versions (
+				id, policy_id, version_no, status, row_version,
+				daily_cap_minutes, monthly_cap_hours, yearly_cap_hours, rules, created_by
+			)
+			VALUES ($1, $2, $3, 'draft', 1, $4, $5, $6, $7::jsonb, $8)
+			RETURNING `+overtimePolicyVersionColumns,
+			uuid.New(), policyID, nextVersion, req.DailyCapMinutes, req.MonthlyCapHours, req.YearlyCapHours, string(rulesJSON), actorID,
+		))
+		if err != nil {
+			return mapConstraintError(err)
+		}
+		return nil
+	})
+	return version, err
 }
 
-func (r OvertimeRepository) AssignOvertimePolicy(ctx context.Context, req api.AssignOvertimePolicyRequest) error {
-	db, err := r.db(ctx)
+func (r OvertimeRepository) PatchOvertimePolicyVersion(ctx context.Context, policyID, versionID uuid.UUID, req api.PatchOvertimePolicyVersionRequest) (api.OvertimePolicyVersion, error) {
+	txBeginner, err := r.begin(ctx)
 	if err != nil {
-		return err
+		return api.OvertimePolicyVersion{}, err
 	}
-	date, err := time.Parse("2006-01-02", req.EffectiveFrom)
+	rulesJSON, err := marshalOvertimeRules(req.Rules)
 	if err != nil {
-		return err
+		return api.OvertimePolicyVersion{}, err
 	}
-	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM overtime_policy_definitions WHERE id = $1)`, req.PolicyID).Scan(&exists); err != nil {
-		return err
+	var updated api.OvertimePolicyVersion
+	err = service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
+		var status string
+		var rowVersion int64
+		if err := tx.QueryRow(ctx, `
+			SELECT status, row_version
+			FROM overtime_policy_versions
+			WHERE policy_id = $1 AND id = $2
+			FOR UPDATE`, policyID, versionID).Scan(&status, &rowVersion); err != nil {
+			return err
+		}
+		if status != string(workpolicy.StatusDraft) || rowVersion != req.ExpectedRowVersion {
+			return api.ErrOvertimeConflict
+		}
+		updated, err = scanOvertimePolicyVersion(tx.QueryRow(ctx, `
+			UPDATE overtime_policy_versions
+			SET daily_cap_minutes = $3,
+			    monthly_cap_hours = $4,
+			    yearly_cap_hours = $5,
+			    rules = $6::jsonb,
+			    row_version = row_version + 1,
+			    updated_at = CURRENT_TIMESTAMP
+			WHERE policy_id = $1 AND id = $2 AND status = 'draft' AND row_version = $7
+			RETURNING `+overtimePolicyVersionColumns,
+			policyID, versionID, req.DailyCapMinutes, req.MonthlyCapHours, req.YearlyCapHours, string(rulesJSON), req.ExpectedRowVersion,
+		))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.ErrOvertimeConflict
+		}
+		return mapConstraintError(err)
+	})
+	return updated, err
+}
+
+func (r OvertimeRepository) PublishOvertimePolicyVersion(ctx context.Context, policyID, versionID uuid.UUID, req api.PublishOvertimePolicyVersionRequest, actorID uuid.UUID) (api.OvertimePolicyVersion, error) {
+	txBeginner, err := r.begin(ctx)
+	if err != nil {
+		return api.OvertimePolicyVersion{}, err
 	}
-	if !exists {
-		return pgx.ErrNoRows
-	}
-	_, err = db.Exec(ctx, `INSERT INTO overtime_policy_assignments (id, assignee_type, assignee_id, policy_id, effective_from, created_at) VALUES ($1, $2, $3, $4, $5, NOW())`, uuid.New(), req.AssigneeType, req.AssigneeID, req.PolicyID, date)
-	return err
+	var published api.OvertimePolicyVersion
+	err = service.WithTx(ctx, txBeginner, func(ctx context.Context, tx pgx.Tx) error {
+		current, err := scanOvertimePolicyVersion(tx.QueryRow(ctx, `
+			SELECT `+overtimePolicyVersionColumns+`
+			FROM overtime_policy_versions
+			WHERE policy_id = $1 AND id = $2
+			FOR UPDATE`, policyID, versionID))
+		if err != nil {
+			return err
+		}
+		if current.Status != workpolicy.StatusDraft || current.RowVersion != req.ExpectedRowVersion {
+			return api.ErrOvertimeConflict
+		}
+		if len(current.Rules) == 0 {
+			return api.ErrOvertimeValidation
+		}
+		spec := workpolicy.OvertimePolicyVersionSpec{
+			DailyCapMinutes: current.DailyCapMinutes,
+			MonthlyCapHours: current.MonthlyCapHours,
+			YearlyCapHours:  current.YearlyCapHours,
+			Rules:           current.Rules,
+		}
+		if err := spec.Validate(); err != nil {
+			return api.ErrOvertimeValidation
+		}
+		published, err = scanOvertimePolicyVersion(tx.QueryRow(ctx, `
+			UPDATE overtime_policy_versions
+			SET status = 'published',
+			    published_by = $3,
+			    published_at = CURRENT_TIMESTAMP,
+			    row_version = row_version + 1,
+			    updated_at = CURRENT_TIMESTAMP
+			WHERE policy_id = $1 AND id = $2 AND status = 'draft' AND row_version = $4
+			RETURNING `+overtimePolicyVersionColumns,
+			policyID, versionID, actorID, req.ExpectedRowVersion,
+		))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.ErrOvertimeConflict
+		}
+		return mapConstraintError(err)
+	})
+	return published, err
 }
 
 const overtimeRequestColumns = `id, requested_by_user_id, department_id, planned_date, planned_start_time, planned_end_time, planned_minutes, reason, status::text, workflow_id, current_step, quota_warning, reconciled_at, reconciled_by, attachment_file_ids, created_at, updated_at`
@@ -412,150 +628,6 @@ func (r OvertimeRepository) EmployeeDepartmentID(ctx context.Context, employeeID
 	var id *uuid.UUID
 	err = db.QueryRow(ctx, `SELECT department_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&id)
 	return id, err
-}
-
-type overtimeMultiplierAssignment struct {
-	assigneeType  string
-	effectiveFrom time.Time
-	effectiveTo   *time.Time
-	multiplier    decimal.Decimal
-	priority      int
-	ruleID        uuid.UUID
-}
-
-func loadOvertimeMultiplierAssignments(ctx context.Context, db DBTX, policyAssignments []workPolicyAssignment) ([]overtimeMultiplierAssignment, error) {
-	policyIDs := make([]uuid.UUID, 0, len(policyAssignments))
-	seenPolicyIDs := make(map[uuid.UUID]struct{}, len(policyAssignments))
-	for _, assignment := range policyAssignments {
-		policyID := assignment.policy.OvertimePolicyID
-		if policyID == uuid.Nil {
-			continue
-		}
-		if _, exists := seenPolicyIDs[policyID]; !exists {
-			seenPolicyIDs[policyID] = struct{}{}
-			policyIDs = append(policyIDs, policyID)
-		}
-	}
-	if len(policyIDs) == 0 {
-		return []overtimeMultiplierAssignment{}, nil
-	}
-
-	rows, err := db.Query(ctx, `
-		SELECT policy_id, multiplier, priority, id
-		FROM overtime_rules
-		WHERE policy_id = ANY($1)
-		ORDER BY priority DESC, id DESC`, policyIDs)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	type rule struct {
-		multiplier decimal.Decimal
-		priority   int
-		id         uuid.UUID
-	}
-	rulesByPolicy := make(map[uuid.UUID][]rule, len(policyIDs))
-	for rows.Next() {
-		var policyID uuid.UUID
-		var item rule
-		if err := rows.Scan(&policyID, &item.multiplier, &item.priority, &item.id); err != nil {
-			return nil, err
-		}
-		rulesByPolicy[policyID] = append(rulesByPolicy[policyID], item)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	for _, policyID := range policyIDs {
-		policyRules := rulesByPolicy[policyID]
-		if len(policyRules) == 0 {
-			return nil, api.ErrPayrollValidation
-		}
-		for _, item := range policyRules {
-			if !item.multiplier.IsPositive() {
-				return nil, api.ErrPayrollValidation
-			}
-		}
-	}
-
-	assignments := make([]overtimeMultiplierAssignment, 0)
-	for _, policyAssignment := range policyAssignments {
-		from, err := policyAssignmentStart(policyAssignment)
-		if err != nil {
-			return nil, err
-		}
-		to, err := policyAssignmentEnd(policyAssignment)
-		if err != nil {
-			return nil, err
-		}
-		if to != nil && !to.After(from) {
-			continue
-		}
-		inclusiveTo := (*time.Time)(nil)
-		if to != nil {
-			value := to.AddDate(0, 0, -1)
-			inclusiveTo = &value
-		}
-		for _, item := range rulesByPolicy[policyAssignment.policy.OvertimePolicyID] {
-			assignments = append(assignments, overtimeMultiplierAssignment{
-				assigneeType:  "labor_policy",
-				effectiveFrom: from,
-				effectiveTo:   inclusiveTo,
-				multiplier:    item.multiplier,
-				priority:      item.priority,
-				ruleID:        item.id,
-			})
-		}
-	}
-	return assignments, nil
-}
-
-func policyAssignmentStart(assignment workPolicyAssignment) (time.Time, error) {
-	policyFrom, err := time.Parse("2006-01-02", assignment.policy.EffectiveFrom)
-	if err != nil {
-		return time.Time{}, err
-	}
-	membershipFrom, err := time.Parse("2006-01-02", assignment.membershipFrom)
-	if err != nil {
-		return time.Time{}, err
-	}
-	if membershipFrom.After(policyFrom) {
-		return membershipFrom, nil
-	}
-	return policyFrom, nil
-}
-
-func policyAssignmentEnd(assignment workPolicyAssignment) (*time.Time, error) {
-	var result *time.Time
-	for _, raw := range []*string{assignment.policy.EffectiveTo, assignment.membershipTo} {
-		if raw == nil {
-			continue
-		}
-		value, err := time.Parse("2006-01-02", *raw)
-		if err != nil {
-			return nil, err
-		}
-		if result == nil || value.Before(*result) {
-			copy := value
-			result = &copy
-		}
-	}
-	return result, nil
-}
-
-func overtimeMultiplierAt(assignments []overtimeMultiplierAssignment, asOf time.Time) decimal.Decimal {
-	fallback := decimal.RequireFromString("1.5")
-	for _, assignment := range assignments {
-		if asOf.Before(assignment.effectiveFrom) || assignment.effectiveTo != nil && asOf.After(*assignment.effectiveTo) {
-			continue
-		}
-		if assignment.multiplier.IsPositive() {
-			return assignment.multiplier
-		}
-		return fallback
-	}
-	return fallback
 }
 
 func (r OvertimeRepository) ClaimOvertime(ctx context.Context, employeeID uuid.UUID, req api.ClaimOTRequest, user uuid.UUID) error {

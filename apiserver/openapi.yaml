@@ -1029,80 +1029,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-  "/api/v1/attendance/policies/assignments":
-    get:
-      operationId: get_api_v1_attendance_policies_assignments
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    post:
-      operationId: post_api_v1_attendance_policies_assignments
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/attendance/policies/assignments/{assignment_id}":
-    parameters:
-      - name: assignment_id
-        in: path
-        required: true
-        schema:
-          type: string
-    delete:
-      operationId: delete_api_v1_attendance_policies_assignments_assignment_id
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
   "/api/v1/attendance/raw-logs":
     get:
       operationId: get_api_v1_attendance_raw_logs
@@ -1158,74 +1084,6 @@ paths:
           type: string
     post:
       operationId: post_api_v1_attendance_reprocess_employee_id
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/attendance/rules":
-    get:
-      operationId: get_api_v1_attendance_rules
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    patch:
-      operationId: patch_api_v1_attendance_rules
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/attendance/rules/versions":
-    get:
-      operationId: get_api_v1_attendance_rules_versions
       tags: [runtime]
       responses:
         '200':
@@ -2334,29 +2192,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-  "/api/v1/departments/payroll-reconciliation":
-    get:
-      operationId: get_api_v1_departments_payroll_reconciliation
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
   "/api/v1/departments/{id}":
     parameters:
       - name: id
@@ -2388,57 +2223,6 @@ paths:
           $ref: '#/components/responses/InternalError'
     patch:
       operationId: patch_api_v1_departments_id
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/departments/{id}/payroll-config":
-    parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      operationId: get_api_v1_departments_id_payroll_config
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    post:
-      operationId: post_api_v1_departments_id_payroll_config
       tags: [runtime]
       responses:
         '200':
@@ -2798,7 +2582,6 @@ paths:
   "/api/v1/employees/match":
     post:
       operationId: post_api_v1_employees_match
-      summary: Redacted read-only duplicate employee identity preflight
       tags: [runtime]
       requestBody:
         required: true
@@ -2808,25 +2591,23 @@ paths:
               $ref: '#/components/schemas/MatchEmployeeRequest'
       responses:
         '200':
-          description: Redacted match outcome and candidates
+          description: Successful response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MatchEmployeeResponse'
+        '204':
+          description: Successful response without body
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '413':
-          description: Request payload too large
-        '429':
-          description: Rate limit exceeded
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-        '503':
-          description: Identity matching unavailable
   "/api/v1/employees/upload":
     post:
       operationId: post_api_v1_employees_upload
@@ -3329,16 +3110,13 @@ paths:
         required: true
         schema:
           type: string
-          format: uuid
       - name: employment_id
         in: path
         required: true
         schema:
           type: string
-          format: uuid
     post:
       operationId: post_api_v1_employees_employee_id_employments_employment_id_terminate
-      summary: Atomically terminate an employment segment, its relationship, and parent tenure when last open
       tags: [runtime]
       requestBody:
         required: true
@@ -3348,11 +3126,13 @@ paths:
               $ref: '#/components/schemas/TerminateEmploymentRequest'
       responses:
         '200':
-          description: Employment terminated
+          description: Successful response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TerminateEmploymentResult'
+        '204':
+          description: Successful response without body
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3361,8 +3141,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          description: Already terminated or locked payroll period conflict
         '500':
           $ref: '#/components/responses/InternalError'
   "/api/v1/employees/{employee_id}/payslips":
@@ -3401,20 +3179,18 @@ paths:
         required: true
         schema:
           type: string
-          format: uuid
     get:
       operationId: get_api_v1_employees_employee_id_tenures
-      summary: List all non-deleted tenures and employer relationships for an employee
       tags: [runtime]
       responses:
         '200':
-          description: Employee tenure history
+          description: Successful response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/EmployeeTenureRecord'
+                $ref: '#/components/schemas/EmployeeTenureRecord'
+        '204':
+          description: Successful response without body
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3427,7 +3203,6 @@ paths:
           $ref: '#/components/responses/InternalError'
     post:
       operationId: post_api_v1_employees_employee_id_tenures
-      summary: Rehire an existing terminated employee by creating a new non-overlapping tenure
       tags: [runtime]
       requestBody:
         required: true
@@ -3437,11 +3212,13 @@ paths:
               $ref: '#/components/schemas/CreateEmployeeTenureRequest'
       responses:
         '201':
-          description: New employee tenure and employment created
+          description: Successful response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmployeeTenureCreated'
+        '204':
+          description: Successful response without body
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3450,8 +3227,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          description: Active employee, stale candidate, or date/code overlap conflict
         '500':
           $ref: '#/components/responses/InternalError'
   "/api/v1/employees/{employee_id}/tenures/{tenure_id}/close":
@@ -3461,16 +3236,13 @@ paths:
         required: true
         schema:
           type: string
-          format: uuid
       - name: tenure_id
         in: path
         required: true
         schema:
           type: string
-          format: uuid
     post:
       operationId: post_api_v1_employees_employee_id_tenures_tenure_id_close
-      summary: Atomically close an open tenure, all open child relationships/segments, and revoke HRM sessions
       tags: [runtime]
       requestBody:
         required: true
@@ -3480,11 +3252,13 @@ paths:
               $ref: '#/components/schemas/CloseEmployeeTenureRequest'
       responses:
         '200':
-          description: Employee tenure closed
+          description: Successful response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmployeeTenureClosed'
+        '204':
+          description: Successful response without body
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3493,8 +3267,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          description: Already closed, child date conflict, or locked payroll period
         '500':
           $ref: '#/components/responses/InternalError'
   "/api/v1/employees/{id}":
@@ -3889,57 +3661,6 @@ paths:
           type: string
     get:
       operationId: get_api_v1_employees_id_leave_requests
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/employees/{id}/payroll-config":
-    parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      operationId: get_api_v1_employees_id_payroll_config
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    post:
-      operationId: post_api_v1_employees_id_payroll_config
       tags: [runtime]
       responses:
         '200':
@@ -4374,6 +4095,35 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  "/api/v1/employment-relationships/{relationship_id}/work-policy":
+    parameters:
+      - name: relationship_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: get_api_v1_employment_relationships_relationship_id_work_policy
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
   "/api/v1/employments/{emp_id}/lifecycle":
     parameters:
       - name: emp_id
@@ -4490,35 +4240,6 @@ paths:
           type: string
     put:
       operationId: put_api_v1_employments_employment_id_phases_phase_id_status
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/employments/{employment_id}/work-policy":
-    parameters:
-      - name: employment_id
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      operationId: get_api_v1_employments_employment_id_work_policy
       tags: [runtime]
       responses:
         '200':
@@ -7790,29 +7511,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-  "/api/v1/overtime/policies/assign":
-    post:
-      operationId: post_api_v1_overtime_policies_assign
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
   "/api/v1/overtime/policies/{policy_id}":
     parameters:
       - name: policy_id
@@ -7842,15 +7540,105 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-  "/api/v1/overtime/policies/{policy_id}/rules":
+  "/api/v1/overtime/policies/{policy_id}/versions":
     parameters:
       - name: policy_id
         in: path
         required: true
         schema:
           type: string
+    get:
+      operationId: get_api_v1_overtime_policies_policy_id_versions
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
     post:
-      operationId: post_api_v1_overtime_policies_policy_id_rules
+      operationId: post_api_v1_overtime_policies_policy_id_versions
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  "/api/v1/overtime/policies/{policy_id}/versions/{version_id}":
+    parameters:
+      - name: policy_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: version_id
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      operationId: patch_api_v1_overtime_policies_policy_id_versions_version_id
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  "/api/v1/overtime/policies/{policy_id}/versions/{version_id}/publish":
+    parameters:
+      - name: policy_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: version_id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: post_api_v1_overtime_policies_policy_id_versions_version_id_publish
       tags: [runtime]
       responses:
         '200':
@@ -8300,74 +8088,6 @@ paths:
           type: string
     delete:
       operationId: delete_api_v1_payroll_rules_rule_id_tiers_tier_id
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/payroll-settings":
-    get:
-      operationId: get_api_v1_payroll_settings
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    patch:
-      operationId: patch_api_v1_payroll_settings
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  "/api/v1/payroll-settings/history":
-    get:
-      operationId: get_api_v1_payroll_settings_history
       tags: [runtime]
       responses:
         '200':
@@ -9023,35 +8743,6 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-  "/api/v1/payroll/work-policy-groups/{group_id}/history":
-    parameters:
-      - name: group_id
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      operationId: get_api_v1_payroll_work_policy_groups_group_id_history
-      tags: [runtime]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JsonObject'
-        '204':
-          description: Successful response without body
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
   "/api/v1/payroll/work-policy-groups/{group_id}/memberships":
     parameters:
       - name: group_id
@@ -9110,6 +8801,28 @@ paths:
         required: true
         schema:
           type: string
+    get:
+      operationId: get_api_v1_payroll_work_policy_groups_group_id_versions
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
     post:
       operationId: post_api_v1_payroll_work_policy_groups_group_id_versions
       tags: [runtime]
@@ -9166,6 +8879,96 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+    patch:
+      operationId: patch_api_v1_payroll_work_policy_groups_group_id_versions_version_id
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  "/api/v1/payroll/work-policy-groups/{group_id}/versions/{version_id}/publish":
+    parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: version_id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: post_api_v1_payroll_work_policy_groups_group_id_versions_version_id_publish
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  "/api/v1/payroll/work-policy-groups/{group_id}/versions/{version_id}/simulate":
+    parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: version_id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: post_api_v1_payroll_work_policy_groups_group_id_versions_version_id_simulate
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
   "/api/v1/payroll/work-policy-groups/{group_id}/versions/{version_id}/validate":
     parameters:
       - name: group_id
@@ -9180,6 +8983,29 @@ paths:
           type: string
     post:
       operationId: post_api_v1_payroll_work_policy_groups_group_id_versions_version_id_validate
+      tags: [runtime]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonObject'
+        '204':
+          description: Successful response without body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  "/api/v1/payroll/work-policy-memberships/transfer":
+    post:
+      operationId: post_api_v1_payroll_work_policy_memberships_transfer
       tags: [runtime]
       responses:
         '200':
@@ -11257,17 +11083,6 @@ components:
           nullable: true
         policy_id:
           type: string
-    AssignOvertimePolicyRequest:
-      properties:
-        assignee_id:
-          type: string
-          nullable: true
-        assignee_type:
-          type: string
-        effective_from:
-          type: string
-        policy_id:
-          type: string
     AssignPatternRequest:
       properties:
         allow_warnings:
@@ -11745,51 +11560,6 @@ components:
         - snapshot_hash
         - status
         - version
-    AttendancePolicyVersionResponse:
-      properties:
-        created_at:
-          type: string
-        created_by:
-          type: string
-          nullable: true
-        early_arrival_strategy:
-          type: string
-        grace_period_minutes:
-          type: number
-        id:
-          type: string
-        rounding_policy:
-          type: string
-        valid_from:
-          type: string
-        valid_to:
-          type: string
-          nullable: true
-        work_unit_minutes:
-          type: number
-      required:
-        - created_at
-        - early_arrival_strategy
-        - grace_period_minutes
-        - id
-        - rounding_policy
-        - valid_from
-        - work_unit_minutes
-    AttendanceRules:
-      properties:
-        early_arrival_strategy:
-          type: string
-        grace_period_minutes:
-          type: number
-          nullable: true
-        rounding_policy:
-          type: string
-        work_unit_minutes:
-          type: number
-      required:
-        - early_arrival_strategy
-        - rounding_policy
-        - work_unit_minutes
     AttendanceStagingLog:
       properties:
         created_at:
@@ -12116,6 +11886,19 @@ components:
         date:
           type: string
         reason:
+          type: string
+          nullable: true
+    CloseEmployeeTenureRequest:
+      properties:
+        end_date:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        rehire_eligible:
+          type: boolean
+          nullable: true
+        termination_reason:
           type: string
           nullable: true
     CohortRetentionRow:
@@ -12563,60 +12346,33 @@ components:
         user_id:
           type: string
           nullable: true
-    CloseEmployeeTenureRequest:
-      type: object
-      additionalProperties: false
-      properties:
-        end_date:
-          type: string
-        notes:
-          type: string
-          nullable: true
-        rehire_eligible:
-          type: boolean
-          nullable: true
-        termination_reason:
-          type: string
-          nullable: true
-      required:
-        - end_date
     CreateEmployeeTenureRequest:
-      type: object
-      additionalProperties: false
       properties:
         department_id:
           type: string
-          format: uuid
           nullable: true
         employee_number:
           type: string
           nullable: true
         employer_id:
           type: string
-          format: uuid
         expected_employee_code:
           type: string
           nullable: true
         expected_status:
           type: string
-          enum:
-            - terminated
           nullable: true
         notes:
           type: string
           nullable: true
         primary_location_id:
           type: string
-          format: uuid
           nullable: true
         prior_service_credit_days:
-          type: integer
+          type: number
           nullable: true
         start_date:
           type: string
-      required:
-        - employer_id
-        - start_date
     CreateEmployerRequest:
       properties:
         business_type:
@@ -12707,6 +12463,9 @@ components:
           type: string
         status:
           type: string
+        tenure_id:
+          type: string
+          nullable: true
         termination_reason:
           type: string
           nullable: true
@@ -12731,6 +12490,9 @@ components:
           type: string
           nullable: true
         primary_location_id:
+          type: string
+          nullable: true
+        relationship_id:
           type: string
           nullable: true
         start_date:
@@ -12871,11 +12633,39 @@ components:
           nullable: true
     CreateOvertimePolicyRequest:
       properties:
+        daily_cap_minutes:
+          type: number
+          nullable: true
         description:
+          type: string
+          nullable: true
+        monthly_cap_hours:
           type: string
           nullable: true
         name:
           type: string
+        rules:
+          type: array
+          items:
+            type: string
+        yearly_cap_hours:
+          type: string
+          nullable: true
+    CreateOvertimePolicyVersionRequest:
+      properties:
+        daily_cap_minutes:
+          type: number
+          nullable: true
+        monthly_cap_hours:
+          type: string
+          nullable: true
+        rules:
+          type: array
+          items:
+            type: string
+        yearly_cap_hours:
+          type: string
+          nullable: true
     CreateOvertimeRequest:
       properties:
         attachment_file_ids:
@@ -12904,22 +12694,6 @@ components:
     CreateOvertimeRequestPayload:
       allOf:
         - $ref: '#/components/schemas/CreateOvertimeRequest'
-    CreateOvertimeRuleRequest:
-      properties:
-        days_of_week:
-          type: number
-        is_holiday:
-          type: boolean
-        multiplier:
-          type: string
-        priority:
-          type: number
-        time_end:
-          type: string
-          nullable: true
-        time_start:
-          type: string
-          nullable: true
     CreatePayrollFormulaRuleRequest:
       properties:
         code:
@@ -13142,12 +12916,17 @@ components:
         - upload_url
     CreateWorkPolicyGroupRequest:
       properties:
-        attendance_policy_id:
-          type: string
         break_auto_deduct:
           type: boolean
         break_is_overtime:
           type: boolean
+        code:
+          type: string
+        description:
+          type: string
+          nullable: true
+        early_arrival_strategy:
+          type: string
         early_ot_enabled:
           type: boolean
         early_ot_max_minutes:
@@ -13174,58 +12953,22 @@ components:
           type: string
         ot_aggregation_mode:
           type: string
-        overtime_policy_id:
+        overtime_policy_version_id:
+          type: string
+        paid_leave_credit_mode:
           type: string
         pay_method:
           type: string
         rate_component_definition_id:
           type: string
           nullable: true
+        rounding_policy:
+          type: string
+        work_unit_minutes:
+          type: number
         working_pattern_id:
           type: string
-    CreateWorkPolicyGroupVersionRequest:
-      properties:
-        attendance_policy_id:
-          type: string
-        break_auto_deduct:
-          type: boolean
-        break_is_overtime:
-          type: boolean
-        early_ot_enabled:
-          type: boolean
-        early_ot_max_minutes:
-          type: number
           nullable: true
-        early_ot_qualification_grace_minutes:
-          type: number
-        effective_from:
-          type: string
-        effective_to:
-          type: string
-          nullable: true
-        late_arrival_grace_minutes:
-          type: number
-        minutes_per_credit:
-          type: number
-        monthly_denominator:
-          type: string
-          nullable: true
-        monthly_standard_days:
-          type: string
-          nullable: true
-        name:
-          type: string
-        ot_aggregation_mode:
-          type: string
-        overtime_policy_id:
-          type: string
-        pay_method:
-          type: string
-        rate_component_definition_id:
-          type: string
-          nullable: true
-        working_pattern_id:
-          type: string
     CreateWorkPolicyMembershipRequest:
       properties:
         effective_from:
@@ -13233,8 +12976,13 @@ components:
         effective_to:
           type: string
           nullable: true
-        employment_id:
+        employment_relationship_id:
           type: string
+    CreateWorkPolicyVersionRequest:
+      properties:
+        clone_from_version_id:
+          type: string
+          nullable: true
     CreateWorkSegmentRequest:
       properties:
         break_config_override:
@@ -13249,6 +12997,7 @@ components:
           nullable: true
         compensation_rate:
           type: string
+          nullable: true
         date:
           type: string
         employment_id:
@@ -13996,65 +13745,6 @@ components:
         - limit
         - page
         - total
-    DepartmentPayrollConfig:
-      properties:
-        created_at:
-          type: string
-        department_id:
-          type: string
-        effective_date:
-          type: string
-        hours_per_day:
-          type: string
-        id:
-          type: string
-        std_working_days:
-          type: string
-      required:
-        - created_at
-        - department_id
-        - effective_date
-        - hours_per_day
-        - id
-        - std_working_days
-    DepartmentPayrollReconciliation:
-      properties:
-        canonical_effective_from:
-          type: string
-          nullable: true
-        canonical_std_working_days:
-          type: string
-          nullable: true
-        department_id:
-          type: string
-        department_name:
-          type: string
-        legacy_std_working_days:
-          type: string
-          nullable: true
-        reconciliation_status:
-          type: string
-      required:
-        - department_id
-        - department_name
-        - reconciliation_status
-    DepartmentPayrollReconciliationResponse:
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/DepartmentPayrollReconciliation'
-        limit:
-          type: number
-        page:
-          type: number
-        total:
-          type: number
-      required:
-        - data
-        - limit
-        - page
-        - total
     DepartmentRecord:
       properties:
         active_employee_count:
@@ -14645,27 +14335,6 @@ components:
         - reasons
         - status
         - tier
-    EmployeePayrollConfig:
-      properties:
-        created_at:
-          type: string
-        effective_date:
-          type: string
-        employment_id:
-          type: string
-        hours_per_day:
-          type: string
-        id:
-          type: string
-        std_working_days:
-          type: string
-      required:
-        - created_at
-        - effective_date
-        - employment_id
-        - hours_per_day
-        - id
-        - std_working_days
     EmployeePhase:
       properties:
         completed_at:
@@ -14774,6 +14443,9 @@ components:
           nullable: true
         full_name:
           type: string
+        hire_type:
+          type: string
+          nullable: true
         id:
           type: string
         primary_location_id:
@@ -14783,6 +14455,12 @@ components:
           type: array
           items:
             type: string
+        tenure_id:
+          type: string
+          nullable: true
+        tenure_status:
+          type: string
+          nullable: true
         updated_at:
           type: string
         user_id:
@@ -14843,23 +14521,19 @@ components:
         - full_name
         - schedules
     EmployeeTenureClosed:
-      type: object
-      additionalProperties: false
       properties:
         closed_relationships:
-          type: integer
+          type: number
         closed_segments:
-          type: integer
+          type: number
         employee_id:
           type: string
-          format: uuid
         end_date:
           type: string
         sessions_revoked:
           type: boolean
         tenure_id:
           type: string
-          format: uuid
       required:
         - closed_relationships
         - closed_segments
@@ -14868,40 +14542,27 @@ components:
         - sessions_revoked
         - tenure_id
     EmployeeTenureCreated:
-      type: object
-      additionalProperties: false
       properties:
         employee_code:
           type: string
         employee_id:
           type: string
-          format: uuid
         employer_id:
           type: string
-          format: uuid
         employment_id:
           type: string
-          format: uuid
         hire_type:
           type: string
-          enum:
-            - initial
-            - rehire
         prior_service_credit_days:
-          type: integer
+          type: number
         relationship_id:
           type: string
-          format: uuid
         start_date:
           type: string
         status:
           type: string
-          enum:
-            - planned
-            - active
         tenure_id:
           type: string
-          format: uuid
       required:
         - employee_code
         - employee_id
@@ -14913,43 +14574,12 @@ components:
         - start_date
         - status
         - tenure_id
-    EmployeeTenureRelationshipSummary:
-      type: object
-      additionalProperties: false
-      properties:
-        employer_id:
-          type: string
-          format: uuid
-        employer_name:
-          type: string
-        end_date:
-          type: string
-          nullable: true
-        id:
-          type: string
-          format: uuid
-        start_date:
-          type: string
-        status:
-          type: string
-        termination_reason:
-          type: string
-          nullable: true
-      required:
-        - employer_id
-        - employer_name
-        - id
-        - start_date
-        - status
     EmployeeTenureRecord:
-      type: object
-      additionalProperties: false
       properties:
         created_at:
           type: string
         employee_id:
           type: string
-          format: uuid
         employee_number:
           type: string
         end_date:
@@ -14957,17 +14587,13 @@ components:
           nullable: true
         hire_type:
           type: string
-          enum:
-            - initial
-            - rehire
         id:
           type: string
-          format: uuid
         notes:
           type: string
           nullable: true
         prior_service_credit_days:
-          type: integer
+          type: number
         rehire_eligible:
           type: boolean
         relationships:
@@ -14978,10 +14604,6 @@ components:
           type: string
         status:
           type: string
-          enum:
-            - planned
-            - active
-            - closed
         termination_reason:
           type: string
           nullable: true
@@ -14989,7 +14611,6 @@ components:
           type: string
         user_id:
           type: string
-          format: uuid
           nullable: true
       required:
         - created_at
@@ -15003,40 +14624,30 @@ components:
         - start_date
         - status
         - updated_at
-    TerminateEmploymentRequest:
-      type: object
-      additionalProperties: false
+    EmployeeTenureRelationshipSummary:
       properties:
-        notes:
+        employer_id:
+          type: string
+        employer_name:
+          type: string
+        end_date:
           type: string
           nullable: true
-        rehire_eligible:
-          type: boolean
-          nullable: true
-        termination_date:
+        id:
+          type: string
+        start_date:
+          type: string
+        status:
           type: string
         termination_reason:
           type: string
           nullable: true
       required:
-        - termination_date
-    TerminateEmploymentResult:
-      type: object
-      additionalProperties: false
-      properties:
-        employment:
-          $ref: '#/components/schemas/Employment'
-        relationship_closed:
-          type: boolean
-        sessions_revoked:
-          type: boolean
-        tenure_closed:
-          type: boolean
-      required:
-        - employment
-        - relationship_closed
-        - sessions_revoked
-        - tenure_closed
+        - employer_id
+        - employer_name
+        - id
+        - start_date
+        - status
     EmployeeWorkingPattern:
       properties:
         anchor_date:
@@ -15326,6 +14937,8 @@ components:
           type: string
         status:
           type: string
+        tenure_id:
+          type: string
         termination_reason:
           type: string
           nullable: true
@@ -15338,6 +14951,7 @@ components:
         - id
         - start_date
         - status
+        - tenure_id
         - updated_at
     EmploymentRelationshipCreated:
       properties:
@@ -16431,24 +16045,17 @@ components:
         - start
         - status
     MatchEmployeeRequest:
-      type: object
-      additionalProperties: false
       properties:
         date_of_birth:
           type: string
-          maxLength: 32
         full_name:
           type: string
-          maxLength: 255
         national_id:
           type: string
-          maxLength: 128
         partial_phone:
           type: string
-          maxLength: 32
         phone:
           type: string
-          maxLength: 64
     MatchEmployeeResponse:
       type: object
       additionalProperties: false
@@ -17561,6 +17168,12 @@ components:
           nullable: true
         id:
           type: string
+        latest_published_version_id:
+          type: string
+          nullable: true
+        latest_published_version_no:
+          type: number
+          nullable: true
         name:
           type: string
         updated_at:
@@ -17574,13 +17187,13 @@ components:
       properties:
         policy:
           $ref: '#/components/schemas/OvertimePolicy'
-        rules:
+        versions:
           type: array
           items:
-            $ref: '#/components/schemas/OvertimeRule'
+            $ref: '#/components/schemas/OvertimePolicyVersion'
       required:
         - policy
-        - rules
+        - versions
     OvertimePolicyListResponse:
       properties:
         data:
@@ -17598,6 +17211,53 @@ components:
         - limit
         - page
         - total
+    OvertimePolicyVersion:
+      properties:
+        created_at:
+          type: string
+        created_by:
+          type: string
+        daily_cap_minutes:
+          type: number
+          nullable: true
+        id:
+          type: string
+        monthly_cap_hours:
+          type: string
+          nullable: true
+        policy_id:
+          type: string
+        published_at:
+          type: string
+          nullable: true
+        published_by:
+          type: string
+          nullable: true
+        row_version:
+          type: number
+        rules:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        updated_at:
+          type: string
+        version_no:
+          type: number
+        yearly_cap_hours:
+          type: string
+          nullable: true
+      required:
+        - created_at
+        - created_by
+        - id
+        - policy_id
+        - row_version
+        - rules
+        - status
+        - updated_at
+        - version_no
     OvertimeRequest:
       properties:
         attachment_file_ids:
@@ -17709,38 +17369,7 @@ components:
         - page
         - total
     OvertimeRule:
-      properties:
-        created_at:
-          type: string
-        days_of_week:
-          type: number
-        id:
-          type: string
-        is_holiday:
-          type: boolean
-        multiplier:
-          type: string
-        policy_id:
-          type: string
-        priority:
-          type: number
-        time_end:
-          type: string
-          nullable: true
-        time_start:
-          type: string
-          nullable: true
-        updated_at:
-          type: string
-      required:
-        - created_at
-        - days_of_week
-        - id
-        - is_holiday
-        - multiplier
-        - policy_id
-        - priority
-        - updated_at
+      additionalProperties: true
     OvertimeTrendPoint:
       properties:
         approved_ot_hours:
@@ -17967,6 +17596,73 @@ components:
           nullable: true
         reason:
           type: string
+    PatchOvertimePolicyVersionRequest:
+      properties:
+        daily_cap_minutes:
+          type: number
+          nullable: true
+        expected_row_version:
+          type: number
+        monthly_cap_hours:
+          type: string
+          nullable: true
+        rules:
+          type: array
+          items:
+            type: string
+        yearly_cap_hours:
+          type: string
+          nullable: true
+    PatchWorkPolicyVersionRequest:
+      properties:
+        break_auto_deduct:
+          type: boolean
+        break_is_overtime:
+          type: boolean
+        early_arrival_strategy:
+          type: string
+        early_ot_enabled:
+          type: boolean
+        early_ot_max_minutes:
+          type: number
+          nullable: true
+        early_ot_qualification_grace_minutes:
+          type: number
+        effective_from:
+          type: string
+        effective_to:
+          type: string
+          nullable: true
+        expected_row_version:
+          type: number
+        late_arrival_grace_minutes:
+          type: number
+        minutes_per_credit:
+          type: number
+        monthly_denominator:
+          type: string
+          nullable: true
+        monthly_standard_days:
+          type: string
+          nullable: true
+        ot_aggregation_mode:
+          type: string
+        overtime_policy_version_id:
+          type: string
+        paid_leave_credit_mode:
+          type: string
+        pay_method:
+          type: string
+        rate_component_definition_id:
+          type: string
+          nullable: true
+        rounding_policy:
+          type: string
+        work_unit_minutes:
+          type: number
+        working_pattern_id:
+          type: string
+          nullable: true
     PayrollCalculationRun:
       properties:
         calculation_trace:
@@ -18514,35 +18210,7 @@ components:
         - rule_definition_id
         - tier_order
     PayrollSettings:
-      properties:
-        created_at:
-          type: string
-        effective_date:
-          type: string
-        fixed_std_days:
-          type: string
-        hours_per_day:
-          type: string
-        max_ot_hours_per_day:
-          type: string
-          nullable: true
-        max_ot_hours_per_month:
-          type: string
-          nullable: true
-        std_working_day_mode:
-          type: string
-        updated_at:
-          type: string
-        working_days_per_week:
-          type: number
-      required:
-        - created_at
-        - effective_date
-        - fixed_std_days
-        - hours_per_day
-        - std_working_day_mode
-        - updated_at
-        - working_days_per_week
+      additionalProperties: true
     PayslipRecord:
       properties:
         base_pay_amount:
@@ -18625,9 +18293,6 @@ components:
           type: string
         id:
           type: string
-        labor_policy_version_id:
-          type: string
-          nullable: true
         paid_work_days:
           type: string
         payslip_id:
@@ -18637,6 +18302,9 @@ components:
         start_date:
           type: string
         std_days_source:
+          type: string
+          nullable: true
+        work_policy_version_id:
           type: string
           nullable: true
       required:
@@ -18705,53 +18373,6 @@ components:
         - group
         - id
         - label_key
-    PolicyAssignmentListResponse:
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/PolicyAssignmentResponse'
-        limit:
-          type: number
-        page:
-          type: number
-        total:
-          type: number
-      required:
-        - data
-        - limit
-        - page
-        - total
-    PolicyAssignmentResponse:
-      properties:
-        department_name:
-          type: string
-          nullable: true
-        id:
-          type: string
-        rules:
-          $ref: '#/components/schemas/AttendanceRules'
-        target_code:
-          type: string
-          nullable: true
-        target_id:
-          type: string
-        target_name:
-          type: string
-          nullable: true
-        target_type:
-          type: string
-        valid_from:
-          type: string
-        valid_to:
-          type: string
-          nullable: true
-      required:
-        - id
-        - rules
-        - target_id
-        - target_type
-        - valid_from
     PreviewPayrollFormulaRequest:
       properties:
         expression:
@@ -18796,6 +18417,18 @@ components:
         - leave_type_name
         - new_entitlement
         - old_entitlement
+    PublishOvertimePolicyVersionRequest:
+      properties:
+        expected_row_version:
+          type: number
+    PublishWorkPolicyVersionRequest:
+      properties:
+        auto_close_previous:
+          type: boolean
+        expected_row_version:
+          type: number
+        idempotency_key:
+          type: string
     PunchInRequest:
       properties:
         employment_id:
@@ -19131,6 +18764,113 @@ components:
         - key
         - scope_type
         - value
+    ResolvedWorkPolicyResponse:
+      properties:
+        break_auto_deduct:
+          type: boolean
+        break_is_overtime:
+          type: boolean
+        daily_cap_minutes:
+          type: number
+          nullable: true
+        early_arrival_strategy:
+          type: string
+        early_ot_enabled:
+          type: boolean
+        early_ot_max_minutes:
+          type: number
+          nullable: true
+        early_ot_qualification_grace_minutes:
+          type: number
+        effective_from:
+          type: string
+        effective_to:
+          type: string
+          nullable: true
+        employment_relationship_id:
+          type: string
+        group_code:
+          type: string
+        group_id:
+          type: string
+        group_name:
+          type: string
+        late_arrival_grace_minutes:
+          type: number
+        membership_id:
+          type: string
+        minutes_per_credit:
+          type: number
+        monthly_cap_hours:
+          type: string
+          nullable: true
+        monthly_denominator:
+          type: string
+          nullable: true
+        monthly_standard_days:
+          type: string
+          nullable: true
+        ot_aggregation_mode:
+          type: string
+        overtime_policy_id:
+          type: string
+        overtime_policy_version_id:
+          type: string
+        overtime_policy_version_no:
+          type: number
+        overtime_rules:
+          type: array
+          items:
+            type: string
+        paid_leave_credit_mode:
+          type: string
+        pay_method:
+          type: string
+        rate_component_definition_id:
+          type: string
+          nullable: true
+        rounding_policy:
+          type: string
+        status:
+          type: string
+        version_id:
+          type: string
+        version_no:
+          type: number
+        work_unit_minutes:
+          type: number
+        working_pattern_id:
+          type: string
+          nullable: true
+        yearly_cap_hours:
+          type: string
+          nullable: true
+      required:
+        - break_auto_deduct
+        - break_is_overtime
+        - early_arrival_strategy
+        - early_ot_enabled
+        - early_ot_qualification_grace_minutes
+        - effective_from
+        - employment_relationship_id
+        - group_code
+        - group_id
+        - group_name
+        - late_arrival_grace_minutes
+        - membership_id
+        - minutes_per_credit
+        - ot_aggregation_mode
+        - overtime_policy_id
+        - overtime_policy_version_id
+        - overtime_policy_version_no
+        - overtime_rules
+        - paid_leave_credit_mode
+        - pay_method
+        - rounding_policy
+        - status
+        - version_id
+        - version_no
+        - work_unit_minutes
     RespondShiftSwapRequest:
       properties:
         accept:
@@ -20007,22 +19747,6 @@ components:
     SetCustomFieldValueRequest:
       allOf:
         - $ref: '#/components/schemas/SetCustomFieldValueItem'
-    SetDepartmentPayrollConfigRequest:
-      properties:
-        effective_date:
-          type: string
-        hours_per_day:
-          type: string
-        std_working_days:
-          type: string
-    SetEmployeePayrollConfigRequest:
-      properties:
-        effective_date:
-          type: string
-        hours_per_day:
-          type: string
-        std_working_days:
-          type: string
     Shift:
       properties:
         created_at:
@@ -20518,6 +20242,34 @@ components:
           type: string
       required:
         - filled_content
+    TerminateEmploymentRequest:
+      properties:
+        notes:
+          type: string
+          nullable: true
+        rehire_eligible:
+          type: boolean
+          nullable: true
+        termination_date:
+          type: string
+        termination_reason:
+          type: string
+          nullable: true
+    TerminateEmploymentResult:
+      properties:
+        employment:
+          $ref: '#/components/schemas/Employment'
+        relationship_closed:
+          type: boolean
+        sessions_revoked:
+          type: boolean
+        tenure_closed:
+          type: boolean
+      required:
+        - employment
+        - relationship_closed
+        - sessions_revoked
+        - tenure_closed
     TerminationImportJob:
       properties:
         job_id:
@@ -20699,6 +20451,23 @@ components:
         notes:
           type: string
           nullable: true
+    TransferWorkPolicyMembershipRequest:
+      properties:
+        effective_date:
+          type: string
+        employment_relationship_id:
+          type: string
+        target_group_id:
+          type: string
+    TransferWorkPolicyMembershipResponse:
+      properties:
+        closed_membership:
+          $ref: '#/components/schemas/WorkPolicyMembership'
+          nullable: true
+        new_membership:
+          $ref: '#/components/schemas/WorkPolicyMembership'
+      required:
+        - new_membership
     TriggerAccrualRequest:
       properties:
         date:
@@ -21002,23 +20771,6 @@ components:
           nullable: true
         start_date:
           type: string
-          nullable: true
-    UpdateAttendanceRulesRequest:
-      properties:
-        early_arrival_strategy:
-          type: string
-          nullable: true
-        grace_period_minutes:
-          type: number
-          nullable: true
-        rounding_policy:
-          type: string
-          nullable: true
-        valid_from:
-          type: string
-          nullable: true
-        work_unit_minutes:
-          type: number
           nullable: true
     UpdateChecklistItemStatusRequest:
       properties:
@@ -21467,28 +21219,7 @@ components:
         version:
           type: number
     UpdatePayrollSettingsRequest:
-      properties:
-        effective_date:
-          type: string
-          nullable: true
-        fixed_std_days:
-          type: string
-          nullable: true
-        hours_per_day:
-          type: string
-          nullable: true
-        max_ot_hours_per_day:
-          type: string
-          nullable: true
-        max_ot_hours_per_month:
-          type: string
-          nullable: true
-        std_working_day_mode:
-          type: string
-          nullable: true
-        working_days_per_week:
-          type: number
-          nullable: true
+      additionalProperties: true
     UpdateRecruitmentSourceRequest:
       properties:
         agency_contact_email:
@@ -21661,24 +21392,6 @@ components:
     UpdateWorkingPatternRequest:
       allOf:
         - $ref: '#/components/schemas/CreateWorkingPatternRequest'
-    UpsertPolicyAssignmentRequest:
-      properties:
-        early_arrival_strategy:
-          type: string
-        grace_period_minutes:
-          type: number
-          nullable: true
-        rounding_policy:
-          type: string
-        target_id:
-          type: string
-        target_type:
-          type: string
-        valid_from:
-          type: string
-          nullable: true
-        work_unit_minutes:
-          type: number
     ValidTerminationImportRow:
       properties:
         employee_code:
@@ -21749,12 +21462,119 @@ components:
         - status
         - timezone
         - updated_at
+    WorkPolicyBatchSimulationItem:
+      properties:
+        affected:
+          type: boolean
+        baseline_gross:
+          type: string
+          nullable: true
+        baseline_net:
+          type: string
+          nullable: true
+        baseline_ot_pay:
+          type: string
+          nullable: true
+        candidate_gross:
+          type: string
+          nullable: true
+        candidate_net:
+          type: string
+          nullable: true
+        candidate_ot_pay:
+          type: string
+          nullable: true
+        employment_id:
+          type: string
+          nullable: true
+        employment_relationship_id:
+          type: string
+        gross_delta:
+          type: string
+          nullable: true
+        input_fingerprint:
+          type: string
+        net_delta:
+          type: string
+          nullable: true
+        ot_pay_delta:
+          type: string
+          nullable: true
+        reason:
+          type: string
+        status:
+          type: string
+        trace:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayrollCalculationTrace'
+      required:
+        - affected
+        - employment_relationship_id
+        - input_fingerprint
+        - reason
+        - status
+        - trace
+    WorkPolicyBatchSimulationRequest:
+      properties:
+        employment_relationship_ids:
+          type: array
+          items:
+            type: string
+        month:
+          type: number
+        year:
+          type: number
+    WorkPolicyBatchSimulationResponse:
+      properties:
+        affected:
+          type: number
+        computed:
+          type: number
+        evaluated_at:
+          type: string
+        expires_at:
+          type: string
+        group_id:
+          type: string
+        input_fingerprint:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkPolicyBatchSimulationItem'
+        period_month:
+          type: number
+        period_year:
+          type: number
+        stale_after_seconds:
+          type: number
+        total:
+          type: number
+        uncomputable:
+          type: number
+        version_id:
+          type: string
+      required:
+        - affected
+        - computed
+        - evaluated_at
+        - expires_at
+        - group_id
+        - input_fingerprint
+        - items
+        - period_month
+        - period_year
+        - stale_after_seconds
+        - total
+        - uncomputable
+        - version_id
     WorkPolicyGroupListResponse:
       properties:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/WorkPolicyGroupVersion'
+            $ref: '#/components/schemas/WorkPolicyGroupSummary'
         limit:
           type: number
         page:
@@ -21766,14 +21586,94 @@ components:
         - limit
         - page
         - total
-    WorkPolicyGroupVersion:
+    WorkPolicyGroupSummary:
       properties:
-        attendance_policy_id:
+        active_membership_count:
+          type: number
+        archived_at:
           type: string
+          nullable: true
+        code:
+          type: string
+        created_at:
+          type: string
+        current_published:
+          $ref: '#/components/schemas/WorkPolicyVersion'
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        id:
+          type: string
+        latest_draft:
+          $ref: '#/components/schemas/WorkPolicyVersion'
+          nullable: true
+        name:
+          type: string
+        updated_at:
+          type: string
+      required:
+        - active_membership_count
+        - code
+        - created_at
+        - id
+        - name
+        - updated_at
+    WorkPolicyMembership:
+      properties:
+        created_at:
+          type: string
+        effective_from:
+          type: string
+        effective_to:
+          type: string
+          nullable: true
+        employment_relationship_id:
+          type: string
+        group_id:
+          type: string
+        id:
+          type: string
+      required:
+        - created_at
+        - effective_from
+        - employment_relationship_id
+        - group_id
+        - id
+    WorkPolicyValidationResponse:
+      properties:
+        blockers:
+          type: array
+          items:
+            type: string
+        checked_at:
+          type: string
+        valid:
+          type: boolean
+        version_id:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+      required:
+        - blockers
+        - checked_at
+        - valid
+        - version_id
+        - warnings
+    WorkPolicyVersion:
+      properties:
         break_auto_deduct:
           type: boolean
         break_is_overtime:
           type: boolean
+        created_at:
+          type: string
+        created_by:
+          type: string
+        early_arrival_strategy:
+          type: string
         early_ot_enabled:
           type: boolean
         early_ot_max_minutes:
@@ -21786,7 +21686,11 @@ components:
         effective_to:
           type: string
           nullable: true
+        group_code:
+          type: string
         group_id:
+          type: string
+        group_name:
           type: string
         id:
           type: string
@@ -21800,102 +21704,143 @@ components:
         monthly_standard_days:
           type: string
           nullable: true
-        name:
-          type: string
         ot_aggregation_mode:
           type: string
-        overtime_policy_id:
+        overtime_policy_version_id:
           type: string
-        pay_basis_policy_id:
+        paid_leave_credit_mode:
           type: string
-        pay_basis_policy_name:
+        pay_method:
+          type: string
+        published_at:
+          type: string
+          nullable: true
+        published_by:
+          type: string
+          nullable: true
+        rate_component_definition_id:
+          type: string
+          nullable: true
+        rounding_policy:
+          type: string
+        row_version:
+          type: number
+        status:
+          type: string
+        updated_at:
+          type: string
+        version_no:
+          type: number
+        work_unit_minutes:
+          type: number
+        working_pattern_id:
+          type: string
+          nullable: true
+      required:
+        - break_auto_deduct
+        - break_is_overtime
+        - created_at
+        - created_by
+        - early_arrival_strategy
+        - early_ot_enabled
+        - early_ot_qualification_grace_minutes
+        - effective_from
+        - group_code
+        - group_id
+        - group_name
+        - id
+        - late_arrival_grace_minutes
+        - minutes_per_credit
+        - ot_aggregation_mode
+        - overtime_policy_version_id
+        - paid_leave_credit_mode
+        - pay_method
+        - rounding_policy
+        - row_version
+        - status
+        - updated_at
+        - version_no
+        - work_unit_minutes
+    WorkPolicyVersionFieldsPayload:
+      properties:
+        break_auto_deduct:
+          type: boolean
+        break_is_overtime:
+          type: boolean
+        early_arrival_strategy:
+          type: string
+        early_ot_enabled:
+          type: boolean
+        early_ot_max_minutes:
+          type: number
+          nullable: true
+        early_ot_qualification_grace_minutes:
+          type: number
+        effective_from:
+          type: string
+        effective_to:
+          type: string
+          nullable: true
+        late_arrival_grace_minutes:
+          type: number
+        minutes_per_credit:
+          type: number
+        monthly_denominator:
+          type: string
+          nullable: true
+        monthly_standard_days:
+          type: string
+          nullable: true
+        ot_aggregation_mode:
+          type: string
+        overtime_policy_version_id:
+          type: string
+        paid_leave_credit_mode:
           type: string
         pay_method:
           type: string
         rate_component_definition_id:
           type: string
           nullable: true
-        work_credit_policy_id:
+        rounding_policy:
           type: string
-        work_credit_policy_name:
-          type: string
+        work_unit_minutes:
+          type: number
         working_pattern_id:
           type: string
+          nullable: true
       required:
-        - attendance_policy_id
         - break_auto_deduct
         - break_is_overtime
+        - early_arrival_strategy
         - early_ot_enabled
         - early_ot_qualification_grace_minutes
         - effective_from
-        - group_id
-        - id
         - late_arrival_grace_minutes
         - minutes_per_credit
-        - name
         - ot_aggregation_mode
-        - overtime_policy_id
-        - pay_basis_policy_id
-        - pay_basis_policy_name
+        - overtime_policy_version_id
+        - paid_leave_credit_mode
         - pay_method
-        - work_credit_policy_id
-        - work_credit_policy_name
-        - working_pattern_id
-    WorkPolicyMembership:
+        - rounding_policy
+        - work_unit_minutes
+    WorkPolicyVersionListResponse:
       properties:
-        effective_from:
-          type: string
-        effective_to:
-          type: string
-          nullable: true
-        employment_id:
-          type: string
-        group_id:
-          type: string
-        id:
-          type: string
-      required:
-        - effective_from
-        - employment_id
-        - group_id
-        - id
-    WorkPolicyValidationIssue:
-      properties:
-        code:
-          type: string
-        field:
-          type: string
-        message:
-          type: string
-        severity:
-          type: string
-      required:
-        - code
-        - field
-        - message
-        - severity
-    WorkPolicyValidationResponse:
-      properties:
-        blockers:
+        data:
           type: array
           items:
-            $ref: '#/components/schemas/WorkPolicyValidationIssue'
-        checked_at:
-          type: string
-        valid:
-          type: boolean
-        version_id:
-          type: string
-        warnings:
-          type: array
-          items:
-            $ref: '#/components/schemas/WorkPolicyValidationIssue'
+            $ref: '#/components/schemas/WorkPolicyVersion'
+        limit:
+          type: number
+        page:
+          type: number
+        total:
+          type: number
       required:
-        - blockers
-        - checked_at
-        - valid
-        - version_id
-        - warnings
+        - data
+        - limit
+        - page
+        - total
     WorkSegment:
       properties:
         break_config_override:

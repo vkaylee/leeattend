@@ -26,19 +26,12 @@ type ConfigKeyDefinition struct {
 }
 
 var configKeyRegistry = map[string]ConfigKeyDefinition{
-	"payroll.std_working_day_mode":   {Type: ConfigValueText, AllowedScopes: []string{"organization"}, EffectiveDated: true},
-	"payroll.fixed_std_days":         {Type: ConfigValueDecimal, AllowedScopes: []string{"organization", "department", "employment"}, EffectiveDated: true},
-	"payroll.working_days_per_week":  {Type: ConfigValueInt, AllowedScopes: []string{"organization"}, EffectiveDated: true},
-	"payroll.hours_per_day":          {Type: ConfigValueDecimal, AllowedScopes: []string{"organization", "department", "employment"}, EffectiveDated: true},
-	"payroll.max_ot_hours_per_day":   {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
-	"payroll.max_ot_hours_per_month": {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
-	"payroll.kpi.output_weight":      {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
-	"payroll.kpi.quality_weight":     {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
-	"payroll.kpi.target_bonus":       {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
-	"payroll.kpi.score_cap":          {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
-	"payroll.kpi.bonus_cap":          {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
-	"overtime.max_hours_per_month":   {Type: ConfigValueDecimal, AllowedScopes: []string{"organization", "employer", "department", "employee", "employment"}, EffectiveDated: true},
-	"schedule.lifecycle.enabled":     {Type: ConfigValueBool, AllowedScopes: []string{"employer"}, EffectiveDated: true},
+	"payroll.kpi.output_weight":  {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
+	"payroll.kpi.quality_weight": {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
+	"payroll.kpi.target_bonus":   {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
+	"payroll.kpi.score_cap":      {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
+	"payroll.kpi.bonus_cap":      {Type: ConfigValueDecimal, AllowedScopes: []string{"organization"}, EffectiveDated: true},
+	"schedule.lifecycle.enabled": {Type: ConfigValueBool, AllowedScopes: []string{"employer"}, EffectiveDated: true},
 }
 
 var (

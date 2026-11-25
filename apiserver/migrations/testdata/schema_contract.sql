@@ -332,49 +332,78 @@ BEGIN
     END IF;
 
     FOREACH v_required_table_name IN ARRAY ARRAY[
+        'overtime_policy_versions'::text,
+        'work_policy_groups'::text,
+        'work_policy_versions'::text,
+        'work_policy_memberships'::text
+    ] LOOP
+        IF to_regclass('public.' || v_required_table_name) IS NULL THEN
+            RAISE EXCEPTION 'schema check failed: work policy v2 table % is missing', v_required_table_name;
+        END IF;
+    END LOOP;
+
+    FOREACH v_required_table_name IN ARRAY ARRAY[
         'work_credit_policies'::text,
         'pay_basis_policies'::text,
         'labor_policy_groups'::text,
         'labor_policy_group_versions'::text,
-        'labor_policy_memberships'::text
+        'labor_policy_memberships'::text,
+        'attendance_policies'::text,
+        'attendance_policy_versions'::text,
+        'attendance_policy_assignments'::text,
+        'overtime_policy_assignments'::text,
+        'overtime_rules'::text,
+        'department_payroll_reconciliation'::text
     ] LOOP
-        IF to_regclass('public.' || v_required_table_name) IS NULL THEN
-            RAISE EXCEPTION 'schema check failed: work policy table % is missing', v_required_table_name;
+        IF to_regclass('public.' || v_required_table_name) IS NOT NULL THEN
+            RAISE EXCEPTION 'schema check failed: legacy work policy object % remains', v_required_table_name;
         END IF;
     END LOOP;
 
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint
-        WHERE conrelid = 'public.labor_policy_group_versions'::regclass
-          AND conname = 'labor_policy_group_versions_effective_no_overlap'
+        WHERE conrelid = 'public.work_policy_versions'::regclass
+          AND conname = 'work_policy_versions_published_no_overlap'
           AND contype = 'x'
     ) OR NOT EXISTS (
         SELECT 1 FROM pg_constraint
-        WHERE conrelid = 'public.labor_policy_memberships'::regclass
-          AND conname = 'labor_policy_memberships_effective_no_overlap'
+        WHERE conrelid = 'public.work_policy_memberships'::regclass
+          AND conname = 'work_policy_memberships_effective_no_overlap'
           AND contype = 'x'
     ) THEN
-        RAISE EXCEPTION 'schema check failed: work policy overlap constraints are missing';
+        RAISE EXCEPTION 'schema check failed: work policy v2 overlap constraints are missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgrelid = 'public.overtime_policy_versions'::regclass
+          AND tgname = 'trg_guard_overtime_policy_version_immutability'
+          AND NOT tgisinternal
+    ) OR NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgrelid = 'public.work_policy_versions'::regclass
+          AND tgname = 'trg_guard_work_policy_version_immutability'
+          AND NOT tgisinternal
+    ) OR NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgrelid = 'public.work_policy_memberships'::regclass
+          AND tgname = 'trg_work_policy_memberships_rel_bounds'
+          AND NOT tgisinternal
+    ) OR NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgrelid = 'public.employment_relationships'::regclass
+          AND tgname = 'trg_employment_relationships_policy_bounds_guard'
+          AND NOT tgisinternal
+    ) THEN
+        RAISE EXCEPTION 'schema check failed: work policy v2 immutability or containment triggers are missing';
     END IF;
 
     SELECT count(*) INTO v_marker_count
     FROM public.schema_migrations
-    WHERE version = '20261114080000_labor_policy_groups';
+    WHERE version = '20261127000000_work_policy_v2_standardization';
 
     IF v_marker_count <> 1 THEN
-        RAISE EXCEPTION 'schema check failed: labor policy migration marker is missing';
-    END IF;
-
-    IF to_regclass('public.department_payroll_reconciliation') IS NULL THEN
-        RAISE EXCEPTION 'schema check failed: department payroll reconciliation view is missing';
-    END IF;
-
-    SELECT count(*) INTO v_marker_count
-    FROM public.schema_migrations
-    WHERE version = '20261115010000_department_payroll_reconciliation';
-
-    IF v_marker_count <> 1 THEN
-        RAISE EXCEPTION 'schema check failed: department payroll reconciliation migration marker is missing';
+        RAISE EXCEPTION 'schema check failed: work policy v2 migration marker is missing';
     END IF;
 
     IF to_regclass('public.payroll_calculation_runs_policy_snapshot_idx') IS NOT NULL THEN
@@ -400,10 +429,16 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_attribute
         WHERE attrelid = 'public.payslip_segments'::regclass
-          AND attname = 'labor_policy_group_version_id'
+          AND attname = 'work_policy_version_id'
           AND NOT attisdropped
-    ) OR to_regclass('public.payslip_segments_labor_policy_version_idx') IS NULL THEN
-        RAISE EXCEPTION 'schema check failed: payslip segment labor policy snapshot storage is missing';
+    ) OR to_regclass('public.payslip_segments_work_policy_version_idx') IS NULL
+      OR NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.attendance_daily_summaries'::regclass
+          AND conname = 'attendance_daily_summaries_work_policy_version_id_fkey'
+          AND contype = 'f'
+    ) THEN
+        RAISE EXCEPTION 'schema check failed: payslip segment or attendance work policy version snapshot storage is missing';
     END IF;
 
     IF to_regclass('public.shift_swap_requests_official_revisions_idx') IS NULL

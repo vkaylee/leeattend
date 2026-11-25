@@ -82,42 +82,6 @@ type PayslipRecord struct {
 	CreatedAt                string          `json:"created_at"`
 	UpdatedAt                string          `json:"updated_at"`
 }
-type PayrollSettings struct {
-	StdWorkingDayMode  string           `json:"std_working_day_mode"`
-	FixedStdDays       decimal.Decimal  `json:"fixed_std_days"`
-	WorkingDaysPerWeek int              `json:"working_days_per_week"`
-	HoursPerDay        decimal.Decimal  `json:"hours_per_day"`
-	MaxOtHoursPerDay   *decimal.Decimal `json:"max_ot_hours_per_day"`
-	MaxOtHoursPerMonth *decimal.Decimal `json:"max_ot_hours_per_month"`
-	EffectiveDate      string           `json:"effective_date"`
-	CreatedAt          string           `json:"created_at"`
-	UpdatedAt          string           `json:"updated_at"`
-}
-
-type UpdatePayrollSettingsRequest struct {
-	StdWorkingDayMode  *string           `json:"std_working_day_mode,omitempty"`
-	FixedStdDays       *decimal.Decimal  `json:"fixed_std_days,omitempty"`
-	WorkingDaysPerWeek *int              `json:"working_days_per_week,omitempty"`
-	HoursPerDay        *decimal.Decimal  `json:"hours_per_day,omitempty"`
-	MaxOtHoursPerDay   **decimal.Decimal `json:"max_ot_hours_per_day,omitempty"`
-	MaxOtHoursPerMonth **decimal.Decimal `json:"max_ot_hours_per_month,omitempty"`
-	EffectiveDate      *string           `json:"effective_date,omitempty"`
-}
-
-type EmployeePayrollConfig struct {
-	ID             uuid.UUID       `json:"id"`
-	EmploymentID   uuid.UUID       `json:"employment_id"`
-	StdWorkingDays decimal.Decimal `json:"std_working_days"`
-	HoursPerDay    decimal.Decimal `json:"hours_per_day"`
-	EffectiveDate  string          `json:"effective_date"`
-	CreatedAt      string          `json:"created_at"`
-}
-
-type SetEmployeePayrollConfigRequest struct {
-	StdWorkingDays decimal.Decimal `json:"std_working_days"`
-	HoursPerDay    decimal.Decimal `json:"hours_per_day"`
-	EffectiveDate  string          `json:"effective_date"`
-}
 
 type IncentiveTier struct {
 	ID           uuid.UUID       `json:"id"`
@@ -223,20 +187,20 @@ type PayrollRuleAssignment struct {
 }
 
 type PayslipSegmentResponse struct {
-	ID                   uuid.UUID       `json:"id"`
-	PayslipID            uuid.UUID       `json:"payslip_id"`
-	StartDate            string          `json:"start_date"`
-	EndDate              string          `json:"end_date"`
-	DepartmentID         *uuid.UUID      `json:"department_id"`
-	AppliedBaseSalary    decimal.Decimal `json:"applied_base_salary"`
-	AppliedStdDays       decimal.Decimal `json:"applied_std_days"`
-	AppliedHoursPerDay   decimal.Decimal `json:"applied_hours_per_day"`
-	ActualWorkDays       decimal.Decimal `json:"actual_work_days"`
-	PaidWorkDays         decimal.Decimal `json:"paid_work_days"`
-	Amount               decimal.Decimal `json:"amount"`
-	Reason               string          `json:"reason"`
-	StdDaysSource        *string         `json:"std_days_source,omitempty"`
-	LaborPolicyVersionID *uuid.UUID      `json:"labor_policy_version_id,omitempty"`
+	ID                  uuid.UUID       `json:"id"`
+	PayslipID           uuid.UUID       `json:"payslip_id"`
+	StartDate           string          `json:"start_date"`
+	EndDate             string          `json:"end_date"`
+	DepartmentID        *uuid.UUID      `json:"department_id"`
+	AppliedBaseSalary   decimal.Decimal `json:"applied_base_salary"`
+	AppliedStdDays      decimal.Decimal `json:"applied_std_days"`
+	AppliedHoursPerDay  decimal.Decimal `json:"applied_hours_per_day"`
+	ActualWorkDays      decimal.Decimal `json:"actual_work_days"`
+	PaidWorkDays        decimal.Decimal `json:"paid_work_days"`
+	Amount              decimal.Decimal `json:"amount"`
+	Reason              string          `json:"reason"`
+	StdDaysSource       *string         `json:"std_days_source,omitempty"`
+	WorkPolicyVersionID *uuid.UUID      `json:"work_policy_version_id,omitempty"`
 }
 
 type IncentiveEvaluationResult struct {
@@ -468,6 +432,47 @@ type ReopenPayrollPeriodRequest struct {
 	Reason  string `json:"reason"`
 }
 
+type WorkPolicyBatchSimulationRequest struct {
+	Year                      int         `json:"year"`
+	Month                     int         `json:"month"`
+	EmploymentRelationshipIDs []uuid.UUID `json:"employment_relationship_ids"`
+}
+
+type WorkPolicyBatchSimulationItem struct {
+	EmploymentRelationshipID uuid.UUID                 `json:"employment_relationship_id"`
+	EmploymentID             *uuid.UUID                `json:"employment_id,omitempty"`
+	Status                   string                    `json:"status"` // "computed" | "uncomputable"
+	Affected                 bool                      `json:"affected"`
+	Reason                   string                    `json:"reason,omitempty"`
+	InputFingerprint         string                    `json:"input_fingerprint,omitempty"`
+	BaselineGross            *decimal.Decimal          `json:"baseline_gross,omitempty"`
+	CandidateGross           *decimal.Decimal          `json:"candidate_gross,omitempty"`
+	GrossDelta               *decimal.Decimal          `json:"gross_delta,omitempty"`
+	BaselineNet              *decimal.Decimal          `json:"baseline_net,omitempty"`
+	CandidateNet             *decimal.Decimal          `json:"candidate_net,omitempty"`
+	NetDelta                 *decimal.Decimal          `json:"net_delta,omitempty"`
+	BaselineOTPay            *decimal.Decimal          `json:"baseline_ot_pay,omitempty"`
+	CandidateOTPay           *decimal.Decimal          `json:"candidate_ot_pay,omitempty"`
+	OTPayDelta               *decimal.Decimal          `json:"ot_pay_delta,omitempty"`
+	Trace                    []PayrollCalculationTrace `json:"trace,omitempty"`
+}
+
+type WorkPolicyBatchSimulationResponse struct {
+	GroupID           uuid.UUID                       `json:"group_id"`
+	VersionID         uuid.UUID                       `json:"version_id"`
+	PeriodYear        int                             `json:"period_year"`
+	PeriodMonth       int                             `json:"period_month"`
+	Total             int                             `json:"total"`
+	Computed          int                             `json:"computed"`
+	Affected          int                             `json:"affected"`
+	Uncomputable      int                             `json:"uncomputable"`
+	InputFingerprint  string                          `json:"input_fingerprint"`
+	EvaluatedAt       string                          `json:"evaluated_at"`
+	ExpiresAt         string                          `json:"expires_at"`
+	StaleAfterSeconds int                             `json:"stale_after_seconds"`
+	Items             []WorkPolicyBatchSimulationItem `json:"items"`
+}
+
 type PayrollRepository interface {
 	ListPayslips(context.Context, time.Time, time.Time) ([]PayslipRecord, error)
 	ListSalaryManagementRows(context.Context, SalaryManagementQuery) (SalaryManagementResponse, error)
@@ -476,11 +481,6 @@ type PayrollRepository interface {
 	CreateSalaryComponent(context.Context, CreateSalaryComponentRequest) (SalaryComponentDefinition, error)
 	ListEmploymentSalaryComponents(context.Context, ids.EmploymentID) ([]EmploymentSalaryComponentResponse, error)
 	AssignEmploymentSalaryComponent(context.Context, ids.EmploymentID, AssignSalaryComponentRequest) (EmployeeSalaryComponent, error)
-	GetPayrollSettings(context.Context) (*PayrollSettings, error)
-	GetPayrollSettingsHistory(context.Context) ([]PayrollSettings, error)
-	UpdatePayrollSettings(context.Context, UpdatePayrollSettingsRequest) (PayrollSettings, error)
-	GetEmployeePayrollConfigs(context.Context, ids.EmployeeID) ([]EmployeePayrollConfig, error)
-	SetEmployeePayrollConfig(context.Context, ids.EmployeeID, SetEmployeePayrollConfigRequest, ids.UserID) (EmployeePayrollConfig, error)
 	GetIncentivePolicies(context.Context) ([]PayrollIncentivePolicyResponse, error)
 	CreateIncentivePolicy(context.Context, CreatePayrollIncentivePolicyRequest) (PayrollIncentivePolicy, error)
 	DeleteIncentivePolicy(context.Context, ids.PayrollIncentivePolicyID) error
@@ -496,6 +496,7 @@ type PayrollRepository interface {
 	CalculateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
 	SimulateEmployeePayroll(context.Context, ids.EmployeeID, int, int, ids.UserID) (FullPayslipResponse, error)
 	SimulateEmployeePayrollWithPolicy(context.Context, ids.EmployeeID, int, int, uuid.UUID, ids.UserID) (FullPayslipResponse, error)
+	SimulateWorkPolicyVersionBatch(context.Context, uuid.UUID, uuid.UUID, WorkPolicyBatchSimulationRequest) (WorkPolicyBatchSimulationResponse, error)
 	CalculateBatchPayroll(context.Context, BatchCalculatePayrollRequest, ids.UserID) (BatchCalculatePayrollResponse, error)
 	CreatePayrollInputBatch(context.Context, CreatePayrollInputRequest, ids.UserID) (PayrollInputBatch, error)
 	ApprovePayrollInputBatch(context.Context, ids.PayrollInputBatchID, ids.UserID) (PayrollInputBatch, error)
@@ -508,7 +509,7 @@ type PayrollRepository interface {
 	CreatePayrollFormulaRuleVersion(context.Context, ids.PayrollFormulaRuleID, CreatePayrollFormulaRuleVersionRequest, ids.UserID) (PayrollFormulaRuleVersion, error)
 	PublishPayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
 	RetirePayrollFormulaRule(context.Context, ids.PayrollFormulaRuleID, ids.UserID) (PayrollFormulaRule, error)
-	ListPayrollCalculationRuns(context.Context, ids.EmploymentID, int, int) ([]PayrollCalculationRun, error)
+	ListPayrollCalculationRuns(context.Context, ids.EmploymentID, int, int, int) ([]PayrollCalculationRun, error)
 	ComparePayrollImpact(context.Context, ids.EmploymentID, int, int, uuid.UUID, uuid.UUID) (PayrollImpactResponse, error)
 	ComparePayrollImpactBatch(context.Context, PayrollImpactBatchRequest) (PayrollImpactBatchResponse, error)
 	GetPayrollPeriod(context.Context, ids.EmployerID, int, int) (PayrollPeriod, error)
@@ -629,109 +630,6 @@ func (h *PayrollHandler) AssignEmploymentSalaryComponent(w http.ResponseWriter, 
 		return
 	}
 	apperror.WriteJSON(w, http.StatusCreated, comp)
-}
-
-func (h *PayrollHandler) GetPayrollSettings(w http.ResponseWriter, r *http.Request) {
-
-	if !h.allowedMember(r) {
-		h.forbidden(w, r)
-		return
-	}
-	settings, err := h.Repository.GetPayrollSettings(r.Context())
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	apperror.WriteJSON(w, http.StatusOK, settings)
-}
-
-func (h *PayrollHandler) UpdatePayrollSettings(w http.ResponseWriter, r *http.Request) {
-
-	if !h.allowedManage(r) {
-		h.forbidden(w, r)
-		return
-	}
-	req, err := DecodeJSON[UpdatePayrollSettingsRequest](r, 1<<20)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if req.EffectiveDate != nil && *req.EffectiveDate != "" {
-		if _, err := time.Parse("2006-01-02", *req.EffectiveDate); err != nil {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-			return
-		}
-	}
-	settings, err := h.Repository.UpdatePayrollSettings(r.Context(), req)
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	apperror.WriteJSON(w, http.StatusOK, settings)
-}
-
-func (h *PayrollHandler) GetPayrollSettingsHistory(w http.ResponseWriter, r *http.Request) {
-
-	if !h.allowedMember(r) {
-		h.forbidden(w, r)
-		return
-	}
-	history, err := h.Repository.GetPayrollSettingsHistory(r.Context())
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	if history == nil {
-		history = []PayrollSettings{}
-	}
-	apperror.WriteJSON(w, http.StatusOK, history)
-}
-
-func (h *PayrollHandler) GetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
-
-	empID, empOK := pathUUID(r, "id")
-	if !empOK || !h.allowedMember(r) {
-		h.forbidden(w, r)
-		return
-	}
-	configs, err := h.Repository.GetEmployeePayrollConfigs(r.Context(), ids.EmployeeID(empID))
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	if configs == nil {
-		configs = []EmployeePayrollConfig{}
-	}
-	apperror.WriteJSON(w, http.StatusOK, configs)
-}
-
-func (h *PayrollHandler) SetEmployeePayrollConfig(w http.ResponseWriter, r *http.Request) {
-
-	empID, empOK := pathUUID(r, "id")
-	if !empOK || !h.allowedManage(r) {
-		h.forbidden(w, r)
-		return
-	}
-	req, err := DecodeJSON[SetEmployeePayrollConfigRequest](r, 1<<20)
-	if err != nil || req.EffectiveDate == "" {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if _, err := time.Parse("2006-01-02", req.EffectiveDate); err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if req.StdWorkingDays.IsNegative() || req.HoursPerDay.IsNegative() {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	userID, _ := httpinfra.UserIDValueFromContext(r.Context())
-	config, err := h.Repository.SetEmployeePayrollConfig(r.Context(), ids.EmployeeID(empID), req, userID)
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	apperror.WriteJSON(w, http.StatusCreated, config)
 }
 
 func (h *PayrollHandler) GetIncentivePolicies(w http.ResponseWriter, r *http.Request) {
@@ -1213,7 +1111,16 @@ func (h *PayrollHandler) ListPayrollCalculationRuns(w http.ResponseWriter, r *ht
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	runs, err := h.Repository.ListPayrollCalculationRuns(r.Context(), ids.EmploymentID(employmentID), year, month)
+	limit := 50
+	if rawLimit := strings.TrimSpace(r.URL.Query().Get("limit")); rawLimit != "" {
+		parsedLimit, limitErr := strconv.Atoi(rawLimit)
+		if limitErr != nil || parsedLimit < 1 || parsedLimit > 100 {
+			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+			return
+		}
+		limit = parsedLimit
+	}
+	runs, err := h.Repository.ListPayrollCalculationRuns(r.Context(), ids.EmploymentID(employmentID), year, month, limit)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1595,7 +1502,50 @@ func (h *PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Re
 		h.forbidden(w, r)
 		return
 	}
-	resp, err := h.Repository.CalculateBatchPayroll(r.Context(), req, actorID)
+	batchCtx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	resp, err := h.Repository.CalculateBatchPayroll(batchCtx, req, actorID)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusOK, resp)
+}
+
+func validateWorkPolicyBatchSimRequest(req WorkPolicyBatchSimulationRequest) bool {
+	if req.Year < 2000 || req.Year > 2100 || req.Month < 1 || req.Month > 12 {
+		return false
+	}
+	if len(req.EmploymentRelationshipIDs) == 0 || len(req.EmploymentRelationshipIDs) > 100 || hasDuplicateUUIDs(req.EmploymentRelationshipIDs) {
+		return false
+	}
+	for _, relID := range req.EmploymentRelationshipIDs {
+		if relID == uuid.Nil {
+			return false
+		}
+	}
+	return true
+}
+
+func (h *PayrollHandler) SimulateWorkPolicyVersionBatch(w http.ResponseWriter, r *http.Request) {
+	if !h.allowed(r, "payroll:sensitive:read") {
+		h.forbidden(w, r)
+		return
+	}
+	groupID, groupOK := pathUUID(r, "group_id")
+	versionID, versionOK := pathUUID(r, "version_id")
+	if !groupOK || !versionOK {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	req, err := DecodeJSON[WorkPolicyBatchSimulationRequest](r, 1<<20)
+	if err != nil || !validateWorkPolicyBatchSimRequest(req) {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	simCtx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	resp, err := h.Repository.SimulateWorkPolicyVersionBatch(simCtx, groupID, versionID, req)
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -1663,7 +1613,7 @@ func (h *PayrollHandler) forbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 func (h *PayrollHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrComponentNotFound) || errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrPayrollSettingsNotFound) || errors.Is(err, ErrIncentivePolicyNotFound) || errors.Is(err, ErrPayrollInputNotFound) || errors.Is(err, ErrRuleNotFound) || errors.Is(err, ErrTierNotFound) || errors.Is(err, ErrAssignmentNotFound) || errors.Is(err, ErrPayrollPeriodNotFound) || errors.Is(err, ErrEmployerNotFound) {
+	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrComponentNotFound) || errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrPayrollSettingsNotFound) || errors.Is(err, ErrIncentivePolicyNotFound) || errors.Is(err, ErrPayrollInputNotFound) || errors.Is(err, ErrRuleNotFound) || errors.Is(err, ErrTierNotFound) || errors.Is(err, ErrAssignmentNotFound) || errors.Is(err, ErrPayrollPeriodNotFound) || errors.Is(err, ErrEmployerNotFound) || errors.Is(err, ErrWorkPolicyGroupNotFound) || errors.Is(err, ErrWorkPolicyResolutionNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}

@@ -48,3 +48,15 @@ func TestPayrollRoutesRegisterSalaryManagement(t *testing.T) {
 		t.Fatalf("status = %d, want 403 from registered protected endpoint", rec.Code)
 	}
 }
+
+func TestPayrollRoutesRegisterWorkPolicyBatchSimulation(t *testing.T) {
+	router := chi.NewRouter()
+	registerPayrollRoutes(router, &api.PayrollHandler{})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/payroll/work-policy-groups/00000000-0000-0000-0000-000000000001/versions/00000000-0000-0000-0000-000000000002/simulate", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403 from registered protected simulate endpoint", rec.Code)
+	}
+}

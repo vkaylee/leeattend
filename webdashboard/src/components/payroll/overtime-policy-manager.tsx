@@ -1,44 +1,37 @@
-import { 
-  Calculator, 
-  Plus, 
-  Settings2,
-  Calendar,
-  AlertCircle
-} from 'lucide-react';
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { AlertCircle, Calculator, Plus, Settings2 } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Typography } from "@/components/ui/typography";
-import { OvertimePolicy } from '@/lib/api/types';
+import type { OvertimePolicyV2 } from "@/lib/api/payroll";
 
-import AssignOvertimePolicyModal from './assign-overtime-policy-modal';
-import { useOvertimePolicies, useOvertimePolicy, useCreateOvertimePolicy } from './hooks/use-overtime-policies';
-import OvertimeRuleEditor from './overtime-rule-editor';
+import { useOvertimePolicies, useOvertimePolicy, useCreateOvertimePolicy } from "./hooks/use-overtime-policies";
+import OvertimeRuleEditor from "./overtime-rule-editor";
 
-function OvertimePolicyCard({ policy}: { policy: OvertimePolicy}) {
+function OvertimePolicyCard({ policy }: { policy: OvertimePolicyV2 }) {
   const { data: detail, isLoading } = useOvertimePolicy(policy.id);
 
   return (
-    <div className='bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group'>
-      <div className='flex items-center justify-between mb-4'>
-        <div className='flex items-center gap-4'>
-          <div className='w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:bg-primary-50 dark:group-hover:bg-primary-950 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors'>
+    <div className="group rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-500 transition-colors group-hover:bg-primary-50 group-hover:text-primary-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-primary-950 dark:group-hover:text-primary-400">
             <Settings2 size={24} />
           </div>
           <div>
-            <Typography className='font-bold text-slate-700 dark:text-slate-200 text-lg' variant="h3">{policy.name}</Typography>
-            <Typography className='text-sm text-slate-500 dark:text-slate-400' variant="p">{policy.description}</Typography>
+            <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200" variant="h3">{policy.name}</Typography>
+            <Typography className="text-sm text-slate-500 dark:text-slate-400" variant="p">{policy.description}</Typography>
           </div>
         </div>
       </div>
-      
+
       {isLoading ? (
-        <Skeleton className='h-20 bg-slate-50 dark:bg-slate-800 rounded-2xl' />
+        <Skeleton className="h-20 rounded-2xl bg-slate-50 dark:bg-slate-800" />
       ) : (
-        <OvertimeRuleEditor policyId={policy.id} rules={detail ? detail[1] : []}  />
+        <OvertimeRuleEditor policyId={policy.id} versions={detail?.versions ?? []} />
       )}
     </div>
   );
@@ -47,78 +40,47 @@ function OvertimePolicyCard({ policy}: { policy: OvertimePolicy}) {
 function OvertimePolicyForm({
   onCancel,
   onSave,
-  isPending
+  isPending,
 }: {
   isPending: boolean;
   onCancel: () => void;
-  onSave: (data: { name: string; description: string }) => void;
+  onSave: (data: { description: string; name: string }) => void;
 }) {
   const { t } = useTranslation();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
 
   return (
-    <div className='bg-slate-50 dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-4 duration-300'>
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 animate-in fade-in slide-in-from-top-4 duration-300 dark:border-slate-700 dark:bg-slate-800">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <FormField
           id="overtime-policy-name"
-          label={t('common.name')}
+          label={t("common.name")}
           onChange={(e) => { setName(e.target.value); }}
-          placeholder={t('payroll.overtime_policy_name_placeholder', { defaultValue: 'e.g. Standard Overtime' })}
-          type='text'
+          placeholder={t("payroll.overtime_policy_name_placeholder", { defaultValue: "e.g. Standard Overtime" })}
+          type="text"
           value={name}
         />
         <FormField
           id="overtime-policy-description"
-          label={t('common.description')}
+          label={t("common.description")}
           onChange={(e) => { setDescription(e.target.value); }}
-          placeholder={t('payroll.overtime_policy_desc_placeholder', { defaultValue: 'e.g. Night and Weekend rates' })}
-          type='text'
+          placeholder={t("payroll.overtime_policy_desc_placeholder", { defaultValue: "e.g. Night and Weekend rates" })}
+          type="text"
           value={description}
         />
       </div>
-      <div className='flex justify-end gap-3 mt-6'>
-        <Button className='px-6 py-2 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all' onClick={onCancel} variant="ghost">
-          {t('common.cancel', { defaultValue: 'Cancel' })}
+      <div className="mt-6 flex justify-end gap-3">
+        <Button onClick={onCancel} variant="ghost">
+          {t("common.cancel", { defaultValue: "Cancel" })}
         </Button>
-        <Button className='flex items-center gap-2 bg-primary-600 text-white px-8 py-2 rounded-xl text-sm font-bold hover:bg-primary-700 transition-all disabled:opacity-50'
+        <Button
           disabled={!name || isPending}
           onClick={() => { onSave({ name, description }); }}
           variant="primary"
         >
-          {t('common.save')}
+          {t("common.save")}
         </Button>
-      </div>
-    </div>
-  );
-}
-
-function OvertimePolicySkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-          <Skeleton className="h-4 w-96 bg-slate-200/60 dark:bg-slate-800/60 rounded-lg" />
-        </div>
-        <div className="flex gap-3">
-          <Skeleton className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-          <Skeleton className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 gap-4">
-        {[1, 2].map((i) => (
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-[2.5rem] p-6 shadow-sm space-y-4" key={i}>
-            <div className="flex items-center gap-4">
-              <Skeleton className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800" />
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded-lg" />
-                <Skeleton className="h-4 w-60 bg-slate-200/60 dark:bg-slate-800/60 rounded-lg" />
-              </div>
-            </div>
-            <Skeleton className="h-20 w-full bg-slate-100/50 dark:bg-slate-800/30 rounded-2xl animate-pulse" />
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -127,70 +89,70 @@ function OvertimePolicySkeleton() {
 export default function OvertimePolicyManager() {
   const { t } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
   const { data: policies = [], isLoading } = useOvertimePolicies();
-
   const createMutation = useCreateOvertimePolicy({
-    onSuccess: () => {
-      setIsCreating(false);
-    },
+    onSuccess: () => { setIsCreating(false); },
   });
 
-  if (isLoading) return <OvertimePolicySkeleton />;
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-64 rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+      </div>
+    );
+  }
 
   return (
-    <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <Typography className='text-xl font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2' variant="h2">
-            <Calculator className='text-primary-600 dark:text-primary-400' size={20} />
-            {t('payroll.overtime_policies')}
+          <Typography className="flex items-center gap-2 text-xl font-bold text-slate-700 dark:text-slate-200" variant="h2">
+            <Calculator className="text-primary-600 dark:text-primary-400" size={20} />
+            {t("payroll.overtime_policies")}
           </Typography>
-          <Typography className='text-sm text-slate-500 dark:text-slate-400 mt-1' variant="p">{t('payroll.overtime_policies_desc')}</Typography>
+          <Typography className="mt-1 text-sm text-slate-500 dark:text-slate-400" variant="p">
+            {t("payroll.overtime_policies_desc")}
+          </Typography>
         </div>
-        <div className='flex items-center gap-3'>
-          <Button className='flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95'
-            onClick={() => { setIsAssignModalOpen(true); }}
-            variant="ghost"
-          >
-            <Calendar size={16} />
-            {t('payroll.assign_policy')}
-          </Button>
-          <Button className='flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95'
-            onClick={() => { setIsCreating(!isCreating); }}
-            variant="ghost"
-          >
-            <Plus size={16} />
-            {t('common.create')}
-          </Button>
-        </div>
+        <Button onClick={() => { setIsCreating(!isCreating); }} variant="primary">
+          <Plus className="mr-1.5 h-4 w-4" />
+          {t("common.create")}
+        </Button>
       </div>
 
       {isCreating ? (
-        <OvertimePolicyForm 
+        <OvertimePolicyForm
           isPending={createMutation.isPending}
           onCancel={() => { setIsCreating(false); }}
-          onSave={(data) => { createMutation.mutate(data); }}
+          onSave={(data) => {
+            createMutation.mutate({
+              name: data.name,
+              description: data.description,
+              rules: [{ priority: 50, day_type: "weekday", days_of_week: 127, multiplier: "1.50" }],
+            });
+          }}
         />
       ) : null}
 
-      <div className='grid grid-cols-1 gap-4'>
-        {policies.map((policy: OvertimePolicy) => (
-          <OvertimePolicyCard key={policy.id} policy={policy}  />
+      <div className="grid grid-cols-1 gap-4">
+        {policies.map((policy) => (
+          <OvertimePolicyCard key={policy.id} policy={policy} />
         ))}
 
         {policies.length === 0 && !isCreating ? (
-          <div className='flex flex-col items-center justify-center py-12 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700'>
-             <AlertCircle className='text-slate-300 dark:text-slate-600 mb-4' size={48} />
-             <Typography className='text-slate-500 dark:text-slate-400 font-medium' variant="p">{t('payroll.no_overtime_policies')}</Typography>
-             <Button className='mt-4 text-primary-600 dark:text-primary-400 font-bold hover:underline' onClick={() => { setIsCreating(true); }} variant="ghost">{t('payroll.create_first_policy')}</Button>
+          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 py-12 dark:border-slate-700 dark:bg-slate-800">
+            <AlertCircle className="mb-4 text-slate-300 dark:text-slate-600" size={48} />
+            <Typography className="font-medium text-slate-500 dark:text-slate-400" variant="p">
+              {t("payroll.no_overtime_policies")}
+            </Typography>
+            <Button className="mt-4" onClick={() => { setIsCreating(true); }} variant="ghost">
+              {t("payroll.create_first_policy")}
+            </Button>
           </div>
         ) : null}
       </div>
-
-      <AssignOvertimePolicyModal isOpen={isAssignModalOpen} 
-      onClose={() => { setIsAssignModalOpen(false); }}  />
     </div>
   );
 }

@@ -153,7 +153,7 @@ export function useEmployeeIdentityPreflight({
             candidates: response.candidates,
             errorKind: null,
             signature,
-            tier: response.tier,
+            tier: response.tier as "none" | "soft" | "hard" | "error",
           });
         })
         .catch((error: unknown) => {

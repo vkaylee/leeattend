@@ -4,55 +4,14 @@ import { useRef, useState, useEffect } from "react";
 import { TFunction } from "i18next";
 
 import type { GenericJobStatus } from "@/lib/api/attendance";
-import type { UpdateAttendanceRulesRequest } from "@/lib/api/attendance-rules";
 
 import { useToast } from "@/components/ui/toast";
 import {
   reprocessAllAttendance,
   checkReprocessStatus,
-  updateDefaultAttendanceRules,
 } from "@/lib/api";
 import { createQueryKey } from "@/lib/query-keys";
 import { maybeNull } from "@/types/api-overrides";
-
-type RoundingPolicy = "none" | "floor" | "round" | "ceil";
-
-export function useTimeSettingsRules(
-  t: TFunction,
-  params: {
-    earlyArrivalStrategy: "allow" | "block" | "clamp";
-    roundingPolicy: RoundingPolicy;
-    valid_from: string;
-    work_unit_minutes: number;
-    grace_period_minutes: number;
-    onSuccess: () => void;
-  }
-) {
-  const queryClient = useQueryClient();
-  const toast = useToast();
-
-  const updateRulesMutation = useMutation({
-    mutationFn: (data: UpdateAttendanceRulesRequest) => updateDefaultAttendanceRules(data),
-    onSuccess: () => {
-      toast.success(t("common.success"));
-      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-rules") });
-      void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-policy-versions") });
-      params.onSuccess();
-    },
-  });
-
-  const handleSaveNewVersion = () => {
-    updateRulesMutation.mutate({
-      early_arrival_strategy: params.earlyArrivalStrategy,
-      rounding_policy: params.roundingPolicy,
-      valid_from: params.valid_from,
-      work_unit_minutes: params.work_unit_minutes,
-      grace_period_minutes: params.grace_period_minutes,
-    });
-  };
-
-  return { handleSaveNewVersion, isPending: updateRulesMutation.isPending };
-}
 
 export function useBulkReprocess(t: TFunction) {
   const queryClient = useQueryClient();
