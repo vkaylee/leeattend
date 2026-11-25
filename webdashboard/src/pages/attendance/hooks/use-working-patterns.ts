@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { useOrganizationQuery } from "@/hooks/common/use-organization-query";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDepartments } from "@/hooks/use-departments";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkingPatternGrid } from "@/hooks/use-working-pattern-grid";
 import {
   BulkAssignResponse,
@@ -276,8 +277,13 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     setAssignAnchorDate(val);
   }, []);
 
-  const { data: employeesData } = useOrganizationQuery({ queryKey: employeeKeys.lookup({ permission: "working-patterns-bulk" }),
-  queryFn: () => fetchEmployees(1, 1000), });
+  const { hasPermission } = useMyPermissions();
+  const canReadEmployees = hasPermission("employees:read");
+  const { data: employeesData } = useOrganizationQuery({
+    queryKey: employeeKeys.lookup({ permission: "working-patterns-bulk" }),
+    queryFn: () => fetchEmployees(1, 1000),
+    enabled: canReadEmployees,
+  });
   const employees = employeesData?.data ?? [];
 
   const { data: departments = [] } = useDepartments();

@@ -168,11 +168,18 @@ func insertImportedRawLog(ctx context.Context, db DBTX, employmentID uuid.UUID, 
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at)
+	rawLogID := uuid.New()
+	cmd, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at)
 		VALUES ($1, $2, $3, 'import', $4, 0, 0, NOW())
 		ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`,
-		uuid.New(), employmentID, row.PunchTime, raw)
-	return err
+		rawLogID, employmentID, row.PunchTime, raw)
+	if err != nil {
+		return err
+	}
+	if cmd.RowsAffected() > 0 {
+		return enqueueClosedPeriodLatePunchReconciliation(ctx, db, employmentID, rawLogID, nil, row.PunchTime)
+	}
+	return nil
 }
 
 func insertApprovedAdjustment(ctx context.Context, db DBTX, employmentID, userID uuid.UUID, row api.AttendanceImportRow) error {

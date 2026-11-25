@@ -281,17 +281,15 @@ func (r ShiftRepository) AssignShift(ctx context.Context, actorID uuid.UUID, req
 		return api.ErrShiftValidation
 	}
 	var endDate *time.Time
-	end := startDate
 	if req.EndDate != nil && *req.EndDate != "" {
 		parsed, parseErr := time.Parse("2006-01-02", *req.EndDate)
 		if parseErr != nil || parsed.Before(startDate) {
 			return api.ErrShiftValidation
 		}
 		endDate = &parsed
-		end = parsed
-	}
-	if end.Sub(startDate).Hours()/24 >= 366 {
-		return api.ErrShiftValidation
+		if calendarDayDifference(parsed, startDate) >= 366 {
+			return api.ErrShiftValidation
+		}
 	}
 	tx, err := r.begin(ctx)
 	if err != nil {
@@ -299,69 +297,51 @@ func (r ShiftRepository) AssignShift(ctx context.Context, actorID uuid.UUID, req
 	}
 	now := time.Now().UTC()
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+		bounds, err := loadEmploymentComplianceBounds(ctx, db, req.EmploymentID)
+		if err != nil {
+			return err
+		}
+		evalEnd, validBounds := resolveComplianceEvalEnd(startDate, endDate, bounds)
+		if !validBounds {
+			return api.ErrShiftValidation
+		}
+		if _, err := db.Exec(ctx, `SELECT id FROM employees WHERE id = $1 FOR UPDATE`, bounds.employeeID); err != nil {
+			return err
+		}
 		if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{req.EmploymentID}, req.StartDate, shiftEndDate(req.StartDate, req.EndDate)); err != nil {
 			return err
 		}
 		var exists bool
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists); err != nil {
-			return err
-		}
-		if !exists {
-			return api.ErrEmploymentNotFound
-		}
 		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM shift_templates WHERE id = $1)`, req.ShiftID).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
 			return api.ErrShiftNotFound
 		}
-		rules := compliance.Rules{IsEnabled: true, MinRestPeriodHours: 12, MaxWeeklyHours: 48, MaxMonthlyOTHours: 40, AllowManagerOverride: true}
-		var storedRules compliance.Rules
-		err := db.QueryRow(ctx, `SELECT is_enabled, min_rest_period_hours, max_weekly_hours, max_monthly_ot_hours, allow_manager_override FROM compliance_rules`).Scan(&storedRules.IsEnabled, &storedRules.MinRestPeriodHours, &storedRules.MaxWeeklyHours, &storedRules.MaxMonthlyOTHours, &storedRules.AllowManagerOverride)
-		if err == nil {
-			rules = storedRules
-		} else if !errors.Is(err, pgx.ErrNoRows) {
+		rules, err := loadComplianceRules(ctx, db)
+		if err != nil {
 			return err
 		}
 		if rules.IsEnabled {
-			shifts, err := loadComplianceShiftIntervals(ctx, db, req.ShiftID)
+			existing, shiftsMeta, err := loadResolvedComplianceSchedule(ctx, db, bounds.employeeID, startDate, evalEnd)
 			if err != nil {
 				return err
 			}
-			rows, err := db.Query(ctx, `SELECT date::text, template_id FROM shift_rosters WHERE employment_id = $1 AND date >= $2::date - 1 AND date <= $3::date + 1 ORDER BY date`, req.EmploymentID, startDate, end)
-			if err != nil {
-				return err
+			dates := make([]string, 0, calendarDayDifference(evalEnd, startDate)+1)
+			intervalsByDate := make(map[string][]compliance.Interval, calendarDayDifference(evalEnd, startDate)+1)
+			for current := startDate; !current.After(evalEnd); current = current.AddDate(0, 0, 1) {
+				dateStr := current.Format("2006-01-02")
+				dates = append(dates, dateStr)
+				intervalsByDate[dateStr] = effectiveTemplateComplianceIntervals(shiftsMeta, req.ShiftID, current)
 			}
-			rosters := make([]compliance.Roster, 0)
-			for rows.Next() {
-				var date string
-				var templateID *uuid.UUID
-				if err := rows.Scan(&date, &templateID); err != nil {
-					rows.Close()
-					return err
-				}
-				rosters = append(rosters, compliance.Roster{EmploymentID: req.EmploymentID, ShiftID: templateID, Date: date})
-				if templateID != nil {
-					if _, ok := shifts[*templateID]; !ok {
-						loaded, loadErr := loadComplianceShiftIntervals(ctx, db, *templateID)
-						if loadErr != nil {
-							rows.Close()
-							return loadErr
-						}
-						shifts[*templateID] = loaded[*templateID]
-					}
-				}
-			}
-			if err := rows.Err(); err != nil {
-				rows.Close()
-				return err
-			}
-			rows.Close()
-			dates := make([]string, 0, int(end.Sub(startDate).Hours()/24)+1)
-			for current := startDate; !current.After(end); current = current.AddDate(0, 0, 1) {
-				dates = append(dates, current.Format("2006-01-02"))
-			}
-			result, validationErr := compliance.Validate(rules, compliance.Request{EmploymentID: req.EmploymentID, ShiftID: req.ShiftID, Dates: dates, AllowWarnings: req.AllowWarnings, OverrideReason: req.OverrideReason}, rosters, shifts)
+			result, validationErr := compliance.Validate(rules, compliance.Request{
+				EmploymentID:    req.EmploymentID,
+				ShiftID:         req.ShiftID,
+				Dates:           dates,
+				IntervalsByDate: intervalsByDate,
+				AllowWarnings:   req.AllowWarnings,
+				OverrideReason:  req.OverrideReason,
+			}, existing, nil)
 			if validationErr != nil {
 				return &api.ShiftComplianceError{Hard: errors.Is(validationErr, compliance.ErrHardViolation), Violations: result.Violations}
 			}
@@ -387,25 +367,4 @@ func shiftEndDate(startDate string, endDate *string) string {
 		return startDate
 	}
 	return *endDate
-}
-
-func loadComplianceShiftIntervals(ctx context.Context, db pgx.Tx, templateID uuid.UUID) (map[uuid.UUID][]compliance.Interval, error) {
-	rows, err := db.Query(ctx, `SELECT t.id, i.start_time::text, i.end_time::text, i.break_duration_minutes FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id JOIN shift_default_intervals i ON i.version_id = v.id WHERE t.id = $1 ORDER BY i.sort_order`, templateID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	intervals := make([]compliance.Interval, 0)
-	for rows.Next() {
-		var id uuid.UUID
-		var interval compliance.Interval
-		if err := rows.Scan(&id, &interval.StartTime, &interval.EndTime, &interval.BreakDurationMinutes); err != nil {
-			return nil, err
-		}
-		intervals = append(intervals, interval)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return map[uuid.UUID][]compliance.Interval{templateID: intervals}, nil
 }

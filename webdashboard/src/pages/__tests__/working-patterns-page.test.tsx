@@ -30,6 +30,7 @@ vi.mock("../../lib/api", () => ({
   fetchShifts: vi.fn(),
   fetchEmployees: vi.fn(),
   bulkAssignPattern: vi.fn(),
+  fetchMyPermissions: vi.fn(),
 }));
 
 // Mock EmployeeSearch
@@ -115,6 +116,7 @@ describe("WorkingPatternsPage", () => {
  
     });
     vi.mocked(api.fetchPatternDetails).mockResolvedValue([]);
+    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["employees:read", "working_patterns:read"], roles: ["admin"], managed_department_ids: null });
   });
 
   it("renders patterns list", async () => {

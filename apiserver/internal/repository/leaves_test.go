@@ -520,7 +520,7 @@ func TestLeaveRepository_GetEmployeeLeaveHistory(t *testing.T) {
 				reason := "Personal"
 				return &leaveTestRows{
 					data: [][]any{
-						{reqID, "2026-05-10", "2026-05-11", &reason, now},
+						{reqID, empID, "2026-05-10", "2026-05-11", "full_day", (*string)(nil), (*string)(nil), &reason, now},
 					},
 				}, nil
 			}
@@ -535,6 +535,53 @@ func TestLeaveRepository_GetEmployeeLeaveHistory(t *testing.T) {
 	}
 	if len(items) != 2 {
 		t.Fatalf("expected 2 history items, got %d", len(items))
+	}
+}
+
+func TestCalculateLeaveDaysForRequest_OfficialScheduleBreaksAndHolidays(t *testing.T) {
+	tUTC := func(raw string) time.Time {
+		parsed, _ := time.Parse(time.RFC3339, raw)
+		return parsed
+	}
+	tPtr := func(raw string) *time.Time { v := tUTC(raw); return &v }
+	sPtr := func(raw string) *string { return &raw }
+
+	schedule := map[string]leaveScheduleDay{
+		"2026-11-22": {State: "published", Timezone: "UTC", Segments: []leaveScheduleSegment{{
+			StartAt: tUTC("2026-11-22T08:00:00Z"), EndAt: tUTC("2026-11-22T17:00:00Z"),
+			Breaks: []leaveScheduleBreak{
+				{StartAt: tPtr("2026-11-22T12:00:00Z"), EndAt: tPtr("2026-11-22T12:45:00Z")},
+				{StartAt: tPtr("2026-11-22T12:30:00Z"), EndAt: tPtr("2026-11-22T13:00:00Z")},
+			},
+		}}},
+		"2026-11-23": {State: "explicit_off", Timezone: "UTC"},
+		"2026-11-24": {State: "published", Timezone: "UTC", Segments: []leaveScheduleSegment{{
+			StartAt: tUTC("2026-11-24T22:00:00Z"), EndAt: tUTC("2026-11-25T06:00:00Z"),
+			Breaks: []leaveScheduleBreak{{StartAt: tPtr("2026-11-25T02:00:00Z"), EndAt: tPtr("2026-11-25T03:00:00Z")}},
+		}}},
+		"2026-11-25": {State: "published", Timezone: "UTC", Segments: []leaveScheduleSegment{{
+			StartAt: tUTC("2026-11-25T08:00:00Z"), EndAt: tUTC("2026-11-25T17:00:00Z"),
+		}}},
+	}
+	holidays := map[string]leaveHoliday{"2026-11-25": {HolidayType: "national", IsPaid: true}}
+
+	cases := []struct {
+		name string
+		req  leaveUsageRequest
+		want string
+	}{
+		{"sun work + mon off", leaveUsageRequest{StartDate: "2026-11-22", EndDate: "2026-11-23", DurationType: "full_day"}, "1"},
+		{"mon explicit_off", leaveUsageRequest{StartDate: "2026-11-23", EndDate: "2026-11-23", DurationType: "full_day"}, "0"},
+		{"national holiday", leaveUsageRequest{StartDate: "2026-11-25", EndDate: "2026-11-25", DurationType: "full_day"}, "0"},
+		{"sunday half_day", leaveUsageRequest{StartDate: "2026-11-22", EndDate: "2026-11-22", DurationType: "first_half"}, "0.5"},
+		{"custom across overlapping breaks", leaveUsageRequest{StartDate: "2026-11-22", EndDate: "2026-11-22", DurationType: "custom_hours", StartTime: sPtr("11:00"), EndTime: sPtr("14:00")}, "0.25"},
+		{"overnight custom hours", leaveUsageRequest{StartDate: "2026-11-24", EndDate: "2026-11-24", DurationType: "custom_hours", StartTime: sPtr("01:00"), EndTime: sPtr("04:00")}, "0.2857"},
+	}
+	for _, tc := range cases {
+		got := calculateLeaveDaysForRequest(tc.req, schedule, holidays)
+		if !got.Equal(decimal.RequireFromString(tc.want)) {
+			t.Fatalf("%s: got %s, want %s", tc.name, got.String(), tc.want)
+		}
 	}
 }
 

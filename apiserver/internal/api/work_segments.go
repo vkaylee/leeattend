@@ -39,23 +39,23 @@ type WorkSegment struct {
 }
 
 type CreateWorkSegmentRequest struct {
-	EmploymentID              uuid.UUID       `json:"employment_id"`
-	Date                      string          `json:"date"`
-	TemplateID                uuid.UUID       `json:"template_id"`
-	IntervalID                *uuid.UUID      `json:"interval_id"`
-	SortOrder                 int             `json:"sort_order"`
-	ScheduledStart            string          `json:"scheduled_start"`
-	ScheduledEnd              string          `json:"scheduled_end"`
-	SegmentType               string          `json:"segment_type"`
-	SegmentStatus             string          `json:"segment_status"`
-	CompensationRate          decimal.Decimal `json:"compensation_rate"`
-	GapCompensationBefore     string          `json:"gap_compensation_before"`
-	GapCompensationRateBefore decimal.Decimal `json:"gap_compensation_rate_before"`
-	BreakConfigOverride       json.RawMessage `json:"break_config_override"`
-	OTConfigOverride          json.RawMessage `json:"ot_config_override"`
-	Source                    string          `json:"source"`
-	SourceDetail              json.RawMessage `json:"source_detail"`
-	Notes                     *string         `json:"notes"`
+	EmploymentID              uuid.UUID        `json:"employment_id"`
+	Date                      string           `json:"date"`
+	TemplateID                uuid.UUID        `json:"template_id"`
+	IntervalID                *uuid.UUID       `json:"interval_id"`
+	SortOrder                 int              `json:"sort_order"`
+	ScheduledStart            string           `json:"scheduled_start"`
+	ScheduledEnd              string           `json:"scheduled_end"`
+	SegmentType               string           `json:"segment_type"`
+	SegmentStatus             string           `json:"segment_status"`
+	CompensationRate          *decimal.Decimal `json:"compensation_rate"`
+	GapCompensationBefore     string           `json:"gap_compensation_before"`
+	GapCompensationRateBefore decimal.Decimal  `json:"gap_compensation_rate_before"`
+	BreakConfigOverride       json.RawMessage  `json:"break_config_override"`
+	OTConfigOverride          json.RawMessage  `json:"ot_config_override"`
+	Source                    string           `json:"source"`
+	SourceDetail              json.RawMessage  `json:"source_detail"`
+	Notes                     *string          `json:"notes"`
 }
 
 type UpdateWorkSegmentRequest struct {
@@ -245,7 +245,7 @@ func validateCreateSegment(req CreateWorkSegmentRequest) error {
 	if _, err := time.Parse("15:04:05", req.ScheduledEnd); err != nil {
 		return ErrWorkSegmentValidation
 	}
-	if req.SortOrder < 0 || req.CompensationRate.IsNegative() || req.GapCompensationRateBefore.IsNegative() {
+	if req.SortOrder < 0 || (req.CompensationRate != nil && req.CompensationRate.IsNegative()) || req.GapCompensationRateBefore.IsNegative() {
 		return ErrWorkSegmentValidation
 	}
 	if req.SegmentType == "" {

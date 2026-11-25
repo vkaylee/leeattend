@@ -194,6 +194,18 @@ func (r AttendanceRepository) CloseAttendancePeriod(ctx context.Context, employe
 }
 
 func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pgx.Tx, employerID uuid.UUID, year, month int, start, end time.Time, expectedVersion int64, reason string, actorID ids.UserID) (api.AttendanceClosureResponse, error) {
+	// Follow §9.1 lock order: lock affected employees before employer/period/employment/revision rows.
+	if err := lockClosureRows(ctx, tx, `
+		SELECT e.id
+		FROM employees e
+		WHERE EXISTS (
+			SELECT 1 FROM employments em
+			WHERE em.employee_id = e.id AND em.employer_id = $1 AND em.deleted_at IS NULL
+		)
+		ORDER BY e.id
+		FOR UPDATE`, employerID); err != nil {
+		return api.AttendanceClosureResponse{}, err
+	}
 	var lockedEmployerID uuid.UUID
 	if err := tx.QueryRow(ctx, `SELECT id FROM employers WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, employerID).Scan(&lockedEmployerID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -422,6 +434,15 @@ func (r AttendanceRepository) reopenAttendancePeriodTx(ctx context.Context, tx p
 	if version != expectedVersion || status != "closed" {
 		return api.AttendanceClosureResponse{}, api.ErrAttendancePeriodConflict
 	}
+	if priorClosureID != nil {
+		var closedBy *uuid.UUID
+		if err := tx.QueryRow(ctx, `SELECT closed_by FROM attendance_closures WHERE id = $1`, *priorClosureID).Scan(&closedBy); err != nil {
+			return api.AttendanceClosureResponse{}, err
+		}
+		if closedBy != nil && *closedBy == actorID.UUID() {
+			return api.AttendanceClosureResponse{}, api.ErrAttendanceSelfReopenForbidden
+		}
+	}
 	var newVersion int64
 	if err := tx.QueryRow(ctx, `UPDATE attendance_periods SET status = 'reopened', version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING version`, *periodID).Scan(&newVersion); err != nil {
 		return api.AttendanceClosureResponse{}, err
@@ -434,4 +455,54 @@ func (r AttendanceRepository) reopenAttendancePeriodTx(ctx context.Context, tx p
 		return api.AttendanceClosureResponse{}, fmt.Errorf("%w: %v", api.ErrAttendanceAuditFailure, err)
 	}
 	return api.AttendanceClosureResponse{PeriodID: *periodID, ClosureID: priorClosureID, Status: "reopened", Version: newVersion, PriorClosureID: priorClosureID}, nil
+}
+
+// enqueueClosedPeriodLatePunchReconciliation emits an idempotent outbox reconciliation signal
+// when a punch arrives for an already-closed attendance period without mutating closure snapshots.
+func enqueueClosedPeriodLatePunchReconciliation(ctx context.Context, db DBTX, employmentID, rawLogID uuid.UUID, timeEntryID *uuid.UUID, punchTime time.Time) error {
+	punchUTC := punchTime.UTC()
+	var employerID, periodID uuid.UUID
+	var closureID *uuid.UUID
+	err := db.QueryRow(ctx, `
+		SELECT em.employer_id, ap.id, ap.current_closure_id
+		FROM employments em
+		JOIN attendance_periods ap
+		  ON ap.employer_id = em.employer_id
+		 AND ap.period_year = $2
+		 AND ap.period_month = $3
+		 AND ap.status = 'closed'
+		WHERE em.id = $1 AND em.deleted_at IS NULL
+		LIMIT 1
+	`, employmentID, punchUTC.Year(), int(punchUTC.Month())).Scan(&employerID, &periodID, &closureID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	payloadMap := map[string]any{
+		"employer_id":           employerID.String(),
+		"period_id":             periodID.String(),
+		"employment_id":         employmentID.String(),
+		"raw_attendance_log_id": rawLogID.String(),
+		"punch_time":            punchUTC.Format(time.RFC3339),
+		"business_date":         punchUTC.Format("2006-01-02"),
+	}
+	if closureID != nil {
+		payloadMap["closure_id"] = closureID.String()
+	}
+	if timeEntryID != nil {
+		payloadMap["time_entry_id"] = timeEntryID.String()
+	}
+	payload, err := json.Marshal(payloadMap)
+	if err != nil {
+		return err
+	}
+	dedupeKey := fmt.Sprintf("attendance-late-punch:%s:%s", periodID.String(), rawLogID.String())
+	_, err = db.Exec(ctx, `
+		INSERT INTO outbox_jobs (id, job_type, payload, status, dedupe_key, available_at, created_at, updated_at)
+		VALUES ($1, 'AttendanceLatePunchReconciliation', $2, 'pending', $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		ON CONFLICT (dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING
+	`, uuid.New(), payload, dedupeKey)
+	return err
 }

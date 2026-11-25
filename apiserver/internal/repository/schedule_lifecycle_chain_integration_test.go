@@ -112,7 +112,11 @@ func TestIntegrationFullScheduleLifecycleChain(t *testing.T) {
 	if err != nil || closed.Status != "closed" || closed.Version != 2 {
 		t.Fatalf("close response=%+v err=%v", closed, err)
 	}
-	reopened, err := attendanceRepo.ReopenAttendancePeriod(ctx, employerID, 2026, 11, closed.Version, "reopen for correction", ids.UserID(actorID))
+	reopenActorID := uuid.New()
+	if _, err := pool.Exec(ctx, `INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, reopenActorID, reopenActorID.String()+"@invalid.test"); err != nil {
+		t.Fatalf("insert independent reopen actor: %v", err)
+	}
+	reopened, err := attendanceRepo.ReopenAttendancePeriod(ctx, employerID, 2026, 11, closed.Version, "reopen for correction", ids.UserID(reopenActorID))
 	if err != nil || reopened.Status != "reopened" || reopened.Version != 3 {
 		t.Fatalf("reopen response=%+v err=%v", reopened, err)
 	}

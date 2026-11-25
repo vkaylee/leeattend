@@ -12,6 +12,7 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useDepartments } from "@/hooks/use-departments";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import {
   fetchRawAttendanceLogs,
   fetchStagingLogs,
@@ -80,6 +81,9 @@ function useAttendanceMutations() {
 
 
 function useAttendanceData(employeeId: string, dateRange: { start: string; end: string }, activeTab: TabType) {
+  const { hasPermission } = useMyPermissions();
+  const canManageStaging = hasPermission("attendance:staging:manage");
+
   const { data: recordedPages, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>({
     queryKey: createQueryKey("attendance-raw-logs", employeeId, dateRange),
     queryFn: ({ pageParam }) => {
@@ -106,7 +110,7 @@ function useAttendanceData(employeeId: string, dateRange: { start: string; end: 
       return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
     },
     initialPageParam: 1,
-    enabled: activeTab === "unknown",
+    enabled: activeTab === "unknown" && canManageStaging,
   });
 
   const allStagingLogs = useMemo(() => stagingPages?.pages.flatMap((p) => p.data) ?? [] as StagingLog[], [stagingPages]);
@@ -115,6 +119,7 @@ function useAttendanceData(employeeId: string, dateRange: { start: string; end: 
   const { data: stagingCount } = useQuery({
     queryKey: createQueryKey("staging-logs-count"),
     queryFn: async () => (await fetchStagingLogs(1, 1)).total,
+    enabled: canManageStaging,
   });
 
   return { allRecordedLogs, recordedTotal, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, allStagingLogs, stagingTotal, stagingLoading, stagingCount, isFetchingNextStagingPage, hasNextStagingPage, fetchNextStagingPage };

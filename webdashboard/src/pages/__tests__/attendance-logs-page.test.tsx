@@ -99,7 +99,7 @@ describe("AttendanceLogsPage", () => {
     } as unknown as PaginatedResponse<RawAttendanceLog>);
  
     vi.mocked(api.fetchStagingLogs).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
-    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"], managed_department_ids: null });
+    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance:staging:manage"], roles: ["admin"], managed_department_ids: null });
   });
 
   const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {

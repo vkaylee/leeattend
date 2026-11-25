@@ -37,7 +37,11 @@ func TestIntegrationAttendanceClosureCloseReopenReclosePreservesEvidence(t *test
 		t.Fatalf("read first closure: %v", err)
 	}
 
-	reopened, err := repo.ReopenAttendancePeriod(ctx, fixture.employerID, 2026, 11, first.Version, "correct attendance", ids.UserID(fixture.actorID))
+	reopenActorID := uuid.New()
+	if _, err := tx.Exec(ctx, `INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, reopenActorID, reopenActorID.String()+"@invalid.test"); err != nil {
+		t.Fatalf("insert reopen actor: %v", err)
+	}
+	reopened, err := repo.ReopenAttendancePeriod(ctx, fixture.employerID, 2026, 11, first.Version, "correct attendance", ids.UserID(reopenActorID))
 	if err != nil {
 		t.Fatalf("reopen attendance period: %v", err)
 	}

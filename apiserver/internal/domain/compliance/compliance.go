@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,20 +44,25 @@ type Interval struct {
 	EndTime              string
 	BreakDurationMinutes int
 	IsBreakAutoDeduct    bool
+	StartDayOffset       int
+	EndDayOffset         int
 }
 
 type Roster struct {
 	EmploymentID uuid.UUID
 	ShiftID      *uuid.UUID
 	Date         string
+	Intervals    []Interval
 }
 
 type Request struct {
-	EmploymentID   uuid.UUID
-	ShiftID        uuid.UUID
-	Dates          []string
-	AllowWarnings  bool
-	OverrideReason *string
+	EmploymentID    uuid.UUID
+	ShiftID         uuid.UUID
+	Dates           []string
+	IntervalsByDate map[string][]Interval
+	CandidateDays   []Roster
+	AllowWarnings   bool
+	OverrideReason  *string
 }
 
 type Violation struct {
@@ -73,25 +79,48 @@ type Result struct {
 	RequiresOverride bool        `json:"requires_override"`
 }
 
+type timeWindow struct {
+	start time.Time
+	end   time.Time
+}
+
 func Validate(rules Rules, request Request, existing []Roster, shifts map[uuid.UUID][]Interval) (Result, error) {
 	if !rules.IsEnabled {
-		return Result{Compliant: true, Violations: nil, RequiresOverride: false}, nil
+		return Result{Compliant: true}, nil
 	}
 
-	dates := uniqueSortedDates(request.Dates)
-	if len(dates) == 0 {
-		return Result{Compliant: true, Violations: nil, RequiresOverride: false}, nil
+	candidates := buildCandidates(request, shifts)
+	if len(candidates) == 0 {
+		return Result{Compliant: true}, nil
 	}
 
 	violations := make([]Violation, 0)
+	checkOverlaps(candidates, existing, shifts, &violations)
+	checkRestPeriod(candidates, existing, shifts, rules.MinRestPeriodHours, &violations)
+	checkWeeklyHours(candidates, existing, shifts, rules.MaxWeeklyHours, &violations)
+	checkMonthlyOT(candidates, existing, shifts, rules.MaxMonthlyOTHours, &violations)
 
-	checkOverlaps(request, dates, existing, shifts, &violations)
-	checkRestPeriod(request, dates, existing, shifts, rules.MinRestPeriodHours, &violations)
-	checkWeeklyHours(request, dates, existing, shifts, rules.MaxWeeklyHours, &violations)
-	checkMonthlyOT(request, dates, existing, shifts, rules.MaxMonthlyOTHours, &violations)
+	return evaluateComplianceResult(rules, request, violations)
+}
 
-	hasHard := false
-	hasSoft := false
+func evaluateComplianceResult(rules Rules, request Request, violations []Violation) (Result, error) {
+	hasHard, hasSoft := classifyViolations(violations)
+	if hasHard {
+		return Result{Compliant: false, Violations: violations, RequiresOverride: false}, ErrHardViolation
+	}
+	if !hasSoft {
+		return Result{Compliant: true}, nil
+	}
+	if rules.AllowManagerOverride && request.AllowWarnings && request.OverrideReason != nil && strings.TrimSpace(*request.OverrideReason) != "" {
+		return Result{Compliant: true, Violations: violations, RequiresOverride: false}, nil
+	}
+	if !rules.AllowManagerOverride {
+		return Result{Compliant: false, Violations: violations, RequiresOverride: false}, ErrHardViolation
+	}
+	return Result{Compliant: false, Violations: violations, RequiresOverride: true}, ErrSoftViolation
+}
+
+func classifyViolations(violations []Violation) (hasHard, hasSoft bool) {
 	for _, v := range violations {
 		if v.Severity == SeverityHard {
 			hasHard = true
@@ -99,134 +128,260 @@ func Validate(rules Rules, request Request, existing []Roster, shifts map[uuid.U
 			hasSoft = true
 		}
 	}
-
-	if hasHard {
-		return Result{Compliant: false, Violations: violations, RequiresOverride: false}, ErrHardViolation
-	}
-
-	if hasSoft {
-		if request.AllowWarnings && request.OverrideReason != nil && *request.OverrideReason != "" {
-			return Result{Compliant: true, Violations: violations, RequiresOverride: false}, nil
-		}
-		return Result{Compliant: false, Violations: violations, RequiresOverride: true}, ErrSoftViolation
-	}
-
-	return Result{Compliant: true, Violations: nil, RequiresOverride: false}, nil
+	return hasHard, hasSoft
 }
 
-func checkOverlaps(req Request, dates []string, existing []Roster, shifts map[uuid.UUID][]Interval, violations *[]Violation) {
-	newIntervals := shifts[req.ShiftID]
+func buildCandidates(request Request, shifts map[uuid.UUID][]Interval) []Roster {
+	if len(request.CandidateDays) > 0 {
+		out := make([]Roster, 0, len(request.CandidateDays))
+		for _, item := range request.CandidateDays {
+			c := item
+			if c.EmploymentID == uuid.Nil {
+				c.EmploymentID = request.EmploymentID
+			}
+			if len(c.Intervals) == 0 && c.ShiftID != nil {
+				c.Intervals = shifts[*c.ShiftID]
+			}
+			out = append(out, c)
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i].Date < out[j].Date })
+		return out
+	}
+	dates := uniqueSortedDates(request.Dates)
+	out := make([]Roster, 0, len(dates))
 	for _, date := range dates {
+		shiftID := request.ShiftID
+		ivs := request.IntervalsByDate[date]
+		if len(ivs) == 0 {
+			ivs = shifts[shiftID]
+		}
+		out = append(out, Roster{
+			EmploymentID: request.EmploymentID,
+			ShiftID:      &shiftID,
+			Date:         date,
+			Intervals:    ivs,
+		})
+	}
+	return out
+}
+
+func resolveIntervals(r Roster, shifts map[uuid.UUID][]Interval) []Interval {
+	if len(r.Intervals) > 0 {
+		return r.Intervals
+	}
+	if r.ShiftID != nil {
+		return shifts[*r.ShiftID]
+	}
+	return nil
+}
+
+func hasShiftData(r Roster) bool {
+	return r.ShiftID != nil || len(r.Intervals) > 0
+}
+
+func isSameEmploymentSameShiftSameDay(a, b Roster) bool {
+	if a.EmploymentID != b.EmploymentID || a.Date != b.Date {
+		return false
+	}
+	return a.ShiftID != nil && b.ShiftID != nil && *a.ShiftID == *b.ShiftID
+}
+
+func collectShiftIDs(a, b *uuid.UUID) []uuid.UUID {
+	out := make([]uuid.UUID, 0, 2)
+	if a != nil && *a != uuid.Nil {
+		out = append(out, *a)
+	}
+	if b != nil && *b != uuid.Nil && (len(out) == 0 || out[0] != *b) {
+		out = append(out, *b)
+	}
+	return out
+}
+
+func orderedDates(a, b string) []string {
+	if a == b {
+		return []string{a}
+	}
+	if a < b {
+		return []string{a, b}
+	}
+	return []string{b, a}
+}
+
+func compareOverlapPair(left, right Roster, shifts map[uuid.UUID][]Interval) *Violation {
+	if isSameEmploymentSameShiftSameDay(left, right) {
+		return nil
+	}
+	leftIvs := resolveIntervals(left, shifts)
+	rightIvs := resolveIntervals(right, shifts)
+	if left.Date == right.Date && (len(leftIvs) == 0 || len(rightIvs) == 0) {
+		if hasShiftData(left) && hasShiftData(right) {
+			return &Violation{
+				Type:             ViolationOverlap,
+				Severity:         SeverityHard,
+				Message:          "Shift overlap detected",
+				ConflictingDates: []string{left.Date},
+				ShiftIDs:         collectShiftIDs(left.ShiftID, right.ShiftID),
+			}
+		}
+		return nil
+	}
+	if !windowsOverlap(rosterWindows(left.Date, leftIvs), rosterWindows(right.Date, rightIvs)) {
+		return nil
+	}
+	return &Violation{
+		Type:             ViolationOverlap,
+		Severity:         SeverityHard,
+		Message:          "Shift overlap detected",
+		ConflictingDates: orderedDates(left.Date, right.Date),
+		ShiftIDs:         collectShiftIDs(left.ShiftID, right.ShiftID),
+	}
+}
+
+func checkOverlaps(candidates []Roster, existing []Roster, shifts map[uuid.UUID][]Interval, violations *[]Violation) {
+	for i, cand := range candidates {
 		for _, r := range existing {
-			if r.Date != date || r.ShiftID == nil || *r.ShiftID == req.ShiftID {
+			if !hasShiftData(r) {
 				continue
 			}
-			existingShiftID := *r.ShiftID
-			existingIntervals := shifts[existingShiftID]
-			if len(newIntervals) == 0 || len(existingIntervals) == 0 {
-				*violations = append(*violations, Violation{
-					Type:             ViolationOverlap,
-					Severity:         SeverityHard,
-					Message:          "Shift overlap detected",
-					ConflictingDates: []string{date},
-					ShiftIDs:         []uuid.UUID{req.ShiftID, existingShiftID},
-				})
-				continue
+			if v := compareOverlapPair(cand, r, shifts); v != nil {
+				*violations = append(*violations, *v)
 			}
-			overlap := false
-			for _, ni := range newIntervals {
-				for _, ei := range existingIntervals {
-					if intervalsOverlap(ni.StartTime, ni.EndTime, ei.StartTime, ei.EndTime) {
-						overlap = true
-						break
-					}
-				}
-				if overlap {
-					break
-				}
-			}
-			if overlap {
-				*violations = append(*violations, Violation{
-					Type:             ViolationOverlap,
-					Severity:         SeverityHard,
-					Message:          "Shift overlap detected",
-					ConflictingDates: []string{date},
-					ShiftIDs:         []uuid.UUID{req.ShiftID, existingShiftID},
-				})
+		}
+		for j := i + 1; j < len(candidates); j++ {
+			if v := compareOverlapPair(cand, candidates[j], shifts); v != nil {
+				*violations = append(*violations, *v)
 			}
 		}
 	}
 }
 
-func checkRestPeriod(req Request, dates []string, existing []Roster, shifts map[uuid.UUID][]Interval, minRestHours int, violations *[]Violation) {
+func nonOverlappingRestGapMinutes(left, right []timeWindow) (int, bool) {
+	if len(left) == 0 || len(right) == 0 || windowsOverlap(left, right) {
+		return 0, false
+	}
+	lStart, lEnd := windowSpan(left)
+	rStart, rEnd := windowSpan(right)
+	if !rEnd.After(lStart) {
+		return int(lStart.Sub(rEnd).Minutes()), true
+	}
+	if !lEnd.After(rStart) {
+		return int(rStart.Sub(lEnd).Minutes()), true
+	}
+	return 0, false
+}
+
+func compareRestPair(left, right Roster, shifts map[uuid.UUID][]Interval, minRestHours int) *Violation {
+	if isSameEmploymentSameShiftSameDay(left, right) {
+		return nil
+	}
+	leftDate, errL := time.Parse("2006-01-02", left.Date)
+	rightDate, errR := time.Parse("2006-01-02", right.Date)
+	if errL != nil || errR != nil {
+		return nil
+	}
+	dayDiff := int(leftDate.Sub(rightDate) / (24 * time.Hour))
+	if dayDiff < -1 || dayDiff > 1 {
+		return nil
+	}
+	gap, ok := nonOverlappingRestGapMinutes(
+		rosterWindows(left.Date, resolveIntervals(left, shifts)),
+		rosterWindows(right.Date, resolveIntervals(right, shifts)),
+	)
+	if !ok || gap >= minRestHours*60 {
+		return nil
+	}
+	return &Violation{
+		Type:             ViolationRestPeriod,
+		Severity:         SeveritySoft,
+		Message:          fmt.Sprintf("Insufficient rest: %dh gap, %dh required", gap/60, minRestHours),
+		ConflictingDates: orderedDates(left.Date, right.Date),
+		ShiftIDs:         collectShiftIDs(left.ShiftID, right.ShiftID),
+	}
+}
+
+func checkRestPeriod(candidates []Roster, existing []Roster, shifts map[uuid.UUID][]Interval, minRestHours int, violations *[]Violation) {
 	if minRestHours <= 0 {
 		return
 	}
-	minRestMinutes := minRestHours * 60
-	newIntervals := shifts[req.ShiftID]
-	if len(newIntervals) == 0 {
-		return
-	}
-
-	newStartMinutes, newEndMinutes := shiftStartEndMinutes(newIntervals)
-
-	for _, dateStr := range dates {
-		currentDate, err := time.Parse("2006-01-02", dateStr)
-		if err != nil {
-			continue
-		}
-		prevDateStr := currentDate.AddDate(0, 0, -1).Format("2006-01-02")
-		nextDateStr := currentDate.AddDate(0, 0, 1).Format("2006-01-02")
-
+	for i, cand := range candidates {
 		for _, r := range existing {
-			if r.ShiftID == nil {
+			if !hasShiftData(r) {
 				continue
 			}
-			if r.Date == prevDateStr {
-				prevIntervals := shifts[*r.ShiftID]
-				if len(prevIntervals) > 0 {
-					_, prevEnd := shiftStartEndMinutes(prevIntervals)
-					gap := restGapMinutes(prevEnd, newStartMinutes)
-					if gap < minRestMinutes {
-						*violations = append(*violations, Violation{
-							Type:             ViolationRestPeriod,
-							Severity:         SeveritySoft,
-							Message:          fmt.Sprintf("Insufficient rest: %dh gap, %dh required", gap/60, minRestHours),
-							ConflictingDates: []string{prevDateStr, dateStr},
-							ShiftIDs:         []uuid.UUID{req.ShiftID, *r.ShiftID},
-						})
-					}
-				}
+			if v := compareRestPair(cand, r, shifts, minRestHours); v != nil {
+				*violations = append(*violations, *v)
 			}
-			if r.Date == nextDateStr {
-				nextIntervals := shifts[*r.ShiftID]
-				if len(nextIntervals) > 0 {
-					nextStart, _ := shiftStartEndMinutes(nextIntervals)
-					gap := restGapMinutes(newEndMinutes, nextStart)
-					if gap < minRestMinutes {
-						*violations = append(*violations, Violation{
-							Type:             ViolationRestPeriod,
-							Severity:         SeveritySoft,
-							Message:          fmt.Sprintf("Insufficient rest: %dh gap, %dh required", gap/60, minRestHours),
-							ConflictingDates: []string{dateStr, nextDateStr},
-							ShiftIDs:         []uuid.UUID{req.ShiftID, *r.ShiftID},
-						})
-					}
-				}
+		}
+		for j := i + 1; j < len(candidates); j++ {
+			if v := compareRestPair(cand, candidates[j], shifts, minRestHours); v != nil {
+				*violations = append(*violations, *v)
 			}
 		}
 	}
 }
 
-func checkWeeklyHours(req Request, dates []string, existing []Roster, shifts map[uuid.UUID][]Interval, maxWeeklyHours int, violations *[]Violation) {
+func candidateDayKeys(candidates []Roster) map[string]struct{} {
+	keys := make(map[string]struct{}, len(candidates))
+	for _, c := range candidates {
+		keys[c.EmploymentID.String()+":"+c.Date] = struct{}{}
+	}
+	return keys
+}
+
+func rosterIntervalsMinutes(r Roster, shifts map[uuid.UUID][]Interval) int {
+	total := 0
+	for _, iv := range resolveIntervals(r, shifts) {
+		total += intervalMinutes(iv)
+	}
+	return total
+}
+
+func appendUniqueShiftID(shiftIDs []uuid.UUID, seen map[uuid.UUID]struct{}, shiftID *uuid.UUID) []uuid.UUID {
+	if shiftID == nil || *shiftID == uuid.Nil {
+		return shiftIDs
+	}
+	if _, ok := seen[*shiftID]; ok {
+		return shiftIDs
+	}
+	seen[*shiftID] = struct{}{}
+	return append(shiftIDs, *shiftID)
+}
+
+func rosterInRange(r Roster, start, end time.Time, skipKeys map[string]struct{}) bool {
+	if !hasShiftData(r) {
+		return false
+	}
+	if _, replaced := skipKeys[r.EmploymentID.String()+":"+r.Date]; replaced {
+		return false
+	}
+	rd, err := time.Parse("2006-01-02", r.Date)
+	return err == nil && !rd.Before(start) && !rd.After(end)
+}
+
+func sumRangeMinutes(rosters []Roster, shifts map[uuid.UUID][]Interval, start, end time.Time, skipKeys map[string]struct{}) (int, []uuid.UUID) {
+	total := 0
+	seen := make(map[uuid.UUID]struct{})
+	shiftIDs := make([]uuid.UUID, 0, 2)
+	for _, r := range rosters {
+		if !rosterInRange(r, start, end, skipKeys) {
+			continue
+		}
+		total += rosterIntervalsMinutes(r, shifts)
+		shiftIDs = appendUniqueShiftID(shiftIDs, seen, r.ShiftID)
+	}
+	return total, shiftIDs
+}
+
+func checkWeeklyHours(candidates []Roster, existing []Roster, shifts map[uuid.UUID][]Interval, maxWeeklyHours int, violations *[]Violation) {
 	if maxWeeklyHours <= 0 {
 		return
 	}
 	maxWeeklyMinutes := maxWeeklyHours * 60
 	weeksEvaluated := make(map[string]struct{})
+	replacedKeys := candidateDayKeys(candidates)
 
-	for _, dateStr := range dates {
-		d, err := time.Parse("2006-01-02", dateStr)
+	for _, cand := range candidates {
+		d, err := time.Parse("2006-01-02", cand.Date)
 		if err != nil {
 			continue
 		}
@@ -238,29 +393,9 @@ func checkWeeklyHours(req Request, dates []string, existing []Roster, shifts map
 		weeksEvaluated[monStr] = struct{}{}
 		sun := mon.AddDate(0, 0, 6)
 
-		totalMinutes := 0
-		for _, r := range existing {
-			if r.ShiftID == nil {
-				continue
-			}
-			rd, err := time.Parse("2006-01-02", r.Date)
-			if err != nil || rd.Before(mon) || rd.After(sun) {
-				continue
-			}
-			for _, iv := range shifts[*r.ShiftID] {
-				totalMinutes += intervalMinutes(iv)
-			}
-		}
-
-		for _, reqDateStr := range dates {
-			rd, err := time.Parse("2006-01-02", reqDateStr)
-			if err != nil || rd.Before(mon) || rd.After(sun) {
-				continue
-			}
-			for _, iv := range shifts[req.ShiftID] {
-				totalMinutes += intervalMinutes(iv)
-			}
-		}
+		existingMins, _ := sumRangeMinutes(existing, shifts, mon, sun, replacedKeys)
+		candMins, shiftIDs := sumRangeMinutes(candidates, shifts, mon, sun, nil)
+		totalMinutes := existingMins + candMins
 
 		if totalMinutes > maxWeeklyMinutes {
 			*violations = append(*violations, Violation{
@@ -268,21 +403,35 @@ func checkWeeklyHours(req Request, dates []string, existing []Roster, shifts map
 				Severity:         SeveritySoft,
 				Message:          fmt.Sprintf("Weekly hours exceeded: %dh, limit: %dh", totalMinutes/60, maxWeeklyHours),
 				ConflictingDates: []string{monStr, sun.Format("2006-01-02")},
-				ShiftIDs:         []uuid.UUID{req.ShiftID},
+				ShiftIDs:         shiftIDs,
 			})
 		}
 	}
 }
 
-func checkMonthlyOT(req Request, dates []string, existing []Roster, shifts map[uuid.UUID][]Interval, maxMonthlyOTHours int, violations *[]Violation) {
+func addDailyMinutesInRange(dailyTotals map[string]int, rosters []Roster, shifts map[uuid.UUID][]Interval, start, end time.Time, skipKeys map[string]struct{}) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{})
+	shiftIDs := make([]uuid.UUID, 0, 2)
+	for _, r := range rosters {
+		if !rosterInRange(r, start, end, skipKeys) {
+			continue
+		}
+		dailyTotals[r.Date] += rosterIntervalsMinutes(r, shifts)
+		shiftIDs = appendUniqueShiftID(shiftIDs, seen, r.ShiftID)
+	}
+	return shiftIDs
+}
+
+func checkMonthlyOT(candidates []Roster, existing []Roster, shifts map[uuid.UUID][]Interval, maxMonthlyOTHours int, violations *[]Violation) {
 	if maxMonthlyOTHours <= 0 {
 		return
 	}
 	maxMonthlyOTMinutes := maxMonthlyOTHours * 60
 	monthsEvaluated := make(map[string]struct{})
+	replacedKeys := candidateDayKeys(candidates)
 
-	for _, dateStr := range dates {
-		d, err := time.Parse("2006-01-02", dateStr)
+	for _, cand := range candidates {
+		d, err := time.Parse("2006-01-02", cand.Date)
 		if err != nil {
 			continue
 		}
@@ -295,36 +444,14 @@ func checkMonthlyOT(req Request, dates []string, existing []Roster, shifts map[u
 		monthStart := time.Date(d.Year(), d.Month(), 1, 0, 0, 0, 0, time.UTC)
 		monthEnd := monthStart.AddDate(0, 1, -1)
 
+		dailyTotals := make(map[string]int)
+		addDailyMinutesInRange(dailyTotals, existing, shifts, monthStart, monthEnd, replacedKeys)
+		shiftIDs := addDailyMinutesInRange(dailyTotals, candidates, shifts, monthStart, monthEnd, nil)
+
 		totalOTMinutes := 0
-
-		for _, r := range existing {
-			if r.ShiftID == nil {
-				continue
-			}
-			rd, err := time.Parse("2006-01-02", r.Date)
-			if err != nil || rd.Before(monthStart) || rd.After(monthEnd) {
-				continue
-			}
-			dailyMinutes := 0
-			for _, iv := range shifts[*r.ShiftID] {
-				dailyMinutes += intervalMinutes(iv)
-			}
-			if dailyMinutes > 480 {
-				totalOTMinutes += (dailyMinutes - 480)
-			}
-		}
-
-		for _, reqDateStr := range dates {
-			rd, err := time.Parse("2006-01-02", reqDateStr)
-			if err != nil || rd.Before(monthStart) || rd.After(monthEnd) {
-				continue
-			}
-			dailyMinutes := 0
-			for _, iv := range shifts[req.ShiftID] {
-				dailyMinutes += intervalMinutes(iv)
-			}
-			if dailyMinutes > 480 {
-				totalOTMinutes += (dailyMinutes - 480)
+		for _, mins := range dailyTotals {
+			if mins > 480 {
+				totalOTMinutes += mins - 480
 			}
 		}
 
@@ -334,50 +461,73 @@ func checkMonthlyOT(req Request, dates []string, existing []Roster, shifts map[u
 				Severity:         SeveritySoft,
 				Message:          fmt.Sprintf("Monthly OT exceeded: %dh OT, limit: %dh", totalOTMinutes/60, maxMonthlyOTHours),
 				ConflictingDates: []string{monthStart.Format("2006-01-02"), monthEnd.Format("2006-01-02")},
-				ShiftIDs:         []uuid.UUID{req.ShiftID},
+				ShiftIDs:         shiftIDs,
 			})
 		}
 	}
 }
 
-func shiftStartEndMinutes(intervals []Interval) (int, int) {
-	if len(intervals) == 0 {
-		return 0, 0
+func rosterWindows(dateStr string, intervals []Interval) []timeWindow {
+	base, err := time.Parse("2006-01-02", dateStr)
+	if err != nil || len(intervals) == 0 {
+		return nil
 	}
-	minStart := 1440
-	maxEnd := 0
+	out := make([]timeWindow, 0, len(intervals))
 	for _, iv := range intervals {
-		sm, em := parseIntervalMinutes(iv.StartTime, iv.EndTime)
-		if sm < minStart {
-			minStart = sm
+		sh, sm, ss, okS := parseClock(iv.StartTime)
+		eh, em, es, okE := parseClock(iv.EndTime)
+		if !okS || !okE {
+			continue
 		}
-		if em <= sm {
-			em += 1440
+		startDay := base.AddDate(0, 0, iv.StartDayOffset)
+		endDay := base.AddDate(0, 0, iv.EndDayOffset)
+		start := time.Date(startDay.Year(), startDay.Month(), startDay.Day(), sh, sm, ss, 0, time.UTC)
+		end := time.Date(endDay.Year(), endDay.Month(), endDay.Day(), eh, em, es, 0, time.UTC)
+		if iv.EndDayOffset == iv.StartDayOffset && !end.After(start) {
+			end = end.AddDate(0, 0, 1)
 		}
-		if em > maxEnd {
-			maxEnd = em
+		if end.After(start) {
+			out = append(out, timeWindow{start: start, end: end})
+		}
+	}
+	return out
+}
+
+func windowsOverlap(left, right []timeWindow) bool {
+	for _, l := range left {
+		for _, r := range right {
+			if l.start.Before(r.end) && r.start.Before(l.end) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func windowSpan(windows []timeWindow) (time.Time, time.Time) {
+	minStart := windows[0].start
+	maxEnd := windows[0].end
+	for _, w := range windows[1:] {
+		if w.start.Before(minStart) {
+			minStart = w.start
+		}
+		if w.end.After(maxEnd) {
+			maxEnd = w.end
 		}
 	}
 	return minStart, maxEnd
 }
 
-func restGapMinutes(prevEndMinutes, nextStartMinutes int) int {
-	pe := prevEndMinutes
-	if pe < 720 {
-		pe += 1440
-	}
-	nextStartAdjusted := nextStartMinutes + 1440
-	gap := nextStartAdjusted - pe
-	if gap < 0 {
+func intervalMinutes(iv Interval) int {
+	sh, sm, _, okS := parseClock(iv.StartTime)
+	eh, em, _, okE := parseClock(iv.EndTime)
+	if !okS || !okE {
 		return 0
 	}
-	return gap
-}
-
-func intervalMinutes(iv Interval) int {
-	sm, em := parseIntervalMinutes(iv.StartTime, iv.EndTime)
-	duration := em - sm
-	if duration <= 0 {
+	startMins := iv.StartDayOffset*1440 + sh*60 + sm
+	endMins := iv.EndDayOffset*1440 + eh*60 + em
+	duration := endMins - startMins
+	if iv.EndDayOffset == iv.StartDayOffset && duration <= 0 {
 		duration += 1440
 	}
 	if iv.IsBreakAutoDeduct && iv.BreakDurationMinutes > 0 {
@@ -389,36 +539,14 @@ func intervalMinutes(iv Interval) int {
 	return duration
 }
 
-func intervalsOverlap(s1, e1, s2, e2 string) bool {
-	a := intervalSegments(s1, e1)
-	b := intervalSegments(s2, e2)
-	for _, left := range a {
-		for _, right := range b {
-			if left[0] < right[1] && right[0] < left[1] {
-				return true
-			}
+func parseClock(raw string) (hour, minute, second int, ok bool) {
+	trimmed := strings.TrimSpace(raw)
+	for _, layout := range []string{"15:04:05", "15:04"} {
+		if parsed, err := time.Parse(layout, trimmed); err == nil {
+			return parsed.Hour(), parsed.Minute(), parsed.Second(), true
 		}
 	}
-	return false
-}
-
-func intervalSegments(start, end string) [][2]int {
-	sm, em := parseIntervalMinutes(start, end)
-	if em > sm {
-		return [][2]int{{sm, em}}
-	}
-	return [][2]int{{sm, 1440}, {0, em}}
-}
-
-func parseIntervalMinutes(start, end string) (int, int) {
-	t1, err1 := time.Parse("15:04:05", start)
-	t2, err2 := time.Parse("15:04:05", end)
-	if err1 != nil || err2 != nil {
-		return 0, 0
-	}
-	sm := t1.Hour()*60 + t1.Minute()
-	em := t2.Hour()*60 + t2.Minute()
-	return sm, em
+	return 0, 0, 0, false
 }
 
 func uniqueSortedDates(raw []string) []string {

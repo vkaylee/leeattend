@@ -57,7 +57,8 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUI
 		if err != nil {
 			return err
 		}
-		cmd, err := tx.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), employmentID, punchTime, rawData)
+		rawLogID := uuid.New()
+		cmd, err := tx.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, 0, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, rawLogID, employmentID, punchTime, rawData)
 		if err != nil {
 			return err
 		}
@@ -65,7 +66,11 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUI
 			return scanLatestTimeEntry(ctx, tx, employmentID, &record)
 		}
 		row := tx.QueryRow(ctx, `INSERT INTO time_entries (id, employment_id, segment_id, template_id, shift_version_id, breaks_snapshot, punch_in_time, entry_type, note, is_break_overtime, created_at, updated_at) VALUES ($1, $2, $7, (SELECT template_id FROM work_segments WHERE id = $7), (SELECT selected_shift_version_id FROM work_segments WHERE id = $7), (SELECT breaks_snapshot FROM work_segments WHERE id = $7), $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, employment_id, template_id, segment_id, shift_version_id, breaks_snapshot, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, generation_metadata, created_at, updated_at`, uuid.New(), employmentID, punchTime, entryType, note, isBreakOvertime, resolvedSegmentID)
-		return scanTimeEntry(row, &record)
+		if err := scanTimeEntry(row, &record); err != nil {
+			return err
+		}
+		entryID := record.ID
+		return enqueueClosedPeriodLatePunchReconciliation(ctx, tx, employmentID, rawLogID, &entryID, punchTime)
 	})
 	if err != nil {
 		return api.TimeEntryRecord{}, err
@@ -94,13 +99,22 @@ func (r AttendanceRepository) PunchOut(ctx context.Context, employeeID uuid.UUID
 		if err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), employmentID, punchTime, rawData); err != nil {
+		rawLogID := uuid.New()
+		cmd, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, 1, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, rawLogID, employmentID, punchTime, rawData)
+		if err != nil {
 			return err
 		}
 		if _, err := db.Exec(ctx, `UPDATE time_entries SET punch_out_time = $1, duration_minutes = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM ($1 - punch_in_time)) / 60)::integer), note = COALESCE($2, note), updated_at = CURRENT_TIMESTAMP WHERE id = (SELECT id FROM time_entries WHERE employment_id = $3 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1)`, punchTime, note, employmentID); err != nil {
 			return err
 		}
-		return scanLatestTimeEntry(ctx, db, employmentID, &record)
+		if err := scanLatestTimeEntry(ctx, db, employmentID, &record); err != nil {
+			return err
+		}
+		if cmd.RowsAffected() > 0 {
+			entryID := record.ID
+			return enqueueClosedPeriodLatePunchReconciliation(ctx, db, employmentID, rawLogID, &entryID, punchTime)
+		}
+		return nil
 	})
 	if err != nil {
 		return api.TimeEntryRecord{}, err
@@ -307,8 +321,15 @@ func insertAttendanceRawLog(ctx context.Context, db DBTX, employmentID uuid.UUID
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, $5, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, uuid.New(), employmentID, punchTime, data, punch)
-	return err
+	rawLogID := uuid.New()
+	cmd, err := db.Exec(ctx, `INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES ($1, $2, $3, 'manual', $4, $5, 1, CURRENT_TIMESTAMP) ON CONFLICT (employment_id, punch_time, punch, status) DO NOTHING`, rawLogID, employmentID, punchTime, data, punch)
+	if err != nil {
+		return err
+	}
+	if cmd.RowsAffected() > 0 {
+		return enqueueClosedPeriodLatePunchReconciliation(ctx, db, employmentID, rawLogID, nil, punchTime)
+	}
+	return nil
 }
 
 // resolvePunchSegment accepts an explicit segment only when it owns the employment

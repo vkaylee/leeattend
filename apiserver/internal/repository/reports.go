@@ -21,7 +21,7 @@ type ReportRepository struct {
 
 const officialScheduleCTE = `WITH latest_official_revisions AS (
 		SELECT DISTINCT ON (employment_id, business_date)
-			id, employment_id, business_date, state
+			id, employment_id, business_date, state, timezone
 		FROM schedule_day_revisions
 		WHERE state IN ('published', 'explicit_off')
 		ORDER BY employment_id, business_date, revision_number DESC, id DESC
@@ -30,13 +30,14 @@ const officialScheduleCTE = `WITH latest_official_revisions AS (
 		sdr.employment_id,
 		sdr.business_date,
 		sdr.state,
-		MIN(ws.scheduled_start)::text AS scheduled_start,
-		MAX(ws.scheduled_end)::text AS scheduled_end,
-		MIN(st.name) AS shift_name
+		sdr.timezone,
+		(ARRAY_AGG(ws.scheduled_start::text ORDER BY ws.scheduled_start_at ASC NULLS LAST, ws.sort_order ASC, ws.id ASC) FILTER (WHERE ws.id IS NOT NULL AND ws.segment_status <> 'cancelled'))[1] AS scheduled_start,
+		(ARRAY_AGG(ws.scheduled_end::text ORDER BY ws.scheduled_end_at DESC NULLS LAST, ws.sort_order DESC, ws.id DESC) FILTER (WHERE ws.id IS NOT NULL AND ws.segment_status <> 'cancelled'))[1] AS scheduled_end,
+		(ARRAY_AGG(st.name ORDER BY ws.scheduled_start_at ASC NULLS LAST, ws.sort_order ASC, ws.id ASC) FILTER (WHERE ws.id IS NOT NULL AND ws.segment_status <> 'cancelled'))[1] AS shift_name
 	FROM latest_official_revisions sdr
 	LEFT JOIN work_segments ws ON ws.schedule_revision_id = sdr.id
 	LEFT JOIN shift_templates st ON st.id = ws.template_id
-		GROUP BY sdr.id, sdr.employment_id, sdr.business_date, sdr.state
+		GROUP BY sdr.id, sdr.employment_id, sdr.business_date, sdr.state, sdr.timezone
 )`
 
 func (r ReportRepository) db(ctx context.Context) (DBTX, error) {
@@ -326,7 +327,14 @@ LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date
 LEFT JOIN LATERAL (
        SELECT MIN(te.punch_in_time)::text AS punch_in_time, MAX(te.punch_out_time)::text AS punch_out_time
        FROM time_entries te
-       WHERE te.employment_id = emp.id AND te.entry_type = 'work' AND te.punch_in_time::date = ads.date
+       LEFT JOIN work_segments te_ws ON te_ws.id = te.segment_id
+       WHERE te.employment_id = emp.id
+         AND te.entry_type = 'work'
+         AND (
+             (os.revision_id IS NOT NULL AND te_ws.schedule_revision_id = os.revision_id)
+             OR (te.segment_id IS NOT NULL AND te_ws.date = ads.date AND (os.revision_id IS NULL OR te_ws.schedule_revision_id IS NULL))
+             OR (te.segment_id IS NULL AND (te.punch_in_time AT TIME ZONE COALESCE(NULLIF(os.timezone, ''), 'UTC'))::date = ads.date)
+         )
 ) te ON TRUE
 WHERE %s%s
 ORDER BY ads.date ASC, e.full_name ASC
@@ -534,10 +542,63 @@ func (r ReportRepository) GetNoShowReport(ctx context.Context, params api.NoShow
 		return api.PaginatedReportResponse{}, err
 	}
 	offset := (params.Page - 1) * params.Limit
+	noShowCTE := officialScheduleCTE + `, missing_official_segments AS (
+		SELECT sdr.id AS revision_id,
+		       sdr.employment_id,
+		       ws.id AS segment_id,
+		       ws.sort_order,
+		       ws.scheduled_start::text AS scheduled_start,
+		       ws.scheduled_end::text AS scheduled_end,
+		       st.name AS shift_name
+		FROM latest_official_revisions sdr
+		JOIN work_segments ws ON ws.schedule_revision_id = sdr.id
+		LEFT JOIN shift_templates st ON st.id = ws.template_id
+		WHERE sdr.business_date = $1::date
+		  AND sdr.state = 'published'
+		  AND ws.segment_status <> 'cancelled'
+		  AND NOT EXISTS (
+		      SELECT 1 FROM time_entries te
+		      WHERE te.employment_id = sdr.employment_id
+		        AND te.entry_type = 'work'
+		        AND (
+		            te.segment_id = ws.id
+		            OR (te.segment_id IS NULL AND ws.scheduled_start_at IS NOT NULL AND ws.scheduled_end_at IS NOT NULL
+		                AND te.punch_in_time >= ws.scheduled_start_at - INTERVAL '2 hours'
+		                AND te.punch_in_time <= ws.scheduled_end_at)
+		            OR (te.segment_id IS NULL AND (ws.scheduled_start_at IS NULL OR ws.scheduled_end_at IS NULL)
+		                AND (te.punch_in_time AT TIME ZONE COALESCE(NULLIF(sdr.timezone, ''), 'UTC'))::date = $1::date)
+		        )
+		  )
+		  AND NOT EXISTS (
+		      SELECT 1 FROM leave_requests lr
+		      WHERE lr.employment_id = sdr.employment_id
+		        AND lr.status IN ('approved', 'pre_approved')
+		        AND lr.start_date <= $1::date AND lr.end_date >= $1::date
+		        AND (
+		            lr.duration_type IS NULL
+		            OR lr.duration_type = 'full_day'
+		            OR (lr.duration_type = 'custom_hours' AND lr.start_time IS NOT NULL AND lr.end_time IS NOT NULL
+		                AND ws.scheduled_start >= lr.start_time AND ws.scheduled_end <= lr.end_time)
+		        )
+		  )
+	)`
 	whereClause := `emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
 	AND emp.deleted_at IS NULL AND e.deleted_at IS NULL
 	AND (os.state IS NULL OR os.state <> 'explicit_off')
-	AND NOT EXISTS (SELECT 1 FROM time_entries te WHERE te.employment_id = emp.id AND te.punch_in_time::date = $1::date)`
+	AND NOT EXISTS (
+		SELECT 1 FROM leave_requests lr
+		WHERE lr.employment_id = emp.id
+		  AND lr.status IN ('approved', 'pre_approved')
+		  AND lr.start_date <= $1::date AND lr.end_date >= $1::date
+		  AND (lr.duration_type IS NULL OR lr.duration_type = 'full_day')
+	)
+	AND (
+		(os.state = 'published' AND mos.segment_id IS NOT NULL)
+		OR (
+			os.state IS NULL
+			AND NOT EXISTS (SELECT 1 FROM time_entries te WHERE te.employment_id = emp.id AND te.entry_type = 'work' AND (te.punch_in_time AT TIME ZONE COALESCE(NULLIF(wl.timezone, ''), 'UTC'))::date = $1::date)
+		)
+	)`
 	args := []any{params.Date}
 	idx := 2
 
@@ -552,25 +613,27 @@ func (r ReportRepository) GetNoShowReport(ctx context.Context, params api.NoShow
 		idx++
 	}
 
-	fromClause := officialScheduleCTE + ` SELECT `
+	fromClause := noShowCTE + ` SELECT `
 	joins := `
 FROM employments emp
 JOIN employees e ON e.id = emp.employee_id
+LEFT JOIN work_locations wl ON wl.id = emp.primary_location_id
 LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL
 	LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $1::date AND (t.end_date IS NULL OR t.end_date >= $1::date)
-	LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date = $1::date`
+	LEFT JOIN official_schedule os ON os.employment_id = emp.id AND os.business_date = $1::date
+	LEFT JOIN missing_official_segments mos ON mos.revision_id = os.revision_id`
 
 	var total int64
-	countQuery := officialScheduleCTE + ` SELECT count(*)` + joins + `
+	countQuery := noShowCTE + ` SELECT count(*)` + joins + `
 WHERE ` + whereClause
 	if err := db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return api.PaginatedReportResponse{}, err
 	}
 
 	dataQuery := fromClause + `os.revision_id, emp.id, e.id, e.full_name, COALESCE(t.employee_number, ''),
-       os.shift_name, os.scheduled_start, os.scheduled_end, $1::date::text, os.state` + joins + fmt.Sprintf(`
+       COALESCE(mos.shift_name, os.shift_name), COALESCE(mos.scheduled_start, os.scheduled_start), COALESCE(mos.scheduled_end, os.scheduled_end), $1::date::text, os.state` + joins + fmt.Sprintf(`
 WHERE %s
-ORDER BY e.full_name ASC, emp.id ASC
+ORDER BY e.full_name ASC, emp.id ASC, mos.sort_order ASC NULLS FIRST, mos.segment_id ASC NULLS FIRST
 LIMIT $%d OFFSET $%d`, whereClause, idx, idx+1)
 
 	args = append(args, params.Limit, offset)

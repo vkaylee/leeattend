@@ -98,7 +98,7 @@ func (r WorkSegmentRepository) CreateSegment(ctx context.Context, req api.Create
 		if err := validateSegmentReferences(ctx, db, req.EmploymentID, req.TemplateID); err != nil {
 			return err
 		}
-		_, err := db.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7::time, $8::time, $9, $10, $11, $12, $13, $14, $15, $16, COALESCE($17, '{}'::jsonb), $18, '{}'::jsonb, $19, $19)`, id, req.EmploymentID, req.Date, req.TemplateID, req.IntervalID, req.SortOrder, req.ScheduledStart, req.ScheduledEnd, req.SegmentType, req.SegmentStatus, req.CompensationRate, req.GapCompensationBefore, req.GapCompensationRateBefore, req.BreakConfigOverride, req.OTConfigOverride, req.Source, jsonbArg(req.SourceDetail), req.Notes, now)
+		_, err := db.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7::time, $8::time, $9, $10, $11, $12, $13, $14, $15, $16, COALESCE($17, '{}'::jsonb), $18, '{}'::jsonb, $19, $19)`, id, req.EmploymentID, req.Date, req.TemplateID, req.IntervalID, req.SortOrder, req.ScheduledStart, req.ScheduledEnd, req.SegmentType, req.SegmentStatus, *req.CompensationRate, req.GapCompensationBefore, req.GapCompensationRateBefore, req.BreakConfigOverride, req.OTConfigOverride, req.Source, jsonbArg(req.SourceDetail), req.Notes, now)
 		if err != nil {
 			return mapSegmentDBError(err)
 		}
@@ -208,7 +208,7 @@ func (r WorkSegmentRepository) BulkCreateSegments(ctx context.Context, req api.B
 				return err
 			}
 			id := uuid.New()
-			if _, err := db.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7::time, $8::time, $9, $10, $11, $12, $13, $14, $15, $16, COALESCE($17, '{}'::jsonb), $18, '{}'::jsonb, $19, $19)`, id, item.EmploymentID, item.Date, item.TemplateID, item.IntervalID, item.SortOrder, item.ScheduledStart, item.ScheduledEnd, item.SegmentType, item.SegmentStatus, item.CompensationRate, item.GapCompensationBefore, item.GapCompensationRateBefore, item.BreakConfigOverride, item.OTConfigOverride, item.Source, jsonbArg(item.SourceDetail), item.Notes, now); err != nil {
+			if _, err := db.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, compensation_rate, gap_compensation_before, gap_compensation_rate_before, break_config_override, ot_config_override, source, source_detail, notes, generation_metadata, created_at, updated_at) VALUES ($1, $2, $3::date, $4, $5, $6, $7::time, $8::time, $9, $10, $11, $12, $13, $14, $15, $16, COALESCE($17, '{}'::jsonb), $18, '{}'::jsonb, $19, $19)`, id, item.EmploymentID, item.Date, item.TemplateID, item.IntervalID, item.SortOrder, item.ScheduledStart, item.ScheduledEnd, item.SegmentType, item.SegmentStatus, *item.CompensationRate, item.GapCompensationBefore, item.GapCompensationRateBefore, item.BreakConfigOverride, item.OTConfigOverride, item.Source, jsonbArg(item.SourceDetail), item.Notes, now); err != nil {
 				return mapSegmentDBError(err)
 			}
 			segment, err := r.getSegmentTx(ctx, db, id)
@@ -374,8 +374,9 @@ func applySegmentDefaults(req *api.CreateWorkSegmentRequest) {
 	if len(req.SourceDetail) == 0 {
 		req.SourceDetail = []byte(`{}`)
 	}
-	if req.CompensationRate.IsZero() {
-		req.CompensationRate = decimal.NewFromInt(1)
+	if req.CompensationRate == nil {
+		one := decimal.NewFromInt(1)
+		req.CompensationRate = &one
 	}
 }
 

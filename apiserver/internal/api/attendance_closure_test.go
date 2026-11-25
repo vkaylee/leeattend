@@ -14,8 +14,9 @@ import (
 
 type closureTestRepository struct {
 	mockAttendanceRepo
-	closed bool
-	opened bool
+	closed    bool
+	opened    bool
+	reopenErr error
 }
 
 func (r *closureTestRepository) CloseAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, ids.UserID) (AttendanceClosureResponse, error) {
@@ -24,6 +25,9 @@ func (r *closureTestRepository) CloseAttendancePeriod(context.Context, uuid.UUID
 }
 
 func (r *closureTestRepository) ReopenAttendancePeriod(context.Context, uuid.UUID, int, int, int64, string, ids.UserID) (AttendanceClosureResponse, error) {
+	if r.reopenErr != nil {
+		return AttendanceClosureResponse{}, r.reopenErr
+	}
 	r.opened = true
 	return AttendanceClosureResponse{PeriodID: uuid.New(), Status: "reopened", Version: 3}, nil
 }
@@ -126,5 +130,17 @@ func TestCloseAndReopenAttendancePeriodContract(t *testing.T) {
 	handler.ReopenAttendancePeriod(rec, closureRequest(http.MethodPost, reopenPath, `{"version":2,"reason":"approved correction"}`, userID))
 	if rec.Code != http.StatusOK || !repo.opened {
 		t.Fatalf("expected 200 and repository reopen call, got %d", rec.Code)
+	}
+}
+
+func TestReopenAttendancePeriodMapsSelfReopenToForbidden(t *testing.T) {
+	repo := &closureTestRepository{reopenErr: ErrAttendanceSelfReopenForbidden}
+	handler := AttendanceHandler{Repository: repo, Authorizer: closureTestAuthorizer{allowed: true, global: true}}
+	userID, employerID := uuid.New(), uuid.New()
+	reopenPath := "/api/v1/attendance/periods/2026/1/reopen?employer_id=" + employerID.String()
+	rec := httptest.NewRecorder()
+	handler.ReopenAttendancePeriod(rec, closureRequest(http.MethodPost, reopenPath, `{"version":2,"reason":"self reopen attempt"}`, userID))
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for self-reopen, got %d: %s", rec.Code, rec.Body.String())
 	}
 }

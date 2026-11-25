@@ -82,7 +82,7 @@ describe("Date Format Integration", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"], managed_department_ids: [] });
+    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance:staging:manage"], roles: ["admin"], managed_department_ids: [] });
  
  
   });

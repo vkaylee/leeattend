@@ -23,6 +23,7 @@ var (
 	ErrAttendanceMissingCoverage      = errors.New("attendance closure: missing official coverage")
 	ErrAttendanceOpenPunch            = errors.New("attendance closure: open punch")
 	ErrAttendanceClosureConflict      = errors.New("attendance closure: unresolved approval")
+	ErrAttendanceSelfReopenForbidden  = errors.New("attendance closure: independent approver required for reopen")
 	ErrAttendanceAuditFailure         = errors.New("attendance closure: audit failure")
 )
 
@@ -190,6 +191,8 @@ func (h *AttendanceHandler) writeClosureError(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Conflict("error.missing_coverage"))
 	case errors.Is(err, ErrAttendanceOpenPunch):
 		apperror.WriteError(w, r, apperror.Conflict("error.open_punch"))
+	case errors.Is(err, ErrAttendanceSelfReopenForbidden):
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 	case errors.Is(err, ErrAttendanceClosureConflict):
 		apperror.WriteError(w, r, apperror.Conflict("error.closure_conflict"))
 	case errors.Is(err, ErrAttendancePeriodConflict):

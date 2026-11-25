@@ -1,5 +1,33 @@
 BEGIN;
 
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM public.work_segments
+        WHERE schedule_revision_id IS NOT NULL
+           OR start_day_offset IS NOT NULL
+           OR end_day_offset IS NOT NULL
+           OR shift_group_key IS NOT NULL
+           OR start_utc_offset_minutes IS NOT NULL
+           OR end_utc_offset_minutes IS NOT NULL
+    ) OR EXISTS (
+        SELECT 1
+        FROM public.shift_default_intervals
+        WHERE start_day_offset <> 0
+           OR end_day_offset <> 0
+           OR start_utc_offset_minutes IS NOT NULL
+           OR end_utc_offset_minutes IS NOT NULL
+    ) OR EXISTS (
+        SELECT 1
+        FROM public.schedule_day_revisions
+        WHERE state IN ('published', 'explicit_off', 'superseded')
+    ) THEN
+        RAISE EXCEPTION 'schedule day offsets rollback blocked: official schedule or offset evidence exists';
+    END IF;
+END;
+$$;
+
 ALTER TABLE public.work_segments
     DROP CONSTRAINT IF EXISTS work_segments_utc_offsets_check,
     DROP CONSTRAINT IF EXISTS work_segments_day_offsets_check,

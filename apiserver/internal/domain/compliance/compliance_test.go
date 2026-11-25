@@ -204,10 +204,74 @@ func TestValidate_OvernightInterval(t *testing.T) {
 	res, err := Validate(rules, Request{
 		EmploymentID: empID,
 		ShiftID:      shiftDay,
-		Dates:        []string{"2026-10-19"},
+		Dates:        []string{"2026-10-20"},
 	}, existing, shifts)
 
 	if !errors.Is(err, ErrHardViolation) {
 		t.Fatalf("expected overlap with overnight shift, got %v, res: %+v", err, res)
+	}
+}
+
+func TestAdjacentNightShiftOverlap(t *testing.T) {
+	empA := uuid.New()
+	shiftNight, shiftMorning := uuid.New(), uuid.New()
+	shifts := map[uuid.UUID][]Interval{
+		shiftNight:   {{StartTime: "22:00:00", EndTime: "06:00:00"}},
+		shiftMorning: {{StartTime: "05:00:00", EndTime: "13:00:00"}},
+	}
+	existing := []Roster{{EmploymentID: empA, ShiftID: &shiftNight, Date: "2026-11-20"}}
+	res, err := Validate(defaultRules(), Request{
+		EmploymentID: empA,
+		ShiftID:      shiftMorning,
+		Dates:        []string{"2026-11-21"},
+	}, existing, shifts)
+	if !errors.Is(err, ErrHardViolation) {
+		t.Fatalf("expected ErrHardViolation for adjacent overnight overlap, got err=%v res=%+v", err, res)
+	}
+	if len(res.Violations) == 0 || res.Violations[0].Type != ViolationOverlap {
+		t.Fatalf("expected ViolationOverlap, got %+v", res.Violations)
+	}
+}
+
+func TestAdjacentNightShiftTouchingAndOverridePolicy(t *testing.T) {
+	empA, empB := uuid.New(), uuid.New()
+	shiftNight, shiftTouching := uuid.New(), uuid.New()
+	shifts := map[uuid.UUID][]Interval{
+		shiftNight:    {{StartTime: "22:00:00", EndTime: "06:00:00"}},
+		shiftTouching: {{StartTime: "06:00:00", EndTime: "14:00:00"}},
+	}
+
+	existing := []Roster{{EmploymentID: empA, ShiftID: &shiftNight, Date: "2026-11-20"}}
+	res, err := Validate(defaultRules(), Request{
+		EmploymentID: empA,
+		ShiftID:      shiftTouching,
+		Dates:        []string{"2026-11-21"},
+	}, existing, shifts)
+	if !errors.Is(err, ErrSoftViolation) || len(res.Violations) != 1 || res.Violations[0].Type != ViolationRestPeriod {
+		t.Fatalf("expected rest-only soft violation on touching 06:00 endpoints, got err=%v res=%+v", err, res)
+	}
+
+	noOverrideRules := defaultRules()
+	noOverrideRules.AllowManagerOverride = false
+	reason := "Manager override attempt"
+	res, err = Validate(noOverrideRules, Request{
+		EmploymentID:   empA,
+		ShiftID:        shiftTouching,
+		Dates:          []string{"2026-11-21"},
+		AllowWarnings:  true,
+		OverrideReason: &reason,
+	}, existing, shifts)
+	if !errors.Is(err, ErrHardViolation) || res.Compliant || res.RequiresOverride {
+		t.Fatalf("expected hard block when AllowManagerOverride=false, got err=%v res=%+v", err, res)
+	}
+
+	crossExisting := []Roster{{EmploymentID: empB, ShiftID: &shiftTouching, Date: "2026-11-20"}}
+	res, err = Validate(defaultRules(), Request{
+		EmploymentID: empA,
+		ShiftID:      shiftTouching,
+		Dates:        []string{"2026-11-20"},
+	}, crossExisting, shifts)
+	if !errors.Is(err, ErrHardViolation) {
+		t.Fatalf("expected cross-employment overlap, got err=%v res=%+v", err, res)
 	}
 }
