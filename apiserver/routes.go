@@ -120,7 +120,14 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 	segmentRepo := repository.WorkSegmentRepository{DB: db}
 	segmentHandler := &api.WorkSegmentHandler{Repository: segmentRepo, Authorizer: organizationAuthorizer}
 	registerSchedulingRoutes(protectedRouter, shiftHandler, patternHandler, rosterHandler, scheduleHandler, swapHandler, segmentHandler)
-	registerEmployeeRoutes(protectedRouter, employeeHandler, employeeImportHandler, employeeConditionHandler, employeeDepartmentHandler, compensationHistoryHandler)
+	identityMatchGate := httpinfra.FeatureFlagMiddleware("ff_employee_identity_match", func(ctx context.Context, key string) (bool, error) {
+		flag, err := organizationRepo.GetFeatureFlag(ctx, key)
+		if err != nil {
+			return false, err
+		}
+		return flag.Enabled, nil
+	})
+	registerEmployeeRoutes(protectedRouter, identityMatchGate, employeeHandler, employeeImportHandler, employeeConditionHandler, employeeDepartmentHandler, compensationHistoryHandler)
 	customFieldRepo := repository.CustomFieldRepository{DB: db}
 	customFieldHandler := &api.CustomFieldHandler{Repository: customFieldRepo, Authorizer: organizationAuthorizer}
 	contractRepo := repository.ContractRepository{DB: db}

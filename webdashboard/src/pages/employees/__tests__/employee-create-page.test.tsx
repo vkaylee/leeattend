@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
 import * as api from "@/lib/api";
 import { ApiError } from "@/lib/api/errors";
+import { clearRuntimeFeatureFlags, setRuntimeFeatureFlags } from "@/lib/feature-flags";
 
 import EmployeeCreatePage from "../employee-create-page";
 
@@ -68,17 +69,30 @@ function renderPage() {
 describe("EmployeeCreatePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearRuntimeFeatureFlags();
     mockSearch = {};
     mockPermissions = [];
   });
 
-  it("renders HR fields without account linking controls and gates identity fields by role permission", () => {
-    renderPage();
+  it("renders HR fields without account linking controls and gates identity fields by flag and role permission", () => {
+    mockPermissions = ["employees:create", "employees:identity:match"];
+    const { rerender } = renderPage();
 
     expect(screen.getByTestId("employees-form-name-input")).toBeDefined();
     expect(screen.getByTestId("employees-form-id-input")).toBeDefined();
     expect(screen.getByTestId("employees-form-hire-date-input")).toBeDefined();
     expect(screen.queryByTestId("employees-form-user-combobox")).toBeNull();
+    // Flag defaults OFF -> identity inputs stay hidden even for admin/hr_manager.
+    expect(screen.queryByTestId("employees-form-identity-fields")).toBeNull();
+
+    // Flag ON without employees:identity:match -> non-pilot roles remain hidden.
+    mockPermissions = ["employees:create"];
+    setRuntimeFeatureFlags([{ key: "ff_employee_identity_match", enabled: true }]);
+    rerender(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <ToastProvider><EmployeeCreatePage /></ToastProvider>
+      </QueryClientProvider>,
+    );
     expect(screen.queryByTestId("employees-form-identity-fields")).toBeNull();
   });
 
@@ -112,6 +126,7 @@ describe("EmployeeCreatePage", () => {
 
   it("runs debounced preflight for none, stale, and hard terminated reuse flow without silent reuse", async () => {
     const user = userEvent.setup();
+    setRuntimeFeatureFlags([{ key: "ff_employee_identity_match", enabled: true }]);
     mockPermissions = ["employees:create", "employees:identity:match", "employees:rehire"];
     vi.mocked(api.matchEmployeeIdentity)
       .mockResolvedValueOnce({ tier: "none", candidates: [] })
@@ -188,6 +203,7 @@ describe("EmployeeCreatePage", () => {
 
   it("never auto-reuses soft candidates and requires explicit confirmation before creating new employee", async () => {
     const user = userEvent.setup();
+    setRuntimeFeatureFlags([{ key: "ff_employee_identity_match", enabled: true }]);
     mockPermissions = ["employees:create", "employees:identity:match", "employees:rehire"];
     vi.mocked(api.matchEmployeeIdentity).mockResolvedValue({
       tier: "soft",
@@ -232,6 +248,7 @@ describe("EmployeeCreatePage", () => {
 
   it("handles preflight API error + retry and 409 conflict without losing form state", async () => {
     const user = userEvent.setup();
+    setRuntimeFeatureFlags([{ key: "ff_employee_identity_match", enabled: true }]);
     mockPermissions = ["employees:create", "employees:identity:match"];
     vi.mocked(api.matchEmployeeIdentity)
       .mockRejectedValueOnce(new ApiError(429, "Too Many Requests", "RATE_LIMITED"))
@@ -262,6 +279,7 @@ describe("EmployeeCreatePage", () => {
 
   it("routes attendance staging prefill through preflight without treating raw_user_id as identity proof", async () => {
     const user = userEvent.setup();
+    setRuntimeFeatureFlags([{ key: "ff_employee_identity_match", enabled: true }]);
     mockPermissions = ["employees:create", "employees:identity:match"];
     mockSearch = {
       enrollment_id: "BADGE-9001",

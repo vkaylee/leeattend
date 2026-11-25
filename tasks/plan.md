@@ -664,28 +664,28 @@ Identity policy + privacy + permission
 #### Task D8 — Shadow/pilot rollout and observability
 
 **Acceptance criteria:**
-- [ ] Feature flag defaults off and has clear owner/removal date.
-- [ ] Pilot enables admin/HR only.
-- [ ] Metrics include aggregate match tier, conflicts, latency, and rollback counts only.
-- [ ] Rollback disables behavior without destructive schema changes.
+- [x] Feature flag `ff_employee_identity_match` defaults off (`enabled=false`) with owner `platform` and removal target `2026-12-25` (`apiserver/migrations/20261125010000_employee_identity_match_feature_flag/{up,down}.sql`, `apiserver/migrations/phases/runtime_seeds.{up,down}.sql`, `webdashboard/src/lib/feature-flags.ts`, `docs/operations/feature-flags.md`).
+- [x] Pilot enables `admin`/`hr_manager` only (`ff_employee_identity_match` + `employees:identity:match` permission on `/api/v1/employees/match`, `/api/v1/employees/{employee_id}/tenures`, and `/employees/new`); legacy `POST /api/v1/employees` and `POST /api/v1/employees/{id}/rehire` stay ungated while off.
+- [x] Metrics (`apiserver/internal/api/employee_identity_metrics.go`) include aggregate match tier (`none`/`soft`/`hard`/`error`), conflicts, rollback counts, and `latency_ms` only — verified zero raw PII, lookup hashes, or candidate IDs in unit tests and live dev apiserver logs.
+- [x] Rollback disables endpoints (`403 FEATURE_DISABLED`) and UI without destructive schema changes (lookup hash columns remain intact; migration `down.sql` verified on disposable DB and live toggle rollback verified in browser).
 
 #### Task D9 — Full verification
 
 **Verification:**
-- [ ] Regenerate OpenAPI TypeScript artifacts through repository wrapper; never hand-edit generated output.
-- [ ] Run `leedevkit test web --unit-only`, then full web/API/all targets as applicable.
-- [ ] Read `.test_logs/` per phase.
-- [ ] Browser audit all five roles at `1920x1080`, then mobile smoke; verify direct URL, refresh, match states, 403/409, console/network, and no PII artifacts.
+- [x] OpenAPI contract validated (`python3 scripts/validate_openapi_contract.py`: 427 routes / 312 paths) and generated TypeScript types (`webdashboard/src/types/api-generated.ts`) up to date from `bun run gen-api`.
+- [x] Ran `leedevkit test web --unit-only`, full `leedevkit test all --json --quiet </dev/null`, and explicit Go DB integration suite (`./scripts/_go-gates.sh --integration --test-pattern 'TestIntegrationEmployee(Identity|Tenures|Create|Reuse|Concurrent)'`) because `leedevkit` reported `"no configured Go gates for integration"`.
+- [x] Inspected `.test_logs/` per phase: `web-unit-tests` (329/329 files, 2942/2942 tests), `web-integration-tests` (59 passed, 17 skipped, 0 failed), `web-linting` (ESLint + `reconcile_locales.js` 100% aligned), `go-unit-tests` (all packages PASS), `go-linting` (`0 issues`, `govulncheck` 0 vulns), and Go DB integration tests (PASS).
+- [x] Browser audited all 5 roles (`employee`, `team_lead`, `shift_manager`, `hr_manager`, `admin`) at `1920x1080` (flag OFF, pilot ON, rollback OFF) plus mobile smoke `390x844` (`scrollWidth === 390`, no overflow). Caught and fixed pristine-form `beforeunload` bug (`enableBeforeUnload: ctrl.isDirty` on `useBlocker`). Verified `0` console errors on allowed routes, expected `403`/redirects on denied routes, staging prefill without PII in URL, and PII-free aggregate logs.
 
 **Dependencies:** D8
 
 ### Final checkpoint
 
-- [ ] Search existing → explicit reuse/create works.
-- [ ] New employee has profile + first tenure atomically.
-- [ ] Reuse adds tenure only.
-- [ ] Concurrent identity/code races are safe.
-- [ ] No PII leaks; rollback evidence recorded.
+- [x] Search existing → explicit reuse/create works.
+- [x] New employee has profile + first tenure atomically.
+- [x] Reuse adds tenure only.
+- [x] Concurrent identity/code races are safe.
+- [x] No PII leaks; rollback evidence recorded.
 
 ## Duplicate detection test-impact matrix
 

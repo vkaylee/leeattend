@@ -85,9 +85,11 @@ type EmployeeHandler struct {
 	IdentityHasher  identity.Hasher
 	Authorizer      Authorizer
 	Audit           EmployeeIdentityMatchAudit
+	Metrics         *EmployeeIdentityMetrics
 }
 
 func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
+	startedAt := time.Now()
 	actorID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || actorID == uuid.Nil {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -108,6 +110,7 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	employee, err := h.Repository.CreateEmployee(r.Context(), prepared)
+	h.Metrics.ObserveWrite(r.Context(), "create", err, time.Since(startedAt))
 	if err != nil {
 		h.writeError(w, r, err)
 		return

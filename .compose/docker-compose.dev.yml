@@ -144,6 +144,7 @@ services:
       PGBOUNCER_PORT: "6432"
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-development_jwt_secret_change_me}
+      IDENTITY_LOOKUP_HMAC_SECRET: ${IDENTITY_LOOKUP_HMAC_SECRET:-development_identity_hmac_secret_32b}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
       ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Development Organization}
       STANDALONE_ADMIN_EMAIL: ${STANDALONE_ADMIN_EMAIL:-admin@example.invalid}

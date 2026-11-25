@@ -6,6 +6,7 @@ import { getAccessToken, hasAuthSessionHint } from "@/lib/api/token-store";
 // Build-time defaults remain the fail-closed fallback during bootstrap or API failure.
 export const FEATURE_FLAGS = {
   ff_econtracts: false,
+  ff_employee_identity_match: false,
   ff_ess: false,
 } as const;
 
@@ -22,6 +23,11 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagName, FeatureFlagCatalogEnt
     description: "Enable the e-Contracts workflow and settings.",
     owner: "platform",
     removalTarget: "2026-12-13",
+  },
+  ff_employee_identity_match: {
+    description: "Enable employee identity preflight matching and explicit tenure reuse.",
+    owner: "platform",
+    removalTarget: "2026-12-25",
   },
   ff_ess: {
     description: "Enable Employee Self-Service workflows and routes.",

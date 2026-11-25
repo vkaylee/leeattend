@@ -138,16 +138,16 @@
 
 ## Phase D5 — Rollout and final verification
 
-- [ ] **D5.1** Feature flag defaults off; pilot admin/HR; aggregate metrics only; rollback documented.
-- [ ] **D5.2** Regenerate API types, run focused tests then full web/API/all gates, inspect `.test_logs/`, and audit all five roles at 1920x1080 then mobile.
+- [x] **D5.1** Feature flag `ff_employee_identity_match` defaults off (`owner: platform`, `removal_target: 2026-12-25`); pilot admin/HR only; aggregate metrics only (`employee_identity_metric`); non-destructive rollback documented and verified.
+- [x] **D5.2** Validated OpenAPI/TS types, ran full `leedevkit test all </dev/null` + explicit Go DB integration gate (`scripts/_go-gates.sh --integration`), inspected `.test_logs/` per phase, and audited all five roles at `1920x1080` plus mobile `390x844` smoke.
 
 ### Final duplicate-detection checkpoint
 
-- [ ] Search existing → explicit reuse/create works.
-- [ ] New employee has profile + first tenure atomically.
-- [ ] Reuse adds tenure only.
-- [ ] Concurrent identity/code races are safe.
-- [ ] No PII leaks; rollback evidence recorded.
+- [x] Search existing → explicit reuse/create works.
+- [x] New employee has profile + first tenure atomically.
+- [x] Reuse adds tenure only.
+- [x] Concurrent identity/code races are safe.
+- [x] No PII leaks; rollback evidence recorded.
 
 ---
 

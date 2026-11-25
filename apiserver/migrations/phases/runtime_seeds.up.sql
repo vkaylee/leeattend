@@ -6,7 +6,8 @@ BEGIN;
 INSERT INTO public.feature_flags (flag_key, enabled, description, metadata)
 VALUES
     ('ff_econtracts', false, 'Enable the e-Contracts workflow and settings.', '{"owner":"platform","removal_target":"2026-12-13"}'::jsonb),
-    ('ff_ess', false, 'Enable Employee Self-Service workflows and routes.', '{"owner":"platform","created":"2026-11-15","removal_target":"2026-12-15"}'::jsonb)
+    ('ff_ess', false, 'Enable Employee Self-Service workflows and routes.', '{"owner":"platform","created":"2026-11-15","removal_target":"2026-12-15"}'::jsonb),
+    ('ff_employee_identity_match', false, 'Enable employee identity preflight matching and explicit tenure reuse.', '{"owner":"platform","created":"2026-11-25","removal_target":"2026-12-25","pilot_roles":["admin","hr_manager"]}'::jsonb)
 ON CONFLICT (flag_key) DO NOTHING;
 
 INSERT INTO public.payroll_metric_definitions (code, name, unit, scope, source)

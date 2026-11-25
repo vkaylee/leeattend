@@ -16,6 +16,7 @@ import { useOrganizationMutation } from "@/hooks/common/use-organization-query";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { createEmployee, createEmployeeTenure, fetchEmployers, resolveStagingLog } from "@/lib/api";
 import { ApiError } from "@/lib/api/errors";
+import { isFeatureEnabled, useFeatureFlagVersion } from "@/lib/feature-flags";
 import { createQueryKey, employeeKeys } from "@/lib/query-keys";
 import { useEmployeeIdentityPreflight } from "@/pages/employees/hooks/use-employee-identity-preflight";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
@@ -35,8 +36,10 @@ function useEmployeeCreateController(search: EmployeeCreateSearch) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const toast = useToast();
+  useFeatureFlagVersion();
   const { hasPermission } = useMyPermissions();
-  const canMatchIdentity = hasPermission("employees:identity:match");
+  const identityMatchEnabled = isFeatureEnabled("ff_employee_identity_match");
+  const canMatchIdentity = identityMatchEnabled && hasPermission("employees:identity:match");
   const canRehire = hasPermission("employees:rehire");
 
   const [fullName, setFullName] = useState("");
@@ -211,7 +214,11 @@ export default function EmployeeCreatePage() {
   const ctrl = useEmployeeCreateController(search);
   const { data: locations, isError: locationsUnavailable } = useLocations();
   const { data: employers } = useQuery({ queryKey: createQueryKey("employers"), queryFn: fetchEmployers });
-  const blocker = useBlocker({ shouldBlockFn: () => ctrl.isDirty, withResolver: true });
+  const blocker = useBlocker({
+    shouldBlockFn: () => ctrl.isDirty,
+    enableBeforeUnload: ctrl.isDirty,
+    withResolver: true,
+  });
   const hasStagingPrefill = Boolean(search.enrollment_id ?? search.staging_log_id);
 
   return (

@@ -93,6 +93,7 @@ type EmployeeIdentityMatchAudit interface {
 
 // Match handles POST /api/v1/employees/match (read-only redacted candidate lookup).
 func (h *EmployeeHandler) Match(w http.ResponseWriter, r *http.Request) {
+	startedAt := time.Now()
 	actorID, ok := h.authorizeMatch(w, r)
 	if !ok {
 		return
@@ -123,6 +124,7 @@ func (h *EmployeeHandler) Match(w http.ResponseWriter, r *http.Request) {
 	if query.HasCriteria() {
 		rawCandidates, matchErr := h.IdentityMatcher.MatchEmployees(r.Context(), query)
 		if matchErr != nil {
+			h.Metrics.ObserveMatch(r.Context(), "error", 0, time.Since(startedAt))
 			apperror.WriteError(w, r, apperror.Internal(errors.New("employee identity match lookup failed")))
 			return
 		}
@@ -131,9 +133,11 @@ func (h *EmployeeHandler) Match(w http.ResponseWriter, r *http.Request) {
 
 	tier := resolveMatchOutcomeTier(candidates)
 	if auditErr := h.emitMatchAudit(r.Context(), actorID, tier, len(candidates)); auditErr != nil {
+		h.Metrics.ObserveMatch(r.Context(), "audit_error", 0, time.Since(startedAt))
 		apperror.WriteError(w, r, apperror.Internal(errors.New("employee identity match audit failed")))
 		return
 	}
+	h.Metrics.ObserveMatch(r.Context(), tier, len(candidates), time.Since(startedAt))
 
 	apperror.WriteJSON(w, http.StatusOK, MatchEmployeeResponse{
 		Tier:       tier,

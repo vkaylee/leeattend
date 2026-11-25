@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -308,4 +310,40 @@ func assertActorMatchRateLimit(t *testing.T, router http.Handler, jwtSecret stri
 			t.Fatalf("useCookie=%v Retry-After = %q, want 60", useCookie, rec.Header().Get("Retry-After"))
 		}
 	}
+}
+
+func TestEmployeeIdentityMatchFeatureFlagGate(t *testing.T) {
+	assertFlagGate := func(enabled bool) {
+		t.Helper()
+		router := chi.NewRouter()
+		gate := httpinfra.FeatureFlagMiddleware("ff_employee_identity_match", func(context.Context, string) (bool, error) {
+			return enabled, nil
+		})
+		registerEmployeeRoutes(router, gate, &api.EmployeeHandler{}, &api.EmployeeImportHandler{}, &api.EmployeeConditionHandler{}, &api.EmployeeDepartmentHandler{}, &api.CompensationHistoryHandler{})
+
+		for _, path := range []string{"/api/v1/employees/match", "/api/v1/employees/" + uuid.NewString() + "/tenures"} {
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, bytes.NewBufferString(`{}`)))
+			if !enabled {
+				if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "FEATURE_DISABLED") {
+					t.Fatalf("flag=false %s got %d %s, want 403 FEATURE_DISABLED", path, rec.Code, rec.Body.String())
+				}
+				continue
+			}
+			// Handler runs when flag is enabled (no auth context -> 401 from handler, not 403 feature_disabled).
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("flag=true %s got %d %s, want 401 from handler", path, rec.Code, rec.Body.String())
+			}
+		}
+
+		// Legacy create path stays ungated while flag is off.
+		createRec := httptest.NewRecorder()
+		router.ServeHTTP(createRec, httptest.NewRequest(http.MethodPost, "/api/v1/employees", bytes.NewBufferString(`{}`)))
+		if createRec.Code != http.StatusUnauthorized {
+			t.Fatalf("flag=%v POST /api/v1/employees got %d %s, want 401 from handler", enabled, createRec.Code, createRec.Body.String())
+		}
+	}
+
+	assertFlagGate(false)
+	assertFlagGate(true)
 }

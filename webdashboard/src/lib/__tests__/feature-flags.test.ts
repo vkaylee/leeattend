@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fetchEffectiveFeatureFlags } from "@/lib/api/feature-flags";
-import { FEATURE_FLAGS, isFeatureEnabled, loadRuntimeFeatureFlags } from "@/lib/feature-flags";
+import { FEATURE_FLAG_CATALOG, FEATURE_FLAGS, isFeatureEnabled, loadRuntimeFeatureFlags } from "@/lib/feature-flags";
 
 vi.mock("@/lib/api/feature-flags", () => ({
   fetchEffectiveFeatureFlags: vi.fn(),
@@ -13,9 +13,12 @@ describe("FEATURE_FLAGS", () => {
     vi.clearAllMocks();
   });
 
-  it("registers ESS and econtracts with default OFF", () => {
+  it("registers ESS, econtracts, and employee identity match with default OFF and lifecycle metadata", () => {
     expect(FEATURE_FLAGS.ff_ess).toBe(false);
     expect(FEATURE_FLAGS.ff_econtracts).toBe(false);
+    expect(FEATURE_FLAGS.ff_employee_identity_match).toBe(false);
+    expect(FEATURE_FLAG_CATALOG.ff_employee_identity_match.owner).toBe("platform");
+    expect(FEATURE_FLAG_CATALOG.ff_employee_identity_match.removalTarget).toBe("2026-12-25");
   });
 
   it("returns the compiled default when no localStorage override exists", () => {

@@ -5,7 +5,7 @@ DELETE FROM public.schema_migrations
 WHERE version = 'fresh_runtime_seeds_v1';
 
 DELETE FROM public.feature_flags
-WHERE flag_key IN ('ff_econtracts', 'ff_ess');
+WHERE flag_key IN ('ff_econtracts', 'ff_ess', 'ff_employee_identity_match');
 
 DELETE FROM public.payroll_metric_definitions
 WHERE code IN ('production.output', 'production.target_output', 'production.quality_rate');

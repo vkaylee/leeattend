@@ -161,9 +161,13 @@ export async function setupApiMocks(page: Page) {
       });
     };
 
-    // Runtime feature flags: enable ESS for authenticated E2E route coverage.
+    // Runtime feature flags: enable ESS for authenticated E2E route coverage; keep identity match off by default.
     if (pathname === '/api/feature-flags/effective') {
-      return fulfill([{ key: 'ff_ess', enabled: true }, { key: 'ff_econtracts', enabled: true }]);
+      return fulfill([
+        { key: 'ff_ess', enabled: true },
+        { key: 'ff_econtracts', enabled: true },
+        { key: 'ff_employee_identity_match', enabled: false },
+      ]);
     }
 
     // 1. Health check

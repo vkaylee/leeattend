@@ -46,6 +46,7 @@ type EmployeeTenureCreator interface {
 // It explicitly reuses an existing terminated employee (preserving employee ID, identity, and code)
 // by creating a new non-overlapping tenure, employment relationship, and employment atomically.
 func (h *EmployeeHandler) CreateTenure(w http.ResponseWriter, r *http.Request) {
+	startedAt := time.Now()
 	actorID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok || actorID == uuid.Nil {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
@@ -74,6 +75,7 @@ func (h *EmployeeHandler) CreateTenure(w http.ResponseWriter, r *http.Request) {
 	}
 
 	created, err := h.TenureCreator.CreateEmployeeTenure(r.Context(), employeeID, prepared)
+	h.Metrics.ObserveWrite(r.Context(), "reuse_tenure", err, time.Since(startedAt))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
