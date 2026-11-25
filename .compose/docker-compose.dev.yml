@@ -213,34 +213,6 @@ services:
       - "${DEV_PORT:-8080}:80"
     volumes:
       - ../Caddyfile-dev:/etc/caddy/Caddyfile:ro
-  playwright-mcp:
-    init: true
-    image: localhost/leedevkit-dev_playwright-mcp:latest
-    pull_policy: missing
-    profiles: ["mcp"]
-    build:
-      context: ../playwright-mcp
-      dockerfile: Dockerfile
-    command:
-      - --headless
-      - --isolated
-      - --no-sandbox
-      - --browser=chrome
-      - --caps=vision,pdf,devtools
-      - --console-level=info
-      - --snapshot-boxes
-      - --timeout-action=5000
-      - --timeout-navigation=30000
-      - --timeout-settle=1000
-    read_only: true
-    shm_size: 256m
-    tmpfs:
-      - /tmp
-      - /root/.cache
-      - /root/.config
-      - /root/.local
-    networks: [frontend]
-
 
 networks:
   # Dev services need outbound access for Go module downloads and image tooling.

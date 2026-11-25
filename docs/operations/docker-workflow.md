@@ -33,51 +33,37 @@ The development API skips standalone license verification; production retains ma
 
 ## Playwright MCP without Caddy host port
 
-The development Compose file includes a `playwright-mcp` profile. Its Chromium browser runs on `frontend_net` beside Caddy, so AI browser checks use `http://caddy/` and do not require `${DEV_PORT}` or any Caddy port published on the host.
+Playwright MCP runs via the global `leedevkit mcp playwright` subcommand, configured in `leedevkit.toml` under `[mcp.playwright]` and exposed as a single `playwright` server in `.mcp.json`. Its Chromium container attaches to `leedevkit-dev_dev_frontend` beside Caddy, so AI browser checks use `http://caddy/` without needing a published host port.
 
-The repository MCP configuration starts a single Playwright server through `scripts/playwright-mcp-role.sh`:
-
-```bash
-leedevkit manage up dev
-```
-
-The server uses the least-privileged `employee` role by default. To use another role, change the role argument for the single `playwright` entry in `.mcp.json` to `team-lead`, `shift-manager`, `hr-manager`, or `admin`, then reload the MCP client. The wrapper adds role-specific guidance to the MCP `initialize` response and starts a fresh unauthenticated browser context; open the configured endpoint's `/login` first when authentication is needed. MCP instructions guide the model; application authorization remains the enforcement boundary. Never mount persisted role state.
-
-The endpoint is declared with `--endpoint` in `.mcp.json`. The wrapper forwards that origin to Playwright as `--allowed-origins`; navigation remains limited to the configured origin. Set it to the host reachable from the browser container.
-
-For isolated UI acceptance, keep browser cookies per role but point wrapper Compose at owned disposable stack:
+Build the shared image once (reused across all LeeDevKit repositories):
 
 ```bash
-PLAYWRIGHT_COMPOSE_PROJECT=leeattend-tenure-ui \
-PLAYWRIGHT_COMPOSE_FILE=/path/to/disposable-mcp-compose.yml \
-./scripts/playwright-mcp-role.sh employee --endpoint http://caddy
+leedevkit mcp playwright --build-only
 ```
 
-Disposable MCP Compose must join disposable frontend network and expose `playwright-mcp` only; application stack owns `caddy`, API, DB, and Redis. Each role still signs in through `/login` in its own MCP context. Default remains `leedevkit-dev`; no shared fixture mutation is part of disposable workflow.
+Without `--build`/`--build-only`, a missing image fails fast with a remediation message instead of holding the MCP handshake open.
 
-### Playwright MCP login-first sessions
+### Login-first sessions & role switching
 
-Every interactive Playwright MCP session starts unauthenticated. Sign in through the UI only when a scenario requires authentication. Do not create or reuse `.secrets/playwright-auth/*.json` for interactive MCP.
+Every Playwright MCP session starts unauthenticated in an isolated browser context (`--isolated`, `--read-only`, `tmpfs` scratch paths, `--init`). Open `http://caddy/login` before authenticating. To switch roles, always call `browser_close` for a fresh isolated context, then open `http://caddy/login` and sign in as the next role. Viewport policy from `config/ui-viewports.json` is injected into the MCP `initialize` response automatically.
 
-### MCP process and browser timeouts
+For disposable stacks, override the network/endpoint via flags or env vars:
 
-The role wrapper starts a stdio watchdog before Compose startup. Startup silence and pending JSON-RPC requests are bounded by `PLAYWRIGHT_MCP_IDLE_TIMEOUT_SECS` (default `10`, integer `1..60`). Server stdout progress resets the pending-request deadline; client notifications do not.
+```bash
+leedevkit mcp playwright --network <disposable_frontend_net> --endpoint http://caddy
+```
 
-Build the MCP image explicitly when needed; the wrapper never builds during MCP startup. Use `scripts/playwright-mcp-role.sh --build employee --endpoint http://caddy` (replace the role as needed). Without `--build`, a missing image fails immediately with a remediation message instead of holding the MCP handshake open.
+### Lifecycle watchdog
 
-After successful initialization, a configurable session-idle deadline stops the entire MCP server and its container. Set `PLAYWRIGHT_MCP_SESSION_IDLE_TIMEOUT_SECS` (default `300`, integer `1..3600`). Only completed `tools/call` responses reset this deadline; ping, tools/list, notifications and other protocol traffic do not. Session-idle termination waits while a request is pending, but the independent request-silence timeout still applies. The supervisor CLI accepts `--session-idle-seconds` (`1..3600`) for bounded lifecycle checks. Native browser-only idle shutdown is disabled (`--idle-timeout=0`) so it cannot close the browser during an active tool. Trailing MCP arguments can override the native browser timeout but do not change the supervisor deadlines.
+`leedevkit mcp playwright` runs a Go stdio watchdog with three separate bounds configured in `[mcp.playwright]`:
+- `startup_timeout` (default `15`s): waiting for the `initialize` handshake.
+- `request_timeout` (default `45`s): waiting for a pending JSON-RPC response (exceeds `--timeout-navigation=30000`).
+- `session_idle_timeout` (default `300`s): idle after `initialize` (reset by completed `tools/call` responses).
 
-After idle shutdown, reconnect MCP manually when UI work is needed. A new connection starts a fresh isolated browser; tabs and sign-in state are lost. Automatic client reconnect is not guaranteed. No lazy-restart proxy or shared-container cleanup is installed.
+On timeout, EOF, or `TERM`/`INT`, the watchdog closes child stdin, terminates the process group, force-removes the named container (`rm -f`) if still present, and returns exit code `124` on timeout.
 
-On client stdin EOF, the watchdog closes child stdin and allows the existing cleanup grace for final responses and normal exit, then sends `TERM` and finally `KILL` after another grace interval if necessary. `TERM`/`INT` received directly starts termination immediately. Compose `run --rm` remains responsible for removing the exited session container; no shared-project cleanup is performed.
+`.secrets/` is ignored by Git. Never copy credentials or session tokens to screenshots, reports, logs, or commits.
 
-The watchdog reserves up to 2 seconds of the startup/request deadline for cleanup: it sends `TERM` first, then `KILL` at the deadline if necessary, and returns `124`. Session idle sends `TERM` after the full idle interval, allows the same cleanup grace, and also returns `124`. It uses the existing project Python environment directly, without dependency installation during MCP startup. If that environment is missing, prepare it with `./scripts/_python.sh --version` first. Restart the MCP server to load wrapper changes; editing files does not replace an already-running server.
-
-Standalone `playwright-auth-role.sh` only provisions test state for non-interactive checks; it is not invoked by the interactive MCP server.
-
-The MCP service uses `init: true` to reap orphaned Chromium child processes during browser/session cleanup, and a read-only container root. Runtime-writable paths (`/tmp`, Chromium cache/config directories, and `/dev/shm`) are memory-backed through `tmpfs`; they disappear when the container exits. Interactive MCP does not mount a persistent browser storage state. Sign-in state exists only in the isolated browser context for that session.
-
-`.secrets/` is ignored by Git. Never copy role states to production or include them in screenshots, reports, logs, or commits.
 Development migration gate:
 
 `db-migrate` runs `apiserver/migrations/run-dev.sh` through PgBouncer. It records the baseline migration in `schema_migrations`, skips an already-applied baseline, and exits non-zero on SQL errors. Existing development volumes containing the baseline schema are marked applied without replaying the dump.

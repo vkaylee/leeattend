@@ -34,6 +34,16 @@ e2e-web = ["bun_init", "webdashboard"]
 rules_dir = ".agent/rules"
 override_manifest = ".agent/overrides.yaml"
 
+[mcp.playwright]
+endpoint = "http://caddy"
+login_path = "/login"
+network = "leedevkit-dev_dev_frontend"
+viewports = "config/ui-viewports.json"
+accounts_doc = "docs/dev-accounts.md"
+startup_timeout = 15
+request_timeout = 45
+session_idle_timeout = 300
+
 [addons]
 skills = [
     { url = "https://github.com/addyosmani/agent-skills.git", version = "main" },

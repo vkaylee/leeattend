@@ -22,7 +22,7 @@ trigger: always_on
 - AI MUST report findings grouped by role and route, distinguish expected `403`/redirect authorization behavior from unexpected `404`, `5xx`, crashes, repeated errors, and wrong navigation, and list untested routes with reasons.
 - These credentials are development-only. NEVER use them against production, expose passwords in responses, or write credentials/tokens to logs, screenshots, commits, or test artifacts.
 - Mask account identifiers and PII in reports; use the account document only as an operational reference.
-- Detailed UI audit protocol: `.agent/rules/ui-route-audit.md`.
+- **Role switching in Playwright MCP:** Always call `browser_close` between roles to reset the isolated browser context, then navigate to `http://caddy/login` and sign in as the next role.
 
 ## 💎 Layer 0: CORE PRINCIPLES (The "Big Five")
 > These universal rules CANNOT be overridden by any external skill or lazy-loaded rule.

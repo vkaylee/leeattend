@@ -7,25 +7,9 @@
         "--stdio"
       ]
     },
-    "playwright-employee": {
-      "command": "scripts/playwright-mcp-role.sh",
-      "args": ["employee", "--endpoint", "http://caddy"]
-    },
-    "playwright-team-lead": {
-      "command": "scripts/playwright-mcp-role.sh",
-      "args": ["team-lead", "--endpoint", "http://caddy"]
-    },
-    "playwright-shift-manager": {
-      "command": "scripts/playwright-mcp-role.sh",
-      "args": ["shift-manager", "--endpoint", "http://caddy"]
-    },
-    "playwright-hr-manager": {
-      "command": "scripts/playwright-mcp-role.sh",
-      "args": ["hr-manager", "--endpoint", "http://caddy"]
-    },
-    "playwright-admin": {
-      "command": "scripts/playwright-mcp-role.sh",
-      "args": ["admin", "--endpoint", "http://caddy"]
+    "playwright": {
+      "command": "leedevkit",
+      "args": ["mcp", "playwright"]
     },
     "kanban-ai": {
       "command": "npx",
