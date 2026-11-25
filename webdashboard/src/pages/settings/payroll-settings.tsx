@@ -36,7 +36,7 @@ function PayrollTabContent({ activeTab, onPolicyDirtyChange }: { activeTab: TabT
 export default function PayrollSettings() {
   const { t } = useTranslation();
   const [isPolicyDirty, setIsPolicyDirty] = useState(false);
-  const blocker = useBlocker({ shouldBlockFn: () => isPolicyDirty, withResolver: true });
+  const blocker = useBlocker({ shouldBlockFn: () => isPolicyDirty, enableBeforeUnload: isPolicyDirty, withResolver: true });
   
 
   type ParentGroupType = "core" | "formulas" | "benefits";

@@ -25,12 +25,17 @@ const ERROR_KEYS: Record<string, string> = {
   "error.locked_period": "closure.errors.locked_period",
   "error.missing_coverage": "closure.errors.missing_coverage",
   "error.open_punch": "closure.errors.open_punch",
+  "error.self_reopen_forbidden": "closure.errors.self_reopen_forbidden",
   "error.stale_period": "closure.errors.stale_period",
   VALIDATION_ERROR: "closure.errors.validation",
 };
 
 function getErrorKey(error: unknown): string {
-  if (error instanceof ApiError && error.errorCode) return ERROR_KEYS[error.errorCode] ?? "closure.errors.generic";
+  if (error instanceof ApiError) {
+    const messageKey = typeof error.errorBody?.message === "string" ? ERROR_KEYS[error.errorBody.message] : undefined;
+    if (messageKey) return messageKey;
+    if (error.errorCode && ERROR_KEYS[error.errorCode]) return ERROR_KEYS[error.errorCode];
+  }
   return "closure.errors.generic";
 }
 

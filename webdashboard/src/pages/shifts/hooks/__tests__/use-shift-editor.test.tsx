@@ -34,6 +34,7 @@ vi.mock("@/lib/api", () => ({
   createShift: vi.fn(),
   updateShift: vi.fn(),
   fetchDefaultAttendanceRules: vi.fn().mockResolvedValue({}),
+  fetchMyPermissions: vi.fn().mockResolvedValue({ permissions: ["organization:settings:read"], roles: ["admin"], managed_department_ids: null }),
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────

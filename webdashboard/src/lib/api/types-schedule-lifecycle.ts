@@ -15,7 +15,7 @@ export interface SchedulePreviewRequest {
   employment_ids: string[];
   end_date: string;
   expected_revisions: Record<string, number>;
-  mode: "office";
+  mode: "office" | "rotating";
   reason: string;
   retroactive: boolean;
   start_date: string;
@@ -23,6 +23,7 @@ export interface SchedulePreviewRequest {
 }
 
 export interface SchedulePublishRequest extends Omit<SchedulePreviewRequest, "mode"> {
+  mode?: "office" | "rotating";
   preview_hash: string;
   preview_id: string;
 }

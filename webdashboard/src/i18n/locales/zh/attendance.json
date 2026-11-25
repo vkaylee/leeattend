@@ -194,6 +194,7 @@
       "locked_period": "工资周期已锁定。",
       "missing_coverage": "正式排班覆盖不完整。",
       "open_punch": "存在未结束的打卡记录。",
+      "self_reopen_forbidden": "需要独立审批人重新开放您本人结算的周期。",
       "stale_period": "周期已变更。刷新后重试。"
     }
   },

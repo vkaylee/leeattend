@@ -194,6 +194,7 @@
       "locked_period": "Payroll period is locked.",
       "missing_coverage": "Official schedule coverage is incomplete.",
       "open_punch": "An open punch blocks closure.",
+      "self_reopen_forbidden": "An independent reviewer must reopen a period you closed.",
       "stale_period": "Period changed. Refresh and try again."
     }
   },

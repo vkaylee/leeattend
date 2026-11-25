@@ -69,6 +69,7 @@ export interface EffectiveSchedule {
   shift_symbol?: string | null;
   source: string;
   start_time?: string | null;
+  timezone?: string | null;
   traces?: ScheduleTrace[];
 }
 

@@ -1,3 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/_authenticated/_organization/settings/time')({});
+import { fetchMyPermissions } from "@/lib/api";
+
+export const Route = createFileRoute('/_authenticated/_organization/settings/time')({
+  beforeLoad: async () => {
+    try {
+      const { permissions } = await fetchMyPermissions();
+      if (!permissions.includes("organization:settings:read")) throw redirect({ to: "/" });
+    } catch (error) {
+      if (error && typeof error === "object" && "isRedirect" in error) throw error;
+      throw redirect({ to: "/" });
+    }
+  },
+});

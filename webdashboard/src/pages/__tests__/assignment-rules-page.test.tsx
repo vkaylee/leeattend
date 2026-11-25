@@ -96,6 +96,7 @@ vi.mock("../../lib/api", () => ({
   deleteAssignmentRule: vi.fn(),
   fetchWorkingPatterns: vi.fn(),
   fetchDepartments: vi.fn(),
+  fetchMyPermissions: vi.fn().mockResolvedValue({ permissions: ["assignment_rules:manage"], roles: ["admin"], managed_department_ids: null }),
   AssignmentRule: undefined,
   AssignmentRuleConditions: undefined,
 }));

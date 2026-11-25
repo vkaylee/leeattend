@@ -194,6 +194,7 @@
       "locked_period": "Kỳ lương đã khóa.",
       "missing_coverage": "Lịch chính thức chưa đủ ngày.",
       "open_punch": "Còn lượt chấm công chưa đóng.",
+      "self_reopen_forbidden": "Cần người duyệt độc lập để mở lại kỳ do chính bạn đã chốt.",
       "stale_period": "Kỳ đã thay đổi. Tải lại rồi thử lại."
     }
   },

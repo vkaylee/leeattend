@@ -32,6 +32,7 @@ vi.mock("../../lib/api", () => ({
   fetchWorkingPatterns: vi.fn(),
   fetchDepartments: vi.fn(),
   fetchLocations: vi.fn(),
+  fetchMyPermissions: vi.fn().mockResolvedValue({ permissions: ["assignment_rules:manage"], roles: ["admin"], managed_department_ids: null }),
 }));
 
 // Mock Toast

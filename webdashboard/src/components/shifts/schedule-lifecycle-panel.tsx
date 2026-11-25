@@ -23,7 +23,7 @@ import {
   fetchScheduleHistory,
   previewScheduleReplan,
   previewSchedules,
-  publishSchedules,
+  publishRotatingSchedules,
 } from "@/lib/api";
 import { createQueryKey } from "@/lib/query-keys";
 
@@ -138,15 +138,18 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
       }
     : null;
 
+  const resolvedTimezone = employeeSchedule.schedules.find((day) => day.timezone)?.timezone ?? organization?.timezone ?? "UTC";
+  const effectiveReason = reason.trim() || t("scheduleLifecycle.preview");
+
   const previewMutation = useMutation({
     mutationFn: () => previewSchedules({
       employment_ids: [employeeSchedule.employment_id],
       start_date: dateRange.start,
       end_date: dateRange.end,
-      timezone: organization?.timezone ?? "UTC",
-      mode: "office",
+      timezone: resolvedTimezone,
+      mode: "rotating",
       approval_instance_id: null,
-      reason: reason.trim(),
+      reason: effectiveReason,
       retroactive: false,
       expected_revisions: expectedRevisions,
     }),
@@ -155,11 +158,11 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
   const publishMutation = useMutation({
     mutationFn: () => {
       if (!preview) throw new Error("scheduleLifecycle.previewRequired");
-      return publishSchedules({
+      return publishRotatingSchedules({
         employment_ids: [employeeSchedule.employment_id],
         start_date: dateRange.start,
         end_date: dateRange.end,
-        timezone: organization?.timezone ?? "UTC",
+        timezone: resolvedTimezone,
         approval_instance_id: null,
         preview_id: preview.preview_id,
         preview_hash: preview.preview_hash,

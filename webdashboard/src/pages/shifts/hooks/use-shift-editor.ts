@@ -14,6 +14,7 @@ type CreateIntervalRequest = components["schemas"]["CreateIntervalRequest"];
 
 import { useToast } from "@/components/ui/toast";
 import { useDerivedStateFrom } from "@/hooks/use-derived-state-from";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import {
   fetchShifts,
   createShift,
@@ -263,10 +264,12 @@ export function useShiftEditor(shiftId?: string) {
   };
 
   const [isDirty, setIsDirty] = useState(false);
+  const { hasPermission } = useMyPermissions();
 
   const { data: attendanceRules } = useQuery({
     queryKey: createQueryKey("attendance-rules"),
     queryFn: () => fetchDefaultAttendanceRules(),
+    enabled: hasPermission("organization:settings:read"),
   });
 
   // Compute external intervals — stabilized via useMemo.
@@ -376,6 +379,7 @@ export function useShiftEditor(shiftId?: string) {
 
   const blocker = useBlocker({
     shouldBlockFn: () => isDirty,
+    enableBeforeUnload: isDirty,
     withResolver: true,
   });
 

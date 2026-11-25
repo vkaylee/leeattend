@@ -29,6 +29,16 @@ export function publishSchedules(
   });
 }
 
+export function publishRotatingSchedules(
+  body: SchedulePublishRequest,
+  idempotencyKey: string,
+): Promise<{ data: SchedulePublicationResponse }> {
+  return client.POST<SchedulePublicationResponse>(`${schedulePath}/publish/rotating`, {
+    body: { ...body, mode: "rotating" },
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
+}
+
 export function previewScheduleReplan(
   employmentId: string,
   businessDate: string,

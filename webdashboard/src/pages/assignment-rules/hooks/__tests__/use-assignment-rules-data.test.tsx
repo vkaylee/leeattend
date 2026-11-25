@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   fetchWorkingPatterns: vi.fn(),
   fetchEmployers: vi.fn(),
   fetchLocations: vi.fn(),
+  fetchMyPermissions: vi.fn(),
 }));
 
 vi.mock("@/lib/api", () => mocks);
@@ -24,6 +25,7 @@ describe("useAssignmentRulesData location access", () => {
     mocks.fetchAssignmentRules.mockResolvedValue([]);
     mocks.fetchWorkingPatterns.mockResolvedValue([]);
     mocks.fetchEmployers.mockResolvedValue([]);
+    mocks.fetchMyPermissions.mockResolvedValue({ permissions: ["assignment_rules:manage"], roles: ["admin"], managed_department_ids: null });
   });
 
   it("does not retry forbidden locations or surface them as required data", async () => {
