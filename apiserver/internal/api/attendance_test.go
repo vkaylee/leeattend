@@ -516,6 +516,20 @@ func TestAttendanceReprocessAllReturnsResult(t *testing.T) {
 	}
 }
 
+func TestAttendanceReprocessAll_ReturnsConflictOnLockedPeriod(t *testing.T) {
+	handler := AttendanceHandler{
+		Repository: &mockAttendanceRepo{err: ErrAttendanceLockedPeriod},
+		Authorizer: mockAttendanceAuthorizer{allowed: true},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1"+"/attendance/reprocess-all?start_date=2026-10-01&end_date=2026-10-20", nil)
+	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
+	rec := httptest.NewRecorder()
+	handler.ReprocessAll(rec, req)
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "error.locked_period") {
+		t.Fatalf("expected 409 error.locked_period, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestAttendanceReprocessEmployeeUnavailable(t *testing.T) {
 	empID := uuid.New()
 	userID := uuid.New()

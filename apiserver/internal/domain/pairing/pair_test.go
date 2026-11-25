@@ -60,3 +60,82 @@ func TestPairByShiftWindow_FindsBoundaryPunches(t *testing.T) {
 		t.Fatalf("unexpected session: %+v", sessions[0])
 	}
 }
+
+func TestPairMulti_PairsAllSplitSegmentsWithoutReusingPunches(t *testing.T) {
+	day := time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC)
+	seg1ID, seg2ID := uuid.New(), uuid.New()
+	seg1Start, seg1End := day.Add(8*time.Hour), day.Add(12*time.Hour)
+	seg2Start, seg2End := day.Add(14*time.Hour), day.Add(18*time.Hour)
+	// Out-of-order punches + a duplicate bounce scan 20s after morning check-in.
+	logs := []LogEvent{
+		{ID: uuid.New(), Minutes: 1080, PunchTime: day.Add(18 * time.Hour)},
+		{ID: uuid.New(), Minutes: 720, PunchTime: day.Add(12 * time.Hour)},
+		{ID: uuid.New(), Minutes: 480, PunchTime: day.Add(8*time.Hour + 20*time.Second)},
+		{ID: uuid.New(), Minutes: 840, PunchTime: day.Add(14 * time.Hour)},
+		{ID: uuid.New(), Minutes: 480, PunchTime: day.Add(8 * time.Hour)},
+	}
+	sessions := PairMulti(logs, &MultiSegmentConfig{Segments: []ShiftConfig{
+		{StartMinutes: 480, EndMinutes: 720, StartTime: &seg1Start, EndTime: &seg1End, SegmentID: &seg1ID},
+		{StartMinutes: 840, EndMinutes: 1080, StartTime: &seg2Start, EndTime: &seg2End, SegmentID: &seg2ID},
+	}})
+	if len(sessions) != 2 {
+		t.Fatalf("expected 2 split-shift sessions, got %d: %+v", len(sessions), sessions)
+	}
+	assertPairedSegment(t, sessions[0], seg1ID, day.Add(8*time.Hour), day.Add(12*time.Hour))
+	assertPairedSegment(t, sessions[1], seg2ID, day.Add(14*time.Hour), day.Add(18*time.Hour))
+}
+
+func assertPairedSegment(t *testing.T, s PairedSession, wantSeg uuid.UUID, wantStart, wantEnd time.Time) {
+	t.Helper()
+	if s.SegmentID == nil || *s.SegmentID != wantSeg {
+		t.Fatalf("expected segment %s, got %v", wantSeg, s.SegmentID)
+	}
+	if !s.StartTime.Equal(wantStart) || s.EndTime == nil || !s.EndTime.Equal(wantEnd) {
+		t.Fatalf("unexpected session bounds: %+v", s)
+	}
+}
+
+func TestPairMulti_SplitShiftMissingMorningOutDoesNotStealAfternoonIn(t *testing.T) {
+	day := time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC)
+	seg1ID, seg2ID := uuid.New(), uuid.New()
+	seg1Start, seg1End := day.Add(8*time.Hour), day.Add(12*time.Hour)
+	seg2Start, seg2End := day.Add(14*time.Hour), day.Add(18*time.Hour)
+	logs := []LogEvent{
+		{ID: uuid.New(), Minutes: 485, PunchTime: day.Add(8*time.Hour + 5*time.Minute)},
+		{ID: uuid.New(), Minutes: 840, PunchTime: day.Add(14 * time.Hour)},
+		{ID: uuid.New(), Minutes: 1080, PunchTime: day.Add(18 * time.Hour)},
+	}
+	sessions := PairMulti(logs, &MultiSegmentConfig{Segments: []ShiftConfig{
+		{StartMinutes: 480, EndMinutes: 720, StartTime: &seg1Start, EndTime: &seg1End, SegmentID: &seg1ID},
+		{StartMinutes: 840, EndMinutes: 1080, StartTime: &seg2Start, EndTime: &seg2End, SegmentID: &seg2ID},
+	}})
+	if len(sessions) != 2 {
+		t.Fatalf("expected 2 sessions (open morning + closed afternoon), got %d: %+v", len(sessions), sessions)
+	}
+	if sessions[0].EndTime != nil || sessions[0].Note == nil || *sessions[0].Note != "missing_punch_out" {
+		t.Fatalf("expected open morning session with missing_punch_out, got %+v", sessions[0])
+	}
+	if sessions[1].EndTime == nil || !sessions[1].StartTime.Equal(day.Add(14*time.Hour)) || !sessions[1].EndTime.Equal(day.Add(18*time.Hour)) {
+		t.Fatalf("expected afternoon session 14:00-18:00 intact, got %+v", sessions[1])
+	}
+}
+
+func TestPairMulti_OvernightAbsoluteTimeWindow(t *testing.T) {
+	day := time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC)
+	segID := uuid.New()
+	segStart := day.Add(22 * time.Hour)
+	segEnd := day.Add(30 * time.Hour) // 06:00 next day
+	logs := []LogEvent{
+		{ID: uuid.New(), Minutes: 1315, PunchTime: day.Add(21*time.Hour + 55*time.Minute)},
+		{ID: uuid.New(), Minutes: 365, PunchTime: day.Add(30*time.Hour + 5*time.Minute)},
+	}
+	sessions := PairMulti(logs, &MultiSegmentConfig{Segments: []ShiftConfig{
+		{StartMinutes: 1320, EndMinutes: 360, StartTime: &segStart, EndTime: &segEnd, SegmentID: &segID},
+	}})
+	if len(sessions) != 1 {
+		t.Fatalf("expected 1 overnight session, got %d", len(sessions))
+	}
+	if sessions[0].EndTime == nil || !sessions[0].EndTime.Equal(day.Add(30*time.Hour+5*time.Minute)) {
+		t.Fatalf("expected overnight end time next morning, got %+v", sessions[0])
+	}
+}

@@ -675,6 +675,10 @@ func (h *AttendanceHandler) writeError(w http.ResponseWriter, r *http.Request, e
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
+	if errors.Is(err, ErrAttendanceLockedPeriod) {
+		apperror.WriteError(w, r, apperror.Conflict("error.locked_period"))
+		return
+	}
 	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrWorkSegmentNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

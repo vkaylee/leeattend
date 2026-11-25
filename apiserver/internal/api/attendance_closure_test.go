@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -140,7 +141,7 @@ func TestReopenAttendancePeriodMapsSelfReopenToForbidden(t *testing.T) {
 	reopenPath := "/api/v1/attendance/periods/2026/1/reopen?employer_id=" + employerID.String()
 	rec := httptest.NewRecorder()
 	handler.ReopenAttendancePeriod(rec, closureRequest(http.MethodPost, reopenPath, `{"version":2,"reason":"self reopen attempt"}`, userID))
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 for self-reopen, got %d: %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "error.self_reopen_forbidden") {
+		t.Fatalf("expected 403 error.self_reopen_forbidden for self-reopen, got %d: %s", rec.Code, rec.Body.String())
 	}
 }

@@ -192,7 +192,7 @@ func (h *AttendanceHandler) writeClosureError(w http.ResponseWriter, r *http.Req
 	case errors.Is(err, ErrAttendanceOpenPunch):
 		apperror.WriteError(w, r, apperror.Conflict("error.open_punch"))
 	case errors.Is(err, ErrAttendanceSelfReopenForbidden):
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		apperror.WriteError(w, r, apperror.Forbidden("error.self_reopen_forbidden"))
 	case errors.Is(err, ErrAttendanceClosureConflict):
 		apperror.WriteError(w, r, apperror.Conflict("error.closure_conflict"))
 	case errors.Is(err, ErrAttendancePeriodConflict):

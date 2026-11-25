@@ -408,18 +408,26 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 	if err != nil {
 		return api.ReprocessResponse{}, err
 	}
-	where := "te.punch_in_time::date >= $1::date AND te.punch_in_time::date <= $2::date"
+	if err := ensureReprocessPeriodsOpen(ctx, db, startDate, endDate, employeeID); err != nil {
+		return api.ReprocessResponse{}, err
+	}
+	if err := pairRawLogsForReprocess(ctx, db, startDate, endDate, employeeID); err != nil {
+		return api.ReprocessResponse{}, err
+	}
+	businessDateExpr := `COALESCE(ws.date, (te.punch_in_time AT TIME ZONE COALESCE(sdr.timezone, 'UTC'))::date)`
+	where := businessDateExpr + ` >= $1::date AND ` + businessDateExpr + ` <= $2::date`
 	args := []any{startDate, endDate}
 	if employeeID != nil {
 		where += " AND e.employee_id = $3"
 		args = append(args, *employeeID)
 	}
-	rows, err := db.Query(ctx, `SELECT te.employment_id, te.punch_in_time::date::text, te.punch_in_time, te.punch_out_time, te.duration_minutes, te.segment_id, te.shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot, wp.id, wc.minutes_per_credit, wc.early_ot_enabled, wc.early_ot_qualification_grace_minutes, wc.early_ot_max_minutes, wc.break_auto_deduct, wc.break_is_overtime
+	rows, err := db.Query(ctx, `SELECT te.employment_id, `+businessDateExpr+`::text, te.punch_in_time, te.punch_out_time, te.duration_minutes, te.segment_id, te.shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot, wp.id, wc.minutes_per_credit, wc.early_ot_enabled, wc.early_ot_qualification_grace_minutes, wc.early_ot_max_minutes, wc.break_auto_deduct, wc.break_is_overtime
 		FROM time_entries te
 		JOIN employments e ON e.id = te.employment_id
 		LEFT JOIN work_segments ws ON ws.id = te.segment_id
-		LEFT JOIN labor_policy_memberships lm ON lm.employment_id = te.employment_id AND lm.effective_from <= te.punch_in_time::date AND (lm.effective_to IS NULL OR lm.effective_to > te.punch_in_time::date)
-		LEFT JOIN labor_policy_group_versions wp ON wp.group_id = lm.group_id AND wp.effective_from <= te.punch_in_time::date AND (wp.effective_to IS NULL OR wp.effective_to > te.punch_in_time::date)
+		LEFT JOIN schedule_day_revisions sdr ON sdr.id = ws.schedule_revision_id
+		LEFT JOIN labor_policy_memberships lm ON lm.employment_id = te.employment_id AND lm.effective_from <= `+businessDateExpr+` AND (lm.effective_to IS NULL OR lm.effective_to > `+businessDateExpr+`)
+		LEFT JOIN labor_policy_group_versions wp ON wp.group_id = lm.group_id AND wp.effective_from <= `+businessDateExpr+` AND (wp.effective_to IS NULL OR wp.effective_to > `+businessDateExpr+`)
 		LEFT JOIN work_credit_policies wc ON wc.id = wp.work_credit_policy_id
 		WHERE `+where+` AND te.punch_out_time IS NOT NULL ORDER BY te.employment_id, te.punch_in_time`, args...)
 	if err != nil {
@@ -452,47 +460,9 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 		if policyID == nil {
 			return api.ReprocessResponse{}, api.ErrAttendancePolicyMissing
 		}
-		var scheduledStart, scheduledEnd *time.Time = startAt, endAt
-		var breakStart, breakEnd *time.Time
-		var breakWindows []buckets.BreakPair
-		var scheduledBreak int32
-		if len(breaks) > 0 {
-			var parsed []struct {
-				Start    string `json:"start"`
-				End      string `json:"end"`
-				StartAt  string `json:"start_at"`
-				EndAt    string `json:"end_at"`
-				Duration int    `json:"duration_minutes"`
-			}
-			if err := json.Unmarshal(breaks, &parsed); err != nil {
-				return api.ReprocessResponse{}, err
-			}
-			for _, item := range parsed {
-				startRaw, endRaw := item.StartAt, item.EndAt
-				if startRaw == "" {
-					startRaw = item.Start
-				}
-				if endRaw == "" {
-					endRaw = item.End
-				}
-				if startRaw == "" || endRaw == "" {
-					continue
-				}
-				start, startErr := time.Parse(time.RFC3339, startRaw)
-				end, endErr := time.Parse(time.RFC3339, endRaw)
-				if startErr != nil || endErr != nil || !end.After(start) {
-					continue
-				}
-				breakWindows = append(breakWindows, buckets.BreakPair{Start: start, End: end})
-				if breakStart == nil {
-					breakStart, breakEnd = &start, &end
-				}
-				if item.Duration > 0 {
-					scheduledBreak += int32(item.Duration)
-				} else {
-					scheduledBreak += int32(end.Sub(start) / time.Minute)
-				}
-			}
+		breakWindows, breakStart, breakEnd, scheduledBreak, err := parseBreakWindowsSnapshot(breaks)
+		if err != nil {
+			return api.ReprocessResponse{}, err
 		}
 		key := d.employmentID.String() + ":" + d.date
 		item := results[key]
@@ -501,7 +471,7 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 			results[key] = item
 		}
 		item.actual += int(punchOut.Sub(punchIn) / time.Minute)
-		input := buckets.DailyCalcInput{PunchIn: punchIn, PunchOut: punchOut, ShiftStart: scheduledStart, ShiftEnd: scheduledEnd, ScheduledBreakMinutes: scheduledBreak, BreakStart: breakStart, BreakEnd: breakEnd, WorkUnit: int32(max(1, d.minutesPerCredit)), GracePeriodMinutes: int32(grace), AllowEarlyOT: earlyEnabled, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT, MaxEarlyOTMinutes: func() *int32 {
+		input := buckets.DailyCalcInput{PunchIn: punchIn, PunchOut: punchOut, ShiftStart: startAt, ShiftEnd: endAt, ScheduledBreakMinutes: scheduledBreak, BreakStart: breakStart, BreakEnd: breakEnd, BreakWindows: breakWindows, WorkUnit: int32(max(1, d.minutesPerCredit)), GracePeriodMinutes: int32(grace), AllowEarlyOT: earlyEnabled, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT, MaxEarlyOTMinutes: func() *int32 {
 			if maxEarly == nil {
 				return nil
 			}
@@ -512,7 +482,7 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 		item.scheduledBreak += int(scheduledBreak)
 		item.deductedBreak += int(buckets.CalculateBreakDeduction(buckets.BreakDeductionInput{ScheduledBreakMinutes: scheduledBreak, IsBreakAutoDeduct: breakAuto, IsBreakOvertime: breakOT, BreakStart: breakStart, BreakEnd: breakEnd, BreakWindows: breakWindows, PunchIn: &punchIn, PunchOut: &punchOut}))
 		item.netWork += int(calculated.StandardMinutes)
-		item.netPaid += int(calculated.StandardMinutes + calculated.BreakOTMinutes)
+		item.netPaid += int(calculated.StandardMinutes)
 		item.standard += int(calculated.StandardMinutes)
 		item.early += int(calculated.EarlyOTMinutes)
 		item.late += int(calculated.LateOTMinutes)

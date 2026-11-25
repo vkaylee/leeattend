@@ -73,6 +73,51 @@ func TestCalculateBreakDeduction_IntersectsPunchWindow(t *testing.T) {
 	}
 }
 
+func TestCalculateBuckets_MultipleBreaksMergedWithoutDoubleDeduction(t *testing.T) {
+	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
+	punchIn := date.Add(8 * time.Hour)
+	punchOut := date.Add(17 * time.Hour)
+	shiftStart := date.Add(8 * time.Hour)
+	shiftEnd := date.Add(17 * time.Hour)
+	b1Start, b1End := date.Add(10*time.Hour), date.Add(10*time.Hour+15*time.Minute)
+	b2Start, b2End := date.Add(12*time.Hour), date.Add(13*time.Hour)
+	// Deliberately overlaps b2 (12:30-13:15) so merged total is 15 + 75 = 90 min, never 120.
+	b3Start, b3End := date.Add(12*time.Hour+30*time.Minute), date.Add(13*time.Hour+15*time.Minute)
+
+	got := CalculateBuckets(DailyCalcInput{
+		PunchIn:               punchIn,
+		PunchOut:              punchOut,
+		ShiftStart:            &shiftStart,
+		ShiftEnd:              &shiftEnd,
+		ScheduledBreakMinutes: 90,
+		BreakStart:            &b1Start,
+		BreakEnd:              &b1End,
+		BreakWindows: []BreakPair{
+			{Start: b1Start, End: b1End},
+			{Start: b2Start, End: b2End},
+			{Start: b3Start, End: b3End},
+		},
+		WorkUnit:          60,
+		IsBreakAutoDeduct: true,
+	})
+	// 540 gross - 90 merged break = 450 standard minutes.
+	if got.StandardMinutes != 450 {
+		t.Fatalf("expected 450 standard minutes after 90m merged breaks, got %+v", got)
+	}
+	if ded := CalculateBreakDeduction(BreakDeductionInput{
+		IsBreakAutoDeduct: true,
+		BreakWindows: []BreakPair{
+			{Start: b1Start, End: b1End},
+			{Start: b2Start, End: b2End},
+			{Start: b3Start, End: b3End},
+		},
+		PunchIn:  &punchIn,
+		PunchOut: &punchOut,
+	}); ded != 90 {
+		t.Fatalf("expected 90m merged break deduction, got %d", ded)
+	}
+}
+
 func TestCalculateAttendance_ScheduledBreakUsesScheduledDeduction(t *testing.T) {
 	date := time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)
 	result, err := CalculateAttendance(AttendanceCalculationInput{

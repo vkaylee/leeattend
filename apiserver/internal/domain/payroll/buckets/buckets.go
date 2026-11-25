@@ -89,6 +89,7 @@ type DailyCalcInput struct {
 	ShiftStart, ShiftEnd                             *time.Time
 	ScheduledBreakMinutes, ActualBreakMinutes        int32
 	BreakStart, BreakEnd                             *time.Time
+	BreakWindows                                     []BreakPair
 	WorkUnit                                         int32
 	RoundingPolicy                                   RoundingPolicy
 	GracePeriodMinutes                               int32
@@ -233,8 +234,9 @@ func calculateBreakOverlap(input BreakDeductionInput) int32 {
 	if len(windows) == 0 {
 		return input.ScheduledBreakMinutes
 	}
+	merged := mergeBreakPairs(windows)
 	var total int32
-	for _, window := range windows {
+	for _, window := range merged {
 		start := maxTime(window.Start, *input.PunchIn)
 		end := minTime(window.End, *input.PunchOut)
 		if end.After(start) {
@@ -242,6 +244,36 @@ func calculateBreakOverlap(input BreakDeductionInput) int32 {
 		}
 	}
 	return total
+}
+
+func mergeBreakPairs(windows []BreakPair) []BreakPair {
+	valid := make([]BreakPair, 0, len(windows))
+	for _, w := range windows {
+		if w.End.After(w.Start) {
+			valid = append(valid, w)
+		}
+	}
+	if len(valid) <= 1 {
+		return valid
+	}
+	sort.Slice(valid, func(i, j int) bool {
+		if valid[i].Start.Equal(valid[j].Start) {
+			return valid[i].End.Before(valid[j].End)
+		}
+		return valid[i].Start.Before(valid[j].Start)
+	})
+	merged := []BreakPair{valid[0]}
+	for _, w := range valid[1:] {
+		last := &merged[len(merged)-1]
+		if !w.Start.After(last.End) {
+			if w.End.After(last.End) {
+				last.End = w.End
+			}
+			continue
+		}
+		merged = append(merged, w)
+	}
+	return merged
 }
 
 func CalculateUnits(minutes, unitSize int32, policy RoundingPolicy) int32 {
@@ -277,7 +309,7 @@ func CalculateBuckets(input DailyCalcInput) WorkBuckets {
 	if input.ShiftEnd != nil {
 		standardEnd = minTime(standardEnd, *input.ShiftEnd)
 	}
-	breakInput := BreakDeductionInput{ActualBreakMinutes: input.ActualBreakMinutes, ScheduledBreakMinutes: input.ScheduledBreakMinutes, IsBreakAutoDeduct: input.IsBreakAutoDeduct, IsBreakOvertime: input.IsBreakOvertime, BreakStart: input.BreakStart, BreakEnd: input.BreakEnd, PunchIn: &input.PunchIn, PunchOut: &input.PunchOut}
+	breakInput := BreakDeductionInput{ActualBreakMinutes: input.ActualBreakMinutes, ScheduledBreakMinutes: input.ScheduledBreakMinutes, IsBreakAutoDeduct: input.IsBreakAutoDeduct, IsBreakOvertime: input.IsBreakOvertime, BreakStart: input.BreakStart, BreakEnd: input.BreakEnd, BreakWindows: input.BreakWindows, PunchIn: &input.PunchIn, PunchOut: &input.PunchOut}
 	breakDeduction := CalculateBreakDeduction(breakInput)
 	breakOvertime := CalculateBreakOvertime(breakInput)
 	standardMinutes := int32(maxDuration(standardEnd.Sub(standardStart))/time.Minute) - breakDeduction
