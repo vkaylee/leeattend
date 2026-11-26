@@ -18,18 +18,11 @@ type ShiftSwapRepository struct {
 	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-func (r ShiftSwapRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("shift swap repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r ShiftSwapRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "shift swap repository")
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +113,7 @@ func (r ShiftSwapRepository) CreateSwap(ctx context.Context, userID uuid.UUID, r
 }
 
 func (r ShiftSwapRepository) ListSwaps(ctx context.Context, status *api.ShiftSwapStatus) ([]api.ShiftSwapRequestWithNames, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "shift swap repository")
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +259,7 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 }
 
 func (r ShiftSwapRepository) Stats(ctx context.Context) (api.SwapStats, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "shift swap repository")
 	if err != nil {
 		return api.SwapStats{}, err
 	}
@@ -276,7 +269,7 @@ func (r ShiftSwapRepository) Stats(ctx context.Context) (api.SwapStats, error) {
 }
 
 func (r ShiftSwapRepository) ListEmployeeSwaps(ctx context.Context, employeeID uuid.UUID) ([]api.ShiftSwapRequestWithNames, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "shift swap repository")
 	if err != nil {
 		return nil, err
 	}

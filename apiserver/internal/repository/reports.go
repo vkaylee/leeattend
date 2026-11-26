@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -42,18 +41,11 @@ const officialScheduleCTE = `WITH latest_official_revisions AS (
 		GROUP BY sdr.id, sdr.employment_id, sdr.business_date, sdr.state, sdr.timezone
 )`
 
-func (r ReportRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("report repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r ReportRepository) SnapshotExportRequest(ctx context.Context, req api.ExportReportRequest) (api.ExportReportRequest, error) {
 	if len(req.EmployeeIDs) == 0 {
 		return req, nil
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "report repository")
 	if err != nil {
 		return req, err
 	}
@@ -194,7 +186,7 @@ type stringWriterSync struct{ builder *strings.Builder }
 func (w *stringWriterSync) Write(p []byte) (int, error) { return w.builder.Write(p) }
 
 func (r ReportRepository) ResolveBehalfEmployeeIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "report repository")
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +222,7 @@ func appendEmployeeStatusFilter(clause string, args []any, argIndex int, status 
 }
 
 func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.AttendanceReportFilter) (api.PaginatedReportResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "report repository")
 	if err != nil {
 		return api.PaginatedReportResponse{}, err
 	}
@@ -587,7 +579,7 @@ LEFT JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id AND ads.d
 }
 
 func (r ReportRepository) GetNoShowReport(ctx context.Context, params api.NoShowReportFilter) (api.PaginatedReportResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "report repository")
 	if err != nil {
 		return api.PaginatedReportResponse{}, err
 	}

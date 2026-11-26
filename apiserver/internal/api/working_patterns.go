@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 type WorkingPattern struct {
@@ -107,8 +105,8 @@ type WorkingPatternHandler struct {
 }
 
 func (h *WorkingPatternHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "patterns:create") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "patterns:create") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateWorkingPatternRequest](r, 1<<20)
@@ -136,7 +134,7 @@ func (h *WorkingPatternHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *WorkingPatternHandler) Details(w http.ResponseWriter, r *http.Request) {
 	patternID, patternOK := pathUUID(r, "pattern_id")
 	if !patternOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	details, err := h.Repository.GetPatternDetails(r.Context(), patternID)
@@ -149,8 +147,8 @@ func (h *WorkingPatternHandler) Details(w http.ResponseWriter, r *http.Request) 
 
 func (h *WorkingPatternHandler) Update(w http.ResponseWriter, r *http.Request) {
 	patternID, patternOK := pathUUID(r, "pattern_id")
-	if !patternOK || !h.allowed(r, "patterns:create") {
-		h.forbidden(w, r)
+	if !patternOK || !hasPermission(r, h.Authorizer, "patterns:create") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateWorkingPatternRequest](r, 1<<20)
@@ -168,8 +166,8 @@ func (h *WorkingPatternHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *WorkingPatternHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	patternID, patternOK := pathUUID(r, "pattern_id")
-	if !patternOK || !h.allowed(r, "patterns:delete") {
-		h.forbidden(w, r)
+	if !patternOK || !hasPermission(r, h.Authorizer, "patterns:delete") {
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.Repository.DeletePattern(r.Context(), patternID); err != nil {
@@ -181,8 +179,8 @@ func (h *WorkingPatternHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
 	employmentID, employmentOK := pathUUID(r, "employment_id")
-	if !employmentOK || !h.allowed(r, "patterns:assign") {
-		h.forbidden(w, r)
+	if !employmentOK || !hasPermission(r, h.Authorizer, "patterns:assign") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[AssignPatternRequest](r, 1<<20)
@@ -205,8 +203,8 @@ func (h *WorkingPatternHandler) Assign(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "patterns:assign") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "patterns:assign") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[BulkAssignPatternRequest](r, 1<<20)
@@ -231,7 +229,7 @@ func (h *WorkingPatternHandler) BulkAssign(w http.ResponseWriter, r *http.Reques
 func (h *WorkingPatternHandler) History(w http.ResponseWriter, r *http.Request) {
 	employmentID, employmentOK := pathUUID(r, "employment_id")
 	if !employmentOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	history, err := h.Repository.EmploymentPatternHistory(r.Context(), employmentID)
@@ -285,15 +283,6 @@ func validateAssignmentDates(start string, end *string) error {
 	return nil
 }
 
-func (h *WorkingPatternHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
-}
-
-func (h *WorkingPatternHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
-
 func (h *WorkingPatternHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	var compErr *ShiftComplianceError
 	if errors.As(err, &compErr) {
@@ -304,7 +293,7 @@ func (h *WorkingPatternHandler) writeError(w http.ResponseWriter, r *http.Reques
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrPatternNotFound) {
+	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrPatternNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}

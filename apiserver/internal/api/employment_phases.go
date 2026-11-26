@@ -97,13 +97,6 @@ type EmploymentPhaseHandler struct {
 	Authorizer Authorizer
 }
 
-func (h *EmploymentPhaseHandler) allowed(r *http.Request, permission string) bool {
-	uid, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), uid, permission)
-}
-func (h *EmploymentPhaseHandler) deny(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
 func (h *EmploymentPhaseHandler) err(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrEmployeeNotFound), errors.Is(err, ErrEmployeePhaseNotFound), errors.Is(err, ErrEmploymentPhaseDefinitionNotFound):
@@ -121,8 +114,8 @@ func validPhaseDateRange(startDate, endDate string) bool {
 }
 
 func (h *EmploymentPhaseHandler) CreateDefinition(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "employment_phases:manage") {
-		h.deny(w, r)
+	if !hasPermission(r, h.Authorizer, "employment_phases:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	var req CreateEmploymentPhaseDefinitionRequest
@@ -148,8 +141,8 @@ func (h *EmploymentPhaseHandler) CreateDefinition(w http.ResponseWriter, r *http
 	apperror.WriteJSON(w, http.StatusCreated, out)
 }
 func (h *EmploymentPhaseHandler) ListDefinitions(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "employment_phases:read") {
-		h.deny(w, r)
+	if !hasPermission(r, h.Authorizer, "employment_phases:read") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -164,8 +157,8 @@ func (h *EmploymentPhaseHandler) ListDefinitions(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusOK, out)
 }
 func (h *EmploymentPhaseHandler) ListOrganization(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "employment_phases:read") {
-		h.deny(w, r)
+	if !hasPermission(r, h.Authorizer, "employment_phases:read") {
+		writeForbidden(w, r)
 		return
 	}
 	pagination, err := ParsePagination(r.URL.Query())
@@ -211,8 +204,8 @@ func (h *EmploymentPhaseHandler) assign(w http.ResponseWriter, r *http.Request, 
 }
 func (h *EmploymentPhaseHandler) AssignEmployee(w http.ResponseWriter, r *http.Request) {
 	empID, ok := pathUUID(r, "user_id")
-	if !ok || !h.allowed(r, "employment_phases:manage") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "employment_phases:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), empID)
@@ -224,8 +217,8 @@ func (h *EmploymentPhaseHandler) AssignEmployee(w http.ResponseWriter, r *http.R
 }
 func (h *EmploymentPhaseHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 	empID, ok := pathUUID(r, "user_id")
-	if !ok || !h.allowed(r, "employment_phases:read") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "employment_phases:read") {
+		writeForbidden(w, r)
 		return
 	}
 	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), empID)
@@ -238,8 +231,8 @@ func (h *EmploymentPhaseHandler) ListEmployee(w http.ResponseWriter, r *http.Req
 func (h *EmploymentPhaseHandler) UpdateEmployeeStatus(w http.ResponseWriter, r *http.Request) {
 	empID, ok := pathUUID(r, "user_id")
 	phaseID, ok2 := pathUUID(r, "phase_id")
-	if !ok || !ok2 || !h.allowed(r, "employment_phases:manage") {
-		h.deny(w, r)
+	if !ok || !ok2 || !hasPermission(r, h.Authorizer, "employment_phases:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), empID)
@@ -251,16 +244,16 @@ func (h *EmploymentPhaseHandler) UpdateEmployeeStatus(w http.ResponseWriter, r *
 }
 func (h *EmploymentPhaseHandler) AssignEmployment(w http.ResponseWriter, r *http.Request) {
 	employmentID, ok := pathUUID(r, "employment_id")
-	if !ok || !h.allowed(r, "employment_phases:manage") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "employment_phases:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	h.assign(w, r, employmentID)
 }
 func (h *EmploymentPhaseHandler) ListEmployment(w http.ResponseWriter, r *http.Request) {
 	employmentID, ok := pathUUID(r, "employment_id")
-	if !ok || !h.allowed(r, "employment_phases:read") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "employment_phases:read") {
+		writeForbidden(w, r)
 		return
 	}
 	h.list(w, r, employmentID)
@@ -268,8 +261,8 @@ func (h *EmploymentPhaseHandler) ListEmployment(w http.ResponseWriter, r *http.R
 func (h *EmploymentPhaseHandler) UpdateEmploymentStatus(w http.ResponseWriter, r *http.Request) {
 	employmentID, ok := pathUUID(r, "employment_id")
 	phaseID, ok2 := pathUUID(r, "phase_id")
-	if !ok || !ok2 || !h.allowed(r, "employment_phases:manage") {
-		h.deny(w, r)
+	if !ok || !ok2 || !hasPermission(r, h.Authorizer, "employment_phases:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	h.updateStatus(w, r, employmentID, phaseID)

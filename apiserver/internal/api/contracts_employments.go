@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	authz "github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -355,7 +354,7 @@ func (h *ContractEmploymentHandler) error(w http.ResponseWriter, r *http.Request
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	case errors.Is(err, ErrContractOverlap), errors.Is(err, ErrEmploymentOverlap), errors.Is(err, ErrConflict):
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
-	case errors.Is(err, pgx.ErrNoRows):
+	case errors.Is(err, ErrNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	default:
 		apperror.WriteError(w, r, apperror.Internal(err))

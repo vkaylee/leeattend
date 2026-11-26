@@ -10,7 +10,7 @@ import (
 )
 
 func (r PayrollRepository) ListSalaryManagementRows(ctx context.Context, query api.SalaryManagementQuery) (api.SalaryManagementResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
 		return api.SalaryManagementResponse{}, err
 	}

@@ -120,13 +120,6 @@ type EmployeeImportHandler struct {
 	StorageDir string
 }
 
-func (h *EmployeeImportHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
-}
-func (h *EmployeeImportHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
 func (h *EmployeeImportHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	var appErr *apperror.AppError
 	if errors.As(err, &appErr) {
@@ -141,8 +134,8 @@ func (h *EmployeeImportHandler) userID(r *http.Request) (uuid.UUID, bool) {
 
 func (h *EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := h.userID(r)
-	if !userOK || !h.allowed(r, string(auth.PermissionEmployeesUpload)) {
-		h.forbidden(w, r)
+	if !userOK || !hasPermission(r, h.Authorizer, string(auth.PermissionEmployeesUpload)) {
+		writeForbidden(w, r)
 		return
 	}
 	fileName, content, err := readExcelMultipart(r)
@@ -182,8 +175,8 @@ func (h *EmployeeImportHandler) Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EmployeeImportHandler) PreviewTermination(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, string(auth.PermissionEmployeesUpdate)) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, string(auth.PermissionEmployeesUpdate)) {
+		writeForbidden(w, r)
 		return
 	}
 	_, content, err := readExcelMultipart(r)
@@ -349,8 +342,8 @@ func parseTerminationDate(value string) (time.Time, error) {
 
 func (h *EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := h.userID(r)
-	if !userOK || !h.allowed(r, string(auth.PermissionEmployeesUpdate)) {
-		h.forbidden(w, r)
+	if !userOK || !hasPermission(r, h.Authorizer, string(auth.PermissionEmployeesUpdate)) {
+		writeForbidden(w, r)
 		return
 	}
 	request, err := DecodeJSON[ConfirmTerminationImportRequest](r, 10<<20)
@@ -401,8 +394,8 @@ func (h *EmployeeImportHandler) ConfirmTermination(w http.ResponseWriter, r *htt
 }
 
 func (h *EmployeeImportHandler) TerminationTemplate(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, string(auth.PermissionEmployeesUpdate)) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, string(auth.PermissionEmployeesUpdate)) {
+		writeForbidden(w, r)
 		return
 	}
 	data, err := generateTerminationTemplate(r.URL.Query().Get("lang"))

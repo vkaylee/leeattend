@@ -169,15 +169,6 @@ type AttendanceLogsHandler struct {
 	StorageDir string
 }
 
-func (h *AttendanceLogsHandler) allowed(r *http.Request, permission string) bool {
-	user, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), user, permission)
-}
-
-func (h *AttendanceLogsHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
-
 func (h *AttendanceLogsHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	var appErr *apperror.AppError
 	if errors.As(err, &appErr) {
@@ -203,8 +194,8 @@ func (h *AttendanceLogsHandler) UploadLogs(w http.ResponseWriter, r *http.Reques
 
 func (h *AttendanceLogsHandler) upload(w http.ResponseWriter, r *http.Request, target string) {
 	user, userOK := h.user(r)
-	if !userOK || !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
-		h.forbidden(w, r)
+	if !userOK || !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceLogsImport)) {
+		writeForbidden(w, r)
 		return
 	}
 	name, content, err := readAttendanceMultipart(r, false)
@@ -266,8 +257,8 @@ func parseAttendanceImportTime(value string) (time.Time, error) {
 // Latest handles GET .../attendance/import-jobs/latest.
 func (h *AttendanceLogsHandler) Latest(w http.ResponseWriter, r *http.Request) {
 
-	if !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceLogsImport)) {
+		writeForbidden(w, r)
 		return
 	}
 	var target *string
@@ -290,8 +281,8 @@ func (h *AttendanceLogsHandler) Latest(w http.ResponseWriter, r *http.Request) {
 func (h *AttendanceLogsHandler) Job(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceLogsImport)) {
+		writeForbidden(w, r)
 		return
 	}
 	result, err := h.Repository.GetAttendanceImportJob(r.Context(), id)
@@ -314,8 +305,8 @@ func (h *AttendanceLogsHandler) Job(w http.ResponseWriter, r *http.Request) {
 func (h *AttendanceLogsHandler) ErrorFile(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceLogsImport)) {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceLogsImport)) {
+		writeForbidden(w, r)
 		return
 	}
 	data, err := h.Repository.GetAttendanceLogErrorFile(r.Context(), id)
@@ -347,8 +338,8 @@ func (h *AttendanceLogsHandler) RawLogs(w http.ResponseWriter, r *http.Request) 
 
 func (h *AttendanceLogsHandler) listLogs(w http.ResponseWriter, r *http.Request, raw bool) {
 
-	if !h.allowed(r, string(auth.PermissionAttendanceLogsRead)) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceLogsRead)) {
+		writeForbidden(w, r)
 		return
 	}
 	employee, from, to, page, limit, err := parseAttendanceLogFilters(r)
@@ -425,8 +416,8 @@ func parseAttendanceLogFilters(r *http.Request) (*uuid.UUID, *time.Time, *time.T
 // Staging handles GET .../attendance/staging-logs.
 func (h *AttendanceLogsHandler) Staging(w http.ResponseWriter, r *http.Request) {
 
-	if !h.allowed(r, string(auth.PermissionAttendanceStagingManage)) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceStagingManage)) {
+		writeForbidden(w, r)
 		return
 	}
 	page, limit := 1, 50
@@ -467,8 +458,8 @@ type ResolveStagingRequest struct {
 func (h *AttendanceLogsHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceStagingManage)) {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceStagingManage)) {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[ResolveStagingRequest](r, 1<<20)
@@ -489,8 +480,8 @@ func (h *AttendanceLogsHandler) Resolve(w http.ResponseWriter, r *http.Request) 
 func (h *AttendanceLogsHandler) Dismiss(w http.ResponseWriter, r *http.Request) {
 
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, string(auth.PermissionAttendanceStagingManage)) {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceStagingManage)) {
+		writeForbidden(w, r)
 		return
 	}
 	changed, err := h.Repository.DismissStagingLog(r.Context(), id)
@@ -510,8 +501,8 @@ func (h *AttendanceLogsHandler) EnterPaperOT(w http.ResponseWriter, r *http.Requ
 
 	employeeID, empOK := pathUUID(r, "employee_id")
 	user, userOK := h.user(r)
-	if !empOK || !userOK || !h.allowed(r, string(auth.PermissionOvertimePaperUpload)) {
-		h.forbidden(w, r)
+	if !empOK || !userOK || !hasPermission(r, h.Authorizer, string(auth.PermissionOvertimePaperUpload)) {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[PaperOTRequest](r, 1<<20)
@@ -535,8 +526,8 @@ func (h *AttendanceLogsHandler) EnterPaperOT(w http.ResponseWriter, r *http.Requ
 func (h *AttendanceLogsHandler) BulkPaperOT(w http.ResponseWriter, r *http.Request) {
 
 	user, userOK := h.user(r)
-	if !userOK || !h.allowed(r, string(auth.PermissionOvertimePaperUpload)) {
-		h.forbidden(w, r)
+	if !userOK || !hasPermission(r, h.Authorizer, string(auth.PermissionOvertimePaperUpload)) {
+		writeForbidden(w, r)
 		return
 	}
 	_, content, err := readAttendanceMultipart(r, true)

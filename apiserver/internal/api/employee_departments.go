@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -92,7 +91,7 @@ func (h *EmployeeDepartmentHandler) writeError(w http.ResponseWriter, r *http.Re
 	switch {
 	case errors.Is(err, ErrEmployeeNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))
-	case errors.Is(err, ErrDepartmentNotFound), errors.Is(err, pgx.ErrNoRows), errors.Is(err, ErrEmploymentNotFound):
+	case errors.Is(err, ErrDepartmentNotFound), errors.Is(err, ErrNotFound), errors.Is(err, ErrEmploymentNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	default:
 		apperror.WriteError(w, r, apperror.Internal(err))

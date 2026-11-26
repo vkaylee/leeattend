@@ -219,7 +219,11 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 		Redis:      redisClient,
 		JWTSecret:  cfg.JWTSecret.Expose(),
 	}
-	registerMonitorRoutes(protectedRouter, monitorHandler)
+	auditLogHandler := &api.AuditLogHandler{
+		Repo:       monitorRepo,
+		Authorizer: organizationAuthorizer,
+	}
+	registerMonitorRoutes(protectedRouter, monitorHandler, auditLogHandler)
 	registerPublicRoutes(router, healthHandler)
 	registerPublicAuthRoutes(router, authHandler)
 	registerAuthRoutes(protectedRouter, authHandler)

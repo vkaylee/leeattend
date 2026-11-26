@@ -17,13 +17,6 @@ type EmployeeAssignmentRepository struct {
 	DB DBTX
 }
 
-func (r EmployeeAssignmentRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("employee assignment repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func scanEmployeeAssignment(row interface{ Scan(...any) error }) (api.EmployeeAssignment, error) {
 	var item api.EmployeeAssignment
 	var created, updated time.Time
@@ -42,7 +35,7 @@ const employeeAssignmentColumns = `ea.id, ea.home_location_id, ea.host_location_
 	ea.created_at, ea.updated_at, ea.employment_id`
 
 func (r EmployeeAssignmentRepository) ListAssignments(ctx context.Context) ([]api.EmployeeAssignmentWithEmployee, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee assignment repository")
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +78,7 @@ func (r EmployeeAssignmentRepository) ListAssignments(ctx context.Context) ([]ap
 }
 
 func (r EmployeeAssignmentRepository) ListEmployeeAssignments(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeAssignment, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee assignment repository")
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +102,7 @@ func (r EmployeeAssignmentRepository) ListEmployeeAssignments(ctx context.Contex
 }
 
 func (r EmployeeAssignmentRepository) GetEmployeeAssignment(ctx context.Context, employeeID, assignmentID uuid.UUID) (api.EmployeeAssignment, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee assignment repository")
 	if err != nil {
 		return api.EmployeeAssignment{}, err
 	}
@@ -123,7 +116,7 @@ func (r EmployeeAssignmentRepository) GetEmployeeAssignment(ctx context.Context,
 }
 
 func (r EmployeeAssignmentRepository) GetActiveEmployment(ctx context.Context, employeeID uuid.UUID, onDate string) (api.ActiveEmployment, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee assignment repository")
 	if err != nil {
 		return api.ActiveEmployment{}, err
 	}
@@ -139,7 +132,7 @@ func (r EmployeeAssignmentRepository) GetActiveEmployment(ctx context.Context, e
 }
 
 func (r EmployeeAssignmentRepository) CreateEmployeeAssignment(ctx context.Context, employmentID, homeLocationID uuid.UUID, req api.CreateEmployeeAssignmentRequest) (api.EmployeeAssignment, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee assignment repository")
 	if err != nil {
 		return api.EmployeeAssignment{}, err
 	}
@@ -158,7 +151,7 @@ func (r EmployeeAssignmentRepository) CreateEmployeeAssignment(ctx context.Conte
 }
 
 func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Context, employeeID, assignmentID uuid.UUID, req api.UpdateEmployeeAssignmentRequest) (api.EmployeeAssignment, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee assignment repository")
 	if err != nil {
 		return api.EmployeeAssignment{}, err
 	}
@@ -207,7 +200,7 @@ func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Conte
 }
 
 func (r EmployeeAssignmentRepository) DeleteEmployeeAssignment(ctx context.Context, employeeID, assignmentID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee assignment repository")
 	if err != nil {
 		return err
 	}
@@ -235,13 +228,6 @@ type AssignmentRuleRepository struct {
 	DB DBTX
 }
 
-func (r AssignmentRuleRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("assignment rule repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func scanAssignmentRule(row interface{ Scan(...any) error }) (api.AssignmentRule, error) {
 	var item api.AssignmentRule
 	var conditions []byte
@@ -265,7 +251,7 @@ const assignmentRuleColumns = `id, pattern_id, name, priority, conditions,
 	is_active, created_at, updated_at, start_date::text, end_date::text`
 
 func (r AssignmentRuleRepository) ListAssignmentRules(ctx context.Context) ([]api.AssignmentRule, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "assignment rule repository")
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +277,7 @@ func marshalConditions(conditions api.AssignmentRuleConditions) ([]byte, error) 
 }
 
 func (r AssignmentRuleRepository) CreateAssignmentRule(ctx context.Context, req api.CreateAssignmentRuleRequest) (api.AssignmentRule, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "assignment rule repository")
 	if err != nil {
 		return api.AssignmentRule{}, err
 	}
@@ -314,7 +300,7 @@ func (r AssignmentRuleRepository) CreateAssignmentRule(ctx context.Context, req 
 }
 
 func (r AssignmentRuleRepository) UpdateAssignmentRule(ctx context.Context, ruleID uuid.UUID, req api.UpdateAssignmentRuleRequest) (api.AssignmentRule, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "assignment rule repository")
 	if err != nil {
 		return api.AssignmentRule{}, err
 	}
@@ -370,7 +356,7 @@ func (r AssignmentRuleRepository) UpdateAssignmentRule(ctx context.Context, rule
 }
 
 func (r AssignmentRuleRepository) DeleteAssignmentRule(ctx context.Context, ruleID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "assignment rule repository")
 	if err != nil {
 		return err
 	}

@@ -115,7 +115,7 @@ func (r AttendanceRepository) GetAttendancePeriodStatus(ctx context.Context, emp
 	if _, _, err := closurePeriodDates(year, month); err != nil {
 		return api.AttendancePeriodStatusResponse{}, api.ErrAttendanceClosureValidation
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return api.AttendancePeriodStatusResponse{}, err
 	}

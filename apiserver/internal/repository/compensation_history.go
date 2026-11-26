@@ -3,7 +3,6 @@ package repository
 import (
 	"cmp"
 	"context"
-	"errors"
 	"slices"
 	"time"
 
@@ -14,13 +13,6 @@ import (
 
 type CompensationHistoryRepository struct {
 	DB DBTX
-}
-
-func (r CompensationHistoryRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("compensation repository: database is not configured")
-	}
-	return r.DB, nil
 }
 
 type compEmploymentRow struct {
@@ -42,7 +34,7 @@ type timelineKey struct {
 }
 
 func (r CompensationHistoryRepository) GetEmployeeCompensationHistory(ctx context.Context, employeeID uuid.UUID, filterEmploymentID *uuid.UUID) (api.CompensationHistoryResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "compensation repository")
 	if err != nil {
 		return api.CompensationHistoryResponse{}, err
 	}

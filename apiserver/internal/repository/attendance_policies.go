@@ -16,13 +16,6 @@ type AttendancePolicyRepository struct {
 	BeginTx  func(context.Context) (TxBeginner, error)
 }
 
-func (r AttendancePolicyRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("attendance policy repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r AttendancePolicyRepository) validateBehalfAssignee(ctx context.Context, userID uuid.UUID) error {
 	db := r.SystemDB
 	if db == nil {
@@ -51,7 +44,7 @@ func scanBehalf(row interface{ Scan(...any) error }) (api.BehalfAssignment, erro
 const behalfColumns = `ba.id, ba.assignee_user_id, ba.target_employee_id, ba.target_department_id, ba.assignment_type, ba.created_at, ba.updated_at, ba.employer_id, te.full_name, tenure.employee_number, d.name`
 
 func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, req api.CreateBehalfAssignmentRequest, assignmentType string) (api.BehalfAssignment, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance policy repository")
 	if err != nil {
 		return api.BehalfAssignment{}, err
 	}
@@ -65,7 +58,7 @@ func (r AttendancePolicyRepository) CreateBehalfAssignment(ctx context.Context, 
 }
 
 func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, assignmentType string) ([]api.BehalfAssignment, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance policy repository")
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +79,7 @@ func (r AttendancePolicyRepository) ListBehalfAssignments(ctx context.Context, a
 }
 
 func (r AttendancePolicyRepository) DeleteBehalfAssignment(ctx context.Context, assignmentID uuid.UUID, assignmentType string) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance policy repository")
 	if err != nil {
 		return err
 	}
@@ -101,7 +94,7 @@ func (r AttendancePolicyRepository) DeleteBehalfAssignment(ctx context.Context, 
 }
 
 func (r AttendancePolicyRepository) ListMyBehalfTargets(ctx context.Context, userID uuid.UUID, assignmentType string) ([]api.EmployeeRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance policy repository")
 	if err != nil {
 		return nil, err
 	}

@@ -20,18 +20,11 @@ type WorkPolicyRepository struct {
 	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-func (r WorkPolicyRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("work policy repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r WorkPolicyRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "work policy repository")
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +91,7 @@ func hydrateWorkPolicyVersion(item api.WorkPolicyVersion, status, payMethod, pai
 }
 
 func (r WorkPolicyRepository) ListWorkPolicyGroups(ctx context.Context, page, limit int) (api.WorkPolicyGroupListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "work policy repository")
 	if err != nil {
 		return api.WorkPolicyGroupListResponse{}, err
 	}
@@ -187,7 +180,7 @@ func attachLatestGroupVersions(ctx context.Context, db DBTX, groupIDs []uuid.UUI
 }
 
 func (r WorkPolicyRepository) ListWorkPolicyGroupVersions(ctx context.Context, groupID workpolicy.GroupID, statusFilter string, page, limit int) (api.WorkPolicyVersionListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "work policy repository")
 	if err != nil {
 		return api.WorkPolicyVersionListResponse{}, err
 	}
@@ -224,7 +217,7 @@ func (r WorkPolicyRepository) ListWorkPolicyGroupVersions(ctx context.Context, g
 }
 
 func (r WorkPolicyRepository) GetWorkPolicyVersion(ctx context.Context, groupID workpolicy.GroupID, versionID workpolicy.VersionID) (api.WorkPolicyVersion, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "work policy repository")
 	if err != nil {
 		return api.WorkPolicyVersion{}, err
 	}
@@ -245,7 +238,7 @@ func fetchWorkPolicyVersion(ctx context.Context, db DBTX, groupID, versionID uui
 }
 
 func (r WorkPolicyRepository) ValidateWorkPolicyVersion(ctx context.Context, groupID workpolicy.GroupID, versionID workpolicy.VersionID) (api.WorkPolicyValidationResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "work policy repository")
 	if err != nil {
 		return api.WorkPolicyValidationResponse{}, err
 	}
@@ -457,7 +450,7 @@ func insertDraftWorkPolicyVersion(ctx context.Context, tx pgx.Tx, groupID uuid.U
 }
 
 func (r WorkPolicyRepository) CreateWorkPolicyGroup(ctx context.Context, req workpolicy.CreateGroupInput, actorID ids.UserID) (api.WorkPolicyVersion, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "work policy repository")
 	if err != nil {
 		return api.WorkPolicyVersion{}, err
 	}
@@ -730,7 +723,7 @@ func markVersionPublished(ctx context.Context, tx pgx.Tx, req workpolicy.Publish
 }
 
 func (r WorkPolicyRepository) ResolveWorkPolicyByRelationship(ctx context.Context, relationshipID uuid.UUID, asOf time.Time) (api.ResolvedWorkPolicyResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "work policy repository")
 	if err != nil {
 		return api.ResolvedWorkPolicyResponse{}, err
 	}
@@ -763,7 +756,7 @@ func (r WorkPolicyRepository) ResolveWorkPolicyByRelationship(ctx context.Contex
 }
 
 func (r WorkPolicyRepository) ListWorkPolicyMemberships(ctx context.Context, groupID workpolicy.GroupID) ([]api.WorkPolicyMembership, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "work policy repository")
 	if err != nil {
 		return nil, err
 	}

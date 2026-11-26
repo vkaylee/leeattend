@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -123,7 +122,7 @@ func (h *NotificationHandler) MarkAllRead(w http.ResponseWriter, r *http.Request
 }
 
 func (h *NotificationHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrNotificationNotFound) {
+	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrNotificationNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}

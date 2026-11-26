@@ -18,18 +18,11 @@ type EmploymentPhaseRepository struct {
 	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-func (r EmploymentPhaseRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("employment phase repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r EmploymentPhaseRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	d, err := r.db(ctx)
+	d, err := requireDB(r.DB, "employment phase repository")
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +34,7 @@ func (r EmploymentPhaseRepository) begin(ctx context.Context) (TxBeginner, error
 }
 
 func (r EmploymentPhaseRepository) CreateDefinition(ctx context.Context, def api.EmploymentPhaseDefinition) (api.EmploymentPhaseDefinition, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment phase repository")
 	if err != nil {
 		return api.EmploymentPhaseDefinition{}, err
 	}
@@ -67,7 +60,7 @@ func (r EmploymentPhaseRepository) CreateDefinition(ctx context.Context, def api
 }
 
 func (r EmploymentPhaseRepository) ListDefinitions(ctx context.Context) ([]api.EmploymentPhaseDefinition, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment phase repository")
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +132,7 @@ func (r EmploymentPhaseRepository) AssignPhase(ctx context.Context, employmentID
 		})
 		return created, err
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment phase repository")
 	if err != nil {
 		return api.EmployeePhase{}, err
 	}
@@ -188,7 +181,7 @@ func (r EmploymentPhaseRepository) assignPhaseTx(ctx context.Context, db DBTX, e
 }
 
 func (r EmploymentPhaseRepository) UpdatePhaseStatus(ctx context.Context, employmentID, phaseID uuid.UUID, req api.UpdateEmployeePhaseStatusRequest, evaluatedBy uuid.UUID) (api.EmployeePhase, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment phase repository")
 	if err != nil {
 		return api.EmployeePhase{}, err
 	}
@@ -210,7 +203,7 @@ func (r EmploymentPhaseRepository) UpdatePhaseStatus(ctx context.Context, employ
 }
 
 func (r EmploymentPhaseRepository) ListOrganizationPhases(ctx context.Context, page, limit int, query, status string, employeeID *uuid.UUID) (api.EmploymentPhaseAssignmentListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment phase repository")
 	if err != nil {
 		return api.EmploymentPhaseAssignmentListResponse{}, err
 	}
@@ -260,7 +253,7 @@ func (r EmploymentPhaseRepository) ListOrganizationPhases(ctx context.Context, p
 }
 
 func (r EmploymentPhaseRepository) ListPhases(ctx context.Context, employmentID uuid.UUID) ([]api.EmployeePhase, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment phase repository")
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +279,7 @@ func (r EmploymentPhaseRepository) ListPhases(ctx context.Context, employmentID 
 }
 
 func (r EmploymentPhaseRepository) ResolveActiveEmployment(ctx context.Context, employeeID uuid.UUID) (uuid.UUID, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment phase repository")
 	if err != nil {
 		return uuid.Nil, err
 	}

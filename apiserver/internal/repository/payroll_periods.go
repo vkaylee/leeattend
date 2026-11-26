@@ -40,7 +40,7 @@ const payrollPeriodColumns = `id, employer_id, period_year, period_month, status
 	locked_at, locked_by, reopened_at, reopened_by, reopen_reason`
 
 func (r PayrollRepository) GetPayrollPeriod(ctx context.Context, employerID ids.EmployerID, year, month int) (api.PayrollPeriod, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
 		return api.PayrollPeriod{}, err
 	}

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -292,7 +291,7 @@ func (h *AssignmentHandler) validateEmployee(w http.ResponseWriter, r *http.Requ
 	}
 	if _, err := h.Employees.GetEmployee(r.Context(), employeeID); err == nil {
 		return true
-	} else if errors.Is(err, pgx.ErrNoRows) {
+	} else if errors.Is(err, ErrNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))
 	} else {
 		h.assignmentError(w, r, err)
@@ -310,7 +309,7 @@ func (h *AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Reque
 		apperror.WriteError(w, r, apperror.Validation("error.no_active_employment"))
 	case errors.Is(err, ErrHomeHostLocationSame):
 		apperror.WriteError(w, r, apperror.Validation("error.home_host_location_same"))
-	case errors.Is(err, pgx.ErrNoRows):
+	case errors.Is(err, ErrNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))
 	default:
 		apperror.WriteError(w, r, apperror.Internal(err))

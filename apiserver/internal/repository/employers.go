@@ -16,13 +16,6 @@ type EmployerRepository struct {
 	DB DBTX
 }
 
-func (r EmployerRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("employer repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 const employerColumns = `id, name, tax_code, legal_address, created_at, updated_at,
 	parent_id, relationship_type, business_type, registration_number, phone, email, website,
 	incorporation_date::text, country_code, currency_code`
@@ -41,7 +34,7 @@ func scanEmployer(row interface{ Scan(...any) error }) (api.Employer, error) {
 }
 
 func (r EmployerRepository) ListEmployers(ctx context.Context, page, limit int) (api.EmployerListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employer repository")
 	if err != nil {
 		return api.EmployerListResponse{}, err
 	}
@@ -65,7 +58,7 @@ func (r EmployerRepository) ListEmployers(ctx context.Context, page, limit int) 
 }
 
 func (r EmployerRepository) CreateEmployer(ctx context.Context, req api.CreateEmployerRequest) (api.Employer, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employer repository")
 	if err != nil {
 		return api.Employer{}, err
 	}
@@ -79,7 +72,7 @@ func (r EmployerRepository) CreateEmployer(ctx context.Context, req api.CreateEm
 }
 
 func (r EmployerRepository) GetEmployer(ctx context.Context, id uuid.UUID) (api.Employer, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employer repository")
 	if err != nil {
 		return api.Employer{}, err
 	}
@@ -91,7 +84,7 @@ func (r EmployerRepository) GetEmployer(ctx context.Context, id uuid.UUID) (api.
 }
 
 func (r EmployerRepository) UpdateEmployer(ctx context.Context, id uuid.UUID, req api.UpdateEmployerRequest) (api.Employer, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employer repository")
 	if err != nil {
 		return api.Employer{}, err
 	}
@@ -158,7 +151,7 @@ func (r EmployerRepository) UpdateEmployer(ctx context.Context, id uuid.UUID, re
 }
 
 func (r EmployerRepository) DeleteEmployer(ctx context.Context, id uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employer repository")
 	if err != nil {
 		return err
 	}

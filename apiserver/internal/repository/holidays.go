@@ -19,18 +19,11 @@ type HolidayRepository struct {
 	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-func (r HolidayRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("holiday repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r HolidayRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "holiday repository")
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +48,7 @@ func scanHoliday(row pgx.Row) (api.HolidayRecord, error) {
 }
 
 func (r HolidayRepository) ListHolidays(ctx context.Context, year *int32, locationID *uuid.UUID, page, limit int64) (api.PaginatedHolidays, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "holiday repository")
 	if err != nil {
 		return api.PaginatedHolidays{}, err
 	}
@@ -97,7 +90,7 @@ func (r HolidayRepository) ListHolidays(ctx context.Context, year *int32, locati
 }
 
 func (r HolidayRepository) GetHolidayByID(ctx context.Context, holidayID uuid.UUID) (api.HolidayRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "holiday repository")
 	if err != nil {
 		return api.HolidayRecord{}, err
 	}
@@ -109,7 +102,7 @@ func (r HolidayRepository) GetHolidayByID(ctx context.Context, holidayID uuid.UU
 }
 
 func (r HolidayRepository) CreateHoliday(ctx context.Context, req api.CreateHolidayRequest) (api.HolidayRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "holiday repository")
 	if err != nil {
 		return api.HolidayRecord{}, err
 	}
@@ -138,7 +131,7 @@ func (r HolidayRepository) CreateHoliday(ctx context.Context, req api.CreateHoli
 }
 
 func (r HolidayRepository) UpdateHoliday(ctx context.Context, holidayID uuid.UUID, req api.UpdateHolidayRequest) (api.HolidayRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "holiday repository")
 	if err != nil {
 		return api.HolidayRecord{}, err
 	}
@@ -192,7 +185,7 @@ func (r HolidayRepository) UpdateHoliday(ctx context.Context, holidayID uuid.UUI
 }
 
 func (r HolidayRepository) DeleteHoliday(ctx context.Context, holidayID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "holiday repository")
 	if err != nil {
 		return err
 	}

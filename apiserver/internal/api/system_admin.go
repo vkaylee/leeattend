@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	goredis "github.com/redis/go-redis/v9"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -36,7 +35,7 @@ type EmailSender interface {
 }
 
 type RedisClient interface {
-	Shared() (*goredis.Client, error)
+	DeleteKey(context.Context, string) error
 }
 
 type SystemAdminHandler struct {
@@ -61,11 +60,7 @@ func (h *SystemAdminHandler) invalidateRedisKey(ctx context.Context, key string)
 	if h.Redis == nil {
 		return
 	}
-	client, err := h.Redis.Shared()
-	if err != nil || client == nil {
-		return
-	}
-	_ = client.Del(ctx, key).Err()
+	_ = h.Redis.DeleteKey(ctx, key)
 }
 
 // 1. GET /api/v1/system/smtp/config

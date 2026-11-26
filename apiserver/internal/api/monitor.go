@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	goredis "github.com/redis/go-redis/v9"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -240,67 +239,6 @@ type MonitorCorrelationsResponse struct {
 	EventsTruncated bool                    `json:"events_truncated"`
 }
 
-type MonitorAlertResponse struct {
-	ID              uuid.UUID  `json:"id"`
-	AlertType       string     `json:"alert_type"`
-	Severity        string     `json:"severity"`
-	Status          string     `json:"status"`
-	Title           string     `json:"title"`
-	Summary         string     `json:"summary"`
-	Source          string     `json:"source"`
-	FirstSeenAt     time.Time  `json:"first_seen_at"`
-	LastSeenAt      time.Time  `json:"last_seen_at"`
-	OccurrenceCount int32      `json:"occurrence_count"`
-	ResolvedAt      *time.Time `json:"resolved_at"`
-}
-
-type MonitorAlertsResponse struct {
-	Data       []MonitorAlertResponse `json:"data"`
-	Total      int64                  `json:"total"`
-	Page       int64                  `json:"page"`
-	Limit      int64                  `json:"limit"`
-	NextCursor *string                `json:"next_cursor"`
-}
-
-type MonitorAlertEventResponse struct {
-	ID         uuid.UUID `json:"id"`
-	EventType  string    `json:"event_type"`
-	Severity   string    `json:"severity"`
-	Summary    string    `json:"summary"`
-	OccurredAt time.Time `json:"occurred_at"`
-}
-
-type MonitorAlertDetailResponse struct {
-	MonitorAlertResponse
-	Events []MonitorAlertEventResponse `json:"events"`
-}
-
-type MonitorAlertMutationRequest struct {
-	Reason string `json:"reason"`
-}
-
-type PaginatedAuditLogs struct {
-	Data  []AuditLogRecord `json:"data"`
-	Total int64            `json:"total"`
-	Page  int64            `json:"page"`
-	Limit int64            `json:"limit"`
-}
-
-type AuditLogRecord struct {
-	ID               uuid.UUID       `json:"id"`
-	ActorID          *uuid.UUID      `json:"actor_id"`
-	ActorType        *string         `json:"actor_type"`
-	ActorName        *string         `json:"actor_name"`
-	ActorEmail       *string         `json:"actor_email"`
-	TargetUserID     *uuid.UUID      `json:"target_user_id"`
-	TargetResourceID *uuid.UUID      `json:"target_resource_id"`
-	Action           string          `json:"action"`
-	Details          json.RawMessage `json:"details"`
-	IPAddress        *string         `json:"ip_address"`
-	UserAgent        *string         `json:"user_agent"`
-	CreatedAt        time.Time       `json:"created_at"`
-}
-
 type JobProgressStatus struct {
 	TotalBatches     uint32  `json:"total_batches"`
 	CompletedBatches uint32  `json:"completed_batches"`
@@ -326,18 +264,28 @@ type ListDurableJobsParams struct {
 	Limit    int
 }
 
-type MonitorRepository interface {
-	ListAlerts(ctx context.Context, status, severity *string, limit int, cursor *string) ([]MonitorAlertResponse, int64, *string, error)
-	GetAlert(ctx context.Context, alertID uuid.UUID) (*MonitorAlertResponse, []MonitorAlertEventResponse, error)
-	MutateAlert(ctx context.Context, alertID uuid.UUID, action string, reason string, actorID uuid.UUID) (*MonitorAlertResponse, error)
+// MonitorJobRepository reads durable job state and trace correlations.
+type MonitorJobRepository interface {
 	ListDurableJobs(ctx context.Context, params ListDurableJobsParams) ([]MonitorInfraJobRecord, *string, error)
 	ListCorrelations(ctx context.Context, requestID *uuid.UUID, traceID *string, limit int) ([]MonitorInfraJobRecord, bool, error)
 	GetDurableJob(ctx context.Context, jobID uuid.UUID) (*MonitorInfraJobRecord, error)
-	ListAuditLogs(ctx context.Context, limit, offset int, action *string, startDate, endDate *time.Time) ([]AuditLogRecord, int64, error)
+}
+
+// MonitorRepository composes the segregated monitor sub-domain interfaces.
+type MonitorRepository interface {
+	MonitorAlertRepository
+	MonitorJobRepository
+	AuditLogRepository
 }
 
 type MonitorRedis interface {
-	Shared() (*goredis.Client, error)
+	IsAvailable() bool
+	LLen(ctx context.Context, key string) (int64, error)
+	GetString(ctx context.Context, key string) (string, bool, error)
+	GetUint64(ctx context.Context, key string) (uint64, error)
+	Keys(ctx context.Context, pattern string) ([]string, error)
+	ZRevRange(ctx context.Context, key string, start, stop int64) ([]string, error)
+	ZRevRangeByScore(ctx context.Context, key, min, max string, count int64) ([]string, []float64, error)
 }
 
 type MonitorHandler struct {
@@ -368,17 +316,6 @@ func (h *MonitorHandler) requireMember(r *http.Request) (uuid.UUID, *apperror.Ap
 	}
 	isMember, err := h.Authorizer.IsMember(r.Context(), userID)
 	if err != nil || !isMember {
-		return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
-	}
-	return userID, nil
-}
-
-func (h *MonitorHandler) requireAuditPermission(r *http.Request) (uuid.UUID, *apperror.AppError) {
-	userID, appErr := h.requireMember(r)
-	if appErr != nil {
-		return uuid.Nil, appErr
-	}
-	if !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionAuditLogsRead)) {
 		return uuid.Nil, apperror.Forbidden(apperror.KeyForbidden)
 	}
 	return userID, nil
@@ -424,106 +361,103 @@ func (h *MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorO
 
 	today := observedAt.Format("2006-01-02")
 
-	if h.Redis != nil {
-		client, err := h.Redis.Shared()
-		if err == nil && client != nil {
-			redisAvailable = true
-			if v, err := client.LLen(ctx, "worker:jobs:high").Result(); err == nil {
-				pendingHigh = uint64(v)
-			}
-			if v, err := client.LLen(ctx, "worker:jobs:normal").Result(); err == nil {
-				pendingNormal = uint64(v)
-			}
-			if v, err := client.LLen(ctx, "worker:jobs:low").Result(); err == nil {
-				pendingLow = uint64(v)
-			}
-			if v, err := client.Get(ctx, fmt.Sprintf("stats:completed:%s", today)).Uint64(); err == nil {
-				completedToday = v
-			}
-			if v, err := client.Get(ctx, fmt.Sprintf("stats:failed:%s", today)).Uint64(); err == nil {
-				failedToday = v
-			}
+	if h.Redis != nil && h.Redis.IsAvailable() {
+		redisAvailable = true
+		if v, err := h.Redis.LLen(ctx, "worker:jobs:high"); err == nil {
+			pendingHigh = uint64(v)
+		}
+		if v, err := h.Redis.LLen(ctx, "worker:jobs:normal"); err == nil {
+			pendingNormal = uint64(v)
+		}
+		if v, err := h.Redis.LLen(ctx, "worker:jobs:low"); err == nil {
+			pendingLow = uint64(v)
+		}
+		if v, err := h.Redis.GetUint64(ctx, fmt.Sprintf("stats:completed:%s", today)); err == nil {
+			completedToday = v
+		}
+		if v, err := h.Redis.GetUint64(ctx, fmt.Sprintf("stats:failed:%s", today)); err == nil {
+			failedToday = v
+		}
 
-			// Heartbeats
-			keys, _ := client.Keys(ctx, "monitor:worker:*").Result()
-			for _, k := range keys {
-				val, err := client.Get(ctx, k).Result()
-				if err != nil {
-					continue
-				}
-				var hb struct {
-					ID              uuid.UUID `json:"id"`
-					Host            string    `json:"host"`
-					Status          string    `json:"status"`
-					CurrentTaskType *string   `json:"current_task_type"`
-					LastSeenAt      time.Time `json:"last_seen_at"`
-				}
-				if json.Unmarshal([]byte(val), &hb) == nil {
-					ageSecs := uint64(0)
-					if observedAt.After(hb.LastSeenAt) {
-						ageSecs = uint64(observedAt.Sub(hb.LastSeenAt).Seconds())
-					}
-					liveness := "live"
-					if ageSecs > 60 {
-						liveness = "offline"
-					} else if ageSecs > 15 {
-						liveness = "stale"
-					}
-					workers = append(workers, WorkerHeartbeat{
-						ID:                  hb.ID,
-						Host:                hb.Host,
-						Status:              hb.Status,
-						CurrentTaskType:     hb.CurrentTaskType,
-						LastSeenAt:          hb.LastSeenAt,
-						Liveness:            liveness,
-						HeartbeatAgeSeconds: ageSecs,
-					})
-				}
+		// Heartbeats
+		keys, _ := h.Redis.Keys(ctx, "monitor:worker:*")
+		for _, k := range keys {
+			val, found, err := h.Redis.GetString(ctx, k)
+			if err != nil || !found {
+				continue
 			}
+			var hb struct {
+				ID              uuid.UUID `json:"id"`
+				Host            string    `json:"host"`
+				Status          string    `json:"status"`
+				CurrentTaskType *string   `json:"current_task_type"`
+				LastSeenAt      time.Time `json:"last_seen_at"`
+			}
+			if json.Unmarshal([]byte(val), &hb) == nil {
+				ageSecs := uint64(0)
+				if observedAt.After(hb.LastSeenAt) {
+					ageSecs = uint64(observedAt.Sub(hb.LastSeenAt).Seconds())
+				}
+				liveness := "live"
+				if ageSecs > 60 {
+					liveness = "offline"
+				} else if ageSecs > 15 {
+					liveness = "stale"
+				}
+				workers = append(workers, WorkerHeartbeat{
+					ID:                  hb.ID,
+					Host:                hb.Host,
+					Status:              hb.Status,
+					CurrentTaskType:     hb.CurrentTaskType,
+					LastSeenAt:          hb.LastSeenAt,
+					Liveness:            liveness,
+					HeartbeatAgeSeconds: ageSecs,
+				})
+			}
+		}
 
-			// Recent jobs
-			jobIDs, _ := client.ZRevRange(ctx, "report:job_list", 0, 9).Result()
-			for _, jid := range jobIDs {
-				metaStr, err := client.Get(ctx, fmt.Sprintf("report:meta:%s", jid)).Result()
-				if err != nil {
-					continue
-				}
-				var m struct {
-					JobID            uuid.UUID `json:"job_id"`
-					Status           string    `json:"status"`
-					TotalBatches     uint32    `json:"total_batches"`
-					CompletedBatches uint32    `json:"completed_batches"`
-					FailedBatches    uint32    `json:"failed_batches"`
-					ErrorMessage     *string   `json:"error_message"`
-					CreatedAt        *string   `json:"created_at"`
-					CompletedAt      *string   `json:"completed_at"`
-					TaskType         *string   `json:"task_type"`
-				}
-				if json.Unmarshal([]byte(metaStr), &m) == nil {
-					createdAt := observedAt
-					if m.CreatedAt != nil {
-						if t, err := time.Parse(time.RFC3339, *m.CreatedAt); err == nil {
-							createdAt = t
-						}
+		// Recent jobs
+		jobIDs, _ := h.Redis.ZRevRange(ctx, "report:job_list", 0, 9)
+		for _, jid := range jobIDs {
+			metaStr, found, err := h.Redis.GetString(ctx, fmt.Sprintf("report:meta:%s", jid))
+			if err != nil || !found {
+				continue
+			}
+			var m struct {
+				JobID            uuid.UUID `json:"job_id"`
+				Status           string    `json:"status"`
+				TotalBatches     uint32    `json:"total_batches"`
+				CompletedBatches uint32    `json:"completed_batches"`
+				FailedBatches    uint32    `json:"failed_batches"`
+				ErrorMessage     *string   `json:"error_message"`
+				CreatedAt        *string   `json:"created_at"`
+				CompletedAt      *string   `json:"completed_at"`
+				TaskType         *string   `json:"task_type"`
+			}
+			if json.Unmarshal([]byte(metaStr), &m) == nil {
+				createdAt := observedAt
+				if m.CreatedAt != nil {
+					if t, err := time.Parse(time.RFC3339, *m.CreatedAt); err == nil {
+						createdAt = t
 					}
-					var completedAt *time.Time
-					if m.CompletedAt != nil {
-						if t, err := time.Parse(time.RFC3339, *m.CompletedAt); err == nil {
-							completedAt = &t
-						}
-					}
-					recentJobs = append(recentJobs, MonitorJob{
-						JobID:            m.JobID,
-						Status:           m.Status,
-						TotalBatches:     m.TotalBatches,
-						CompletedBatches: m.CompletedBatches,
-						FailedBatches:    m.FailedBatches,
-						Error:            m.ErrorMessage,
-						CreatedAt:        createdAt,
-						CompletedAt:      completedAt,
-						TaskType:         m.TaskType,
-					})
 				}
+				var completedAt *time.Time
+				if m.CompletedAt != nil {
+					if t, err := time.Parse(time.RFC3339, *m.CompletedAt); err == nil {
+						completedAt = &t
+					}
+				}
+				recentJobs = append(recentJobs, MonitorJob{
+					JobID:            m.JobID,
+					Status:           m.Status,
+					TotalBatches:     m.TotalBatches,
+					CompletedBatches: m.CompletedBatches,
+					FailedBatches:    m.FailedBatches,
+					Error:            m.ErrorMessage,
+					CreatedAt:        createdAt,
+					CompletedAt:      completedAt,
+					TaskType:         m.TaskType,
+				})
 			}
 		}
 	}
@@ -829,79 +763,70 @@ func (h *MonitorHandler) GetMonitorJobs(w http.ResponseWriter, r *http.Request) 
 	// Legacy Redis jobs
 	jobs := make([]MonitorJob, 0)
 	var nextCursor *int64
-	if h.Redis != nil {
-		client, err := h.Redis.Shared()
-		if err == nil && client != nil {
-			var cursor int64
-			if c := q.Get("cursor"); c != "" {
-				if parsed, err := strconv.ParseInt(c, 10, 64); err == nil {
-					cursor = parsed
+	if h.Redis != nil && h.Redis.IsAvailable() {
+		var cursor int64
+		if c := q.Get("cursor"); c != "" {
+			if parsed, err := strconv.ParseInt(c, 10, 64); err == nil {
+				cursor = parsed
+			}
+		}
+		maxScore := "+inf"
+		if cursor > 0 {
+			maxScore = fmt.Sprintf("(%d", cursor)
+		}
+		members, scores, err := h.Redis.ZRevRangeByScore(r.Context(), "report:job_list", "-inf", maxScore, int64(limit))
+		if err == nil {
+			for _, jid := range members {
+				metaStr, found, err := h.Redis.GetString(r.Context(), fmt.Sprintf("report:meta:%s", jid))
+				if err != nil || !found {
+					continue
 				}
-			}
-			maxScore := "+inf"
-			if cursor > 0 {
-				maxScore = fmt.Sprintf("(%d", cursor)
-			}
-			zItems, err := client.ZRevRangeByScoreWithScores(r.Context(), "report:job_list", &goredis.ZRangeBy{
-				Min:    "-inf",
-				Max:    maxScore,
-				Offset: 0,
-				Count:  int64(limit),
-			}).Result()
-			if err == nil {
-				for _, zi := range zItems {
-					jid := fmt.Sprint(zi.Member)
-					metaStr, err := client.Get(r.Context(), fmt.Sprintf("report:meta:%s", jid)).Result()
-					if err != nil {
+				var m struct {
+					JobID            uuid.UUID `json:"job_id"`
+					Status           string    `json:"status"`
+					TotalBatches     uint32    `json:"total_batches"`
+					CompletedBatches uint32    `json:"completed_batches"`
+					FailedBatches    uint32    `json:"failed_batches"`
+					ErrorMessage     *string   `json:"error_message"`
+					CreatedAt        *string   `json:"created_at"`
+					CompletedAt      *string   `json:"completed_at"`
+					TaskType         *string   `json:"task_type"`
+				}
+				if json.Unmarshal([]byte(metaStr), &m) == nil {
+					if status != "" && !strings.EqualFold(m.Status, status) {
 						continue
 					}
-					var m struct {
-						JobID            uuid.UUID `json:"job_id"`
-						Status           string    `json:"status"`
-						TotalBatches     uint32    `json:"total_batches"`
-						CompletedBatches uint32    `json:"completed_batches"`
-						FailedBatches    uint32    `json:"failed_batches"`
-						ErrorMessage     *string   `json:"error_message"`
-						CreatedAt        *string   `json:"created_at"`
-						CompletedAt      *string   `json:"completed_at"`
-						TaskType         *string   `json:"task_type"`
+					if taskTypePtr != nil && (m.TaskType == nil || !strings.EqualFold(*m.TaskType, *taskTypePtr)) {
+						continue
 					}
-					if json.Unmarshal([]byte(metaStr), &m) == nil {
-						if status != "" && !strings.EqualFold(m.Status, status) {
-							continue
+					createdAt := time.Now().UTC()
+					if m.CreatedAt != nil {
+						if t, err := time.Parse(time.RFC3339, *m.CreatedAt); err == nil {
+							createdAt = t
 						}
-						if taskTypePtr != nil && (m.TaskType == nil || !strings.EqualFold(*m.TaskType, *taskTypePtr)) {
-							continue
-						}
-						createdAt := time.Now().UTC()
-						if m.CreatedAt != nil {
-							if t, err := time.Parse(time.RFC3339, *m.CreatedAt); err == nil {
-								createdAt = t
-							}
-						}
-						var completedAt *time.Time
-						if m.CompletedAt != nil {
-							if t, err := time.Parse(time.RFC3339, *m.CompletedAt); err == nil {
-								completedAt = &t
-							}
-						}
-						jobs = append(jobs, MonitorJob{
-							JobID:            m.JobID,
-							Status:           m.Status,
-							TotalBatches:     m.TotalBatches,
-							CompletedBatches: m.CompletedBatches,
-							FailedBatches:    m.FailedBatches,
-							Error:            m.ErrorMessage,
-							CreatedAt:        createdAt,
-							CompletedAt:      completedAt,
-							TaskType:         m.TaskType,
-						})
 					}
+					var completedAt *time.Time
+					if m.CompletedAt != nil {
+						if t, err := time.Parse(time.RFC3339, *m.CompletedAt); err == nil {
+							completedAt = &t
+						}
+					}
+					jobs = append(jobs, MonitorJob{
+						JobID:            m.JobID,
+						Status:           m.Status,
+						TotalBatches:     m.TotalBatches,
+						CompletedBatches: m.CompletedBatches,
+						FailedBatches:    m.FailedBatches,
+						Error:            m.ErrorMessage,
+						CreatedAt:        createdAt,
+						CompletedAt:      completedAt,
+						TaskType:         m.TaskType,
+					})
 				}
-				if len(zItems) == limit {
-					lastScore := int64(zItems[len(zItems)-1].Score)
-					nextCursor = &lastScore
-				}
+			}
+			if len(scores) == limit {
+				lastScore := int64(scores[len(scores)-1])
+				nextCursor = &lastScore
 			}
 		}
 	}
@@ -1073,280 +998,6 @@ func (h *MonitorHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// 5. GET /api/v1/monitor/alerts
-func (h *MonitorHandler) ListAlerts(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-
-	q := r.URL.Query()
-	limit := 20
-	if l := q.Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			if parsed > 100 {
-				parsed = 100
-			}
-			limit = parsed
-		}
-	}
-
-	var statusPtr *string
-	if s := strings.TrimSpace(q.Get("status")); s != "" {
-		statusPtr = &s
-	}
-	var severityPtr *string
-	if s := strings.TrimSpace(q.Get("severity")); s != "" {
-		severityPtr = &s
-	}
-	var cursorPtr *string
-	if c := strings.TrimSpace(q.Get("cursor")); c != "" {
-		cursorPtr = &c
-	}
-
-	if h.Repo == nil {
-		apperror.WriteJSON(w, http.StatusOK, MonitorAlertsResponse{
-			Data:       make([]MonitorAlertResponse, 0),
-			Total:      0,
-			Page:       1,
-			Limit:      int64(limit),
-			NextCursor: nil,
-		})
-		return
-	}
-
-	data, total, nextCursor, err := h.Repo.ListAlerts(r.Context(), statusPtr, severityPtr, limit, cursorPtr)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-
-	apperror.WriteJSON(w, http.StatusOK, MonitorAlertsResponse{
-		Data:       data,
-		Total:      total,
-		Page:       1,
-		Limit:      int64(limit),
-		NextCursor: nextCursor,
-	})
-}
-
-// 6. GET /api/v1/monitor/alerts/{alert_id}
-func (h *MonitorHandler) GetAlert(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-
-	idStr := r.PathValue("alert_id")
-	alertID, err := uuid.Parse(idStr)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-
-	if h.Repo == nil {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-		return
-	}
-
-	alert, events, err := h.Repo.GetAlert(r.Context(), alertID)
-	if err != nil {
-		if errors.Is(err, ErrMonitorNotFound) {
-			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-			return
-		}
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-	if alert == nil {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-		return
-	}
-
-	apperror.WriteJSON(w, http.StatusOK, MonitorAlertDetailResponse{
-		MonitorAlertResponse: *alert,
-		Events:               events,
-	})
-}
-
-// 7. POST /api/v1/monitor/alerts/{alert_id}/acknowledge
-func (h *MonitorHandler) AcknowledgeAlert(w http.ResponseWriter, r *http.Request) {
-	userID, appErr := h.requireInfraMonitor(r)
-	if appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-
-	idStr := r.PathValue("alert_id")
-	alertID, err := uuid.Parse(idStr)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-
-	req, err := DecodeJSON[MonitorAlertMutationRequest](r, 1<<20)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	reason := strings.TrimSpace(req.Reason)
-	if reason == "" || len([]rune(reason)) > 500 {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	reason = sanitizeSummary(reason)
-
-	if h.Repo == nil {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-		return
-	}
-
-	alert, err := h.Repo.MutateAlert(r.Context(), alertID, "acknowledge", reason, userID)
-	if err != nil {
-		var targetAppErr *apperror.AppError
-		if errors.As(err, &targetAppErr) {
-			apperror.WriteError(w, r, targetAppErr)
-			return
-		}
-		if errors.Is(err, ErrMonitorNotFound) {
-			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-			return
-		}
-		if errors.Is(err, ErrMonitorConflict) {
-			apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
-			return
-		}
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-
-	apperror.WriteJSON(w, http.StatusOK, alert)
-}
-
-// 8. POST /api/v1/monitor/alerts/{alert_id}/resolve
-func (h *MonitorHandler) ResolveAlert(w http.ResponseWriter, r *http.Request) {
-	userID, appErr := h.requireInfraMonitor(r)
-	if appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-
-	idStr := r.PathValue("alert_id")
-	alertID, err := uuid.Parse(idStr)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-
-	req, err := DecodeJSON[MonitorAlertMutationRequest](r, 1<<20)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	reason := strings.TrimSpace(req.Reason)
-	if reason == "" || len([]rune(reason)) > 500 {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	reason = sanitizeSummary(reason)
-
-	if h.Repo == nil {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-		return
-	}
-
-	alert, err := h.Repo.MutateAlert(r.Context(), alertID, "resolve", reason, userID)
-	if err != nil {
-		var targetAppErr *apperror.AppError
-		if errors.As(err, &targetAppErr) {
-			apperror.WriteError(w, r, targetAppErr)
-			return
-		}
-		if errors.Is(err, ErrMonitorNotFound) {
-			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-			return
-		}
-		if errors.Is(err, ErrMonitorConflict) {
-			apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
-			return
-		}
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-
-	apperror.WriteJSON(w, http.StatusOK, alert)
-}
-
-// 10. GET /api/v1/audit-logs
-func (h *MonitorHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requireAuditPermission(r); appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-
-	q := r.URL.Query()
-	page := 1
-	if p := q.Get("page"); p != "" {
-		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
-			page = parsed
-		}
-	}
-
-	limit := 50
-	if l := q.Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			if parsed > 100 {
-				parsed = 100
-			}
-			limit = parsed
-		}
-	}
-
-	var actionPtr *string
-	if a := strings.TrimSpace(q.Get("action")); a != "" {
-		actionPtr = &a
-	}
-
-	var startDate *time.Time
-	if s := strings.TrimSpace(q.Get("start_date")); s != "" {
-		if t, err := time.Parse(time.RFC3339, s); err == nil {
-			startDate = &t
-		}
-	}
-
-	var endDate *time.Time
-	if e := strings.TrimSpace(q.Get("end_date")); e != "" {
-		if t, err := time.Parse(time.RFC3339, e); err == nil {
-			endDate = &t
-		}
-	}
-
-	offset := (page - 1) * limit
-
-	if h.Repo == nil {
-		apperror.WriteJSON(w, http.StatusOK, PaginatedAuditLogs{
-			Data:  make([]AuditLogRecord, 0),
-			Total: 0,
-			Page:  int64(page),
-			Limit: int64(limit),
-		})
-		return
-	}
-
-	logs, total, err := h.Repo.ListAuditLogs(r.Context(), limit, offset, actionPtr, startDate, endDate)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-
-	apperror.WriteJSON(w, http.StatusOK, PaginatedAuditLogs{
-		Data:  logs,
-		Total: total,
-		Page:  int64(page),
-		Limit: int64(limit),
-	})
-}
-
 // 11. GET /api/v1/jobs/{job_id}
 func (h *MonitorHandler) GetJobStatus(w http.ResponseWriter, r *http.Request) {
 	jobID, err := uuid.Parse(r.PathValue("job_id"))
@@ -1361,23 +1012,18 @@ func (h *MonitorHandler) GetJobStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.Redis == nil {
+	if h.Redis == nil || !h.Redis.IsAvailable() {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
 		return
 	}
 
-	client, err := h.Redis.Shared()
-	if err != nil || client == nil {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
-		return
-	}
-
-	val, err := client.Get(r.Context(), fmt.Sprintf("report:meta:%s", jobID.String())).Result()
-	if errors.Is(err, goredis.Nil) {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
-		return
-	} else if err != nil {
+	val, found, err := h.Redis.GetString(r.Context(), fmt.Sprintf("report:meta:%s", jobID.String()))
+	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
+		return
+	}
+	if !found {
+		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
 		return
 	}
 

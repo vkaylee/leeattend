@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 type ShiftRoster struct {
@@ -69,8 +68,8 @@ type RosterHandler struct {
 
 func (h *RosterHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := pathUUID(r, "id")
-	if !ok || !h.allowed(r, "rosters:read") {
-		h.forbidden(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "rosters:read") {
+		writeForbidden(w, r)
 		return
 	}
 	start, end, page, limit, err := parseRosterQuery(r)
@@ -93,8 +92,8 @@ func (h *RosterHandler) ListEmployee(w http.ResponseWriter, r *http.Request) {
 
 func (h *RosterHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := pathUUID(r, "id")
-	if !ok || !h.allowed(r, "rosters:manage") {
-		h.forbidden(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "rosters:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateRosterRequest](r, 1<<20)
@@ -122,8 +121,8 @@ func (h *RosterHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 
 func (h *RosterHandler) BulkUpsert(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := pathUUID(r, "id")
-	if !ok || !h.allowed(r, "rosters:manage") {
-		h.forbidden(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "rosters:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[BulkRosterRequest](r, 4<<20)
@@ -145,8 +144,8 @@ func (h *RosterHandler) BulkUpsert(w http.ResponseWriter, r *http.Request) {
 
 func (h *RosterHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	employeeID, ok := pathUUID(r, "id")
-	if !ok || !h.allowed(r, "rosters:manage") {
-		h.forbidden(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "rosters:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	employmentID, err := h.Repository.ResolveActiveEmployment(r.Context(), employeeID)
@@ -202,15 +201,6 @@ func duplicateRosterDates(items []RosterItem) bool {
 		seen[item.Date] = struct{}{}
 	}
 	return false
-}
-
-func (h *RosterHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
-}
-
-func (h *RosterHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
 func (h *RosterHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {

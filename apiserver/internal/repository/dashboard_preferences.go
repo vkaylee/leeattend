@@ -21,13 +21,6 @@ var defaultWidgetOrderJSON = []byte(`["kpi_cards","donut_chart","quick_stats","a
 var defaultCollapsedSectionsJSON = []byte(`{"summary":false,"charts":false,"actions":true}`)
 var defaultWindowLayoutJSON = []byte(`{}`)
 
-func (r DashboardPreferencesRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("dashboard preferences: nil database")
-	}
-	return r.DB, nil
-}
-
 func scanDashboardPreferences(row interface{ Scan(...any) error }) (api.DashboardPreferences, error) {
 	var p api.DashboardPreferences
 	var created, updated time.Time
@@ -35,7 +28,7 @@ func scanDashboardPreferences(row interface{ Scan(...any) error }) (api.Dashboar
 	return p, err
 }
 func (r DashboardPreferencesRepository) GetDashboardPreferences(ctx context.Context, userID ids.UserID) (api.DashboardPreferences, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "dashboard preferences")
 	if err != nil {
 		return api.DashboardPreferences{}, err
 	}
@@ -49,7 +42,7 @@ func (r DashboardPreferencesRepository) GetDashboardPreferences(ctx context.Cont
 	return api.DashboardPreferences{UserID: userID.UUID(), VisibleWidgets: append([]byte(nil), defaultVisibleWidgetsJSON...), WidgetOrder: append([]byte(nil), defaultWidgetOrderJSON...), CollapsedSections: append([]byte(nil), defaultCollapsedSectionsJSON...), WindowLayout: append([]byte(nil), defaultWindowLayoutJSON...), ActiveView: "overview"}, nil
 }
 func (r DashboardPreferencesRepository) UpdateDashboardPreferences(ctx context.Context, userID ids.UserID, req api.UpdateDashboardPreferences) (api.DashboardPreferences, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "dashboard preferences")
 	if err != nil {
 		return api.DashboardPreferences{}, err
 	}

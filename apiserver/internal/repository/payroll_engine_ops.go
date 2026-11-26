@@ -18,7 +18,7 @@ import (
 )
 
 func (r PayrollRepository) CalculateEmployeePayroll(ctx context.Context, employeeID ids.EmployeeID, year, month int, actorID ids.UserID) (api.FullPayslipResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
@@ -105,7 +105,7 @@ func (r PayrollRepository) SimulateEmployeePayrollWithPolicy(ctx context.Context
 }
 
 func (r PayrollRepository) simulateEmployeePayrollPure(ctx context.Context, employeeID ids.EmployeeID, year, month int, policyVersionID *uuid.UUID) (api.FullPayslipResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
 		return api.FullPayslipResponse{}, err
 	}
@@ -161,7 +161,7 @@ func resolveSimulationPolicies(ctx context.Context, db DBTX, bundle LoadedPeriod
 }
 
 func (r PayrollRepository) SimulateWorkPolicyVersionBatch(ctx context.Context, groupID, versionID uuid.UUID, req api.WorkPolicyBatchSimulationRequest) (api.WorkPolicyBatchSimulationResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
 		return api.WorkPolicyBatchSimulationResponse{}, err
 	}
@@ -274,7 +274,7 @@ func buildComputedSimItem(relID, empID uuid.UUID, baseRes, candRes payroll.Calcu
 }
 
 func (r PayrollRepository) CalculateBatchPayroll(ctx context.Context, req api.BatchCalculatePayrollRequest, actorID ids.UserID) (api.BatchCalculatePayrollResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
 		return api.BatchCalculatePayrollResponse{}, err
 	}

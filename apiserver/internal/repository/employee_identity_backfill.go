@@ -67,18 +67,11 @@ type EmployeeIdentityRepository struct {
 	BeginTx func(context.Context) (service.TxBeginner, error)
 }
 
-func (r EmployeeIdentityRepository) db() (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("employee identity repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r EmployeeIdentityRepository) txBeginner(ctx context.Context) (service.TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db()
+	db, err := requireDB(r.DB, "employee identity repository")
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +155,7 @@ func (r EmployeeIdentityRepository) prepareIdentityBackfill(
 	if batchSize < 0 || batchSize > maxIdentityBackfillBatchSize {
 		return 0, nil, nil, ErrIdentityBackfillInvalidBatchSize
 	}
-	db, err := r.db()
+	db, err := requireDB(r.DB, "employee identity repository")
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -298,7 +291,7 @@ func (r EmployeeIdentityRepository) finalizeBackfillCollisions(
 
 // IdentityReadiness returns PII-free aggregate coverage and collision counts for employee_profiles.
 func (r EmployeeIdentityRepository) IdentityReadiness(ctx context.Context) (IdentityReadinessReport, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "employee identity repository")
 	if err != nil {
 		return IdentityReadinessReport{}, err
 	}

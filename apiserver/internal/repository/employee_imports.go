@@ -21,18 +21,11 @@ type EmployeeImportRepository struct {
 	Revoker SessionRevoker
 }
 
-func (r EmployeeImportRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("employee import repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r EmployeeImportRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee import repository")
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +37,7 @@ func (r EmployeeImportRepository) begin(ctx context.Context) (TxBeginner, error)
 }
 
 func (r EmployeeImportRepository) CreateEmployeeImportJob(ctx context.Context, userID uuid.UUID, filePath string, jobID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee import repository")
 	if err != nil {
 		return err
 	}
@@ -59,7 +52,7 @@ func (r EmployeeImportRepository) TerminationCandidates(ctx context.Context, cod
 	if len(codes) == 0 {
 		return nil, nil
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee import repository")
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +189,7 @@ func (r EmployeeImportRepository) TerminationStatuses(ctx context.Context, emplo
 	if len(employmentIDs) == 0 {
 		return make(map[uuid.UUID]string), nil
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee import repository")
 	if err != nil {
 		return nil, err
 	}

@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/identity"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -251,7 +250,7 @@ func TestEmployeeHandler_CreateTenureOutcomes(t *testing.T) {
 			t.Fatalf("repo conflict = %d, want 409", recRepoConflict.Code)
 		}
 
-		hNotFound := EmployeeHandler{TenureCreator: &stubTenureCreator{err: pgx.ErrNoRows}, Authorizer: authz}
+		hNotFound := EmployeeHandler{TenureCreator: &stubTenureCreator{err: ErrNotFound}, Authorizer: authz}
 		rec404 := httptest.NewRecorder()
 		hNotFound.CreateTenure(rec404, newTenureReq(empID.String(), `{"start_date":"2026-07-01","employer_id":"`+employerID.String()+`"}`, actorID))
 		if rec404.Code != http.StatusNotFound {

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -122,19 +121,15 @@ type EmployerRepository interface {
 	DeleteEmployer(context.Context, uuid.UUID) error
 }
 
-type EmployerAudit interface {
-	Emit(context.Context, audit.Event) error
-}
-
 type EmployerHandler struct {
 	Repository EmployerRepository
 	Authorizer Authorizer
-	Audit      EmployerAudit
+	Audit      AuditEmitter
 }
 
 func (h *EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	p, err := ParsePagination(r.URL.Query())
@@ -152,7 +147,7 @@ func (h *EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateEmployerRequest](r, 1<<20)
@@ -175,7 +170,7 @@ func (h *EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	employer, err := h.Repository.GetEmployer(r.Context(), id)
@@ -189,7 +184,7 @@ func (h *EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[UpdateEmployerRequest](r, 1<<20)
@@ -221,7 +216,7 @@ func (h *EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *EmployerHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	existing, err := h.Repository.GetEmployer(r.Context(), id)
@@ -277,13 +272,9 @@ func (h *EmployerHandler) isMember(r *http.Request) bool {
 	return err == nil && member
 }
 
-func (h *EmployerHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
-
 func (h *EmployerHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
-	case errors.Is(err, ErrEmployerNotFound), errors.Is(err, pgx.ErrNoRows):
+	case errors.Is(err, ErrEmployerNotFound), errors.Is(err, ErrNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	case errors.Is(err, ErrEmployerInUse):
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))

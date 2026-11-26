@@ -210,15 +210,6 @@ type LifecycleHandler struct {
 	Authorizer Authorizer
 }
 
-func (h *LifecycleHandler) allowed(r *http.Request, permission string) bool {
-	uid, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), uid, permission)
-}
-
-func (h *LifecycleHandler) deny(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
-
 func (h *LifecycleHandler) writeErr(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrTemplateNotFound):
@@ -239,8 +230,8 @@ func (h *LifecycleHandler) writeErr(w http.ResponseWriter, r *http.Request, err 
 }
 
 func (h *LifecycleHandler) CreateTemplate(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "organization:settings:write") {
-		h.deny(w, r)
+	if !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	var req CreateLifecycleChecklistTemplateRequest
@@ -262,8 +253,8 @@ func (h *LifecycleHandler) CreateTemplate(w http.ResponseWriter, r *http.Request
 
 func (h *LifecycleHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathUUID(r, "id")
-	if !ok || !h.allowed(r, "organization:settings:read") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "organization:settings:read") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -279,8 +270,8 @@ func (h *LifecycleHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *LifecycleHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "organization:settings:read") {
-		h.deny(w, r)
+	if !hasPermission(r, h.Authorizer, "organization:settings:read") {
+		writeForbidden(w, r)
 		return
 	}
 	var ct *string
@@ -301,8 +292,8 @@ func (h *LifecycleHandler) ListTemplates(w http.ResponseWriter, r *http.Request)
 
 func (h *LifecycleHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathUUID(r, "id")
-	if !ok || !h.allowed(r, "organization:settings:write") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	var req UpdateLifecycleChecklistTemplateRequest
@@ -324,8 +315,8 @@ func (h *LifecycleHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 
 func (h *LifecycleHandler) DeleteTemplate(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathUUID(r, "id")
-	if !ok || !h.allowed(r, "organization:settings:write") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -341,8 +332,8 @@ func (h *LifecycleHandler) DeleteTemplate(w http.ResponseWriter, r *http.Request
 
 func (h *LifecycleHandler) CreateTemplateItem(w http.ResponseWriter, r *http.Request) {
 	tmplID, ok := pathUUID(r, "id")
-	if !ok || !h.allowed(r, "organization:settings:write") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	var req CreateLifecycleChecklistTemplateItemRequest
@@ -364,8 +355,8 @@ func (h *LifecycleHandler) CreateTemplateItem(w http.ResponseWriter, r *http.Req
 
 func (h *LifecycleHandler) ListTemplateItems(w http.ResponseWriter, r *http.Request) {
 	tmplID, ok := pathUUID(r, "id")
-	if !ok || !h.allowed(r, "organization:settings:read") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "organization:settings:read") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -382,8 +373,8 @@ func (h *LifecycleHandler) ListTemplateItems(w http.ResponseWriter, r *http.Requ
 
 func (h *LifecycleHandler) GetTemplateItem(w http.ResponseWriter, r *http.Request) {
 	iid, ok := pathUUID(r, "iid")
-	if !ok || !h.allowed(r, "organization:settings:read") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "organization:settings:read") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -400,8 +391,8 @@ func (h *LifecycleHandler) GetTemplateItem(w http.ResponseWriter, r *http.Reques
 
 func (h *LifecycleHandler) UpdateTemplateItem(w http.ResponseWriter, r *http.Request) {
 	iid, ok := pathUUID(r, "iid")
-	if !ok || !h.allowed(r, "organization:settings:write") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	var req UpdateLifecycleChecklistTemplateItemRequest
@@ -423,8 +414,8 @@ func (h *LifecycleHandler) UpdateTemplateItem(w http.ResponseWriter, r *http.Req
 
 func (h *LifecycleHandler) DeleteTemplateItem(w http.ResponseWriter, r *http.Request) {
 	iid, ok := pathUUID(r, "iid")
-	if !ok || !h.allowed(r, "organization:settings:write") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -440,8 +431,8 @@ func (h *LifecycleHandler) DeleteTemplateItem(w http.ResponseWriter, r *http.Req
 
 func (h *LifecycleHandler) CreateChecklist(w http.ResponseWriter, r *http.Request) {
 	employmentID, ok := pathUUID(r, "emp_id")
-	if !ok || !h.allowed(r, "employees:update") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "employees:update") {
+		writeForbidden(w, r)
 		return
 	}
 	var req CreateChecklistRequest
@@ -475,8 +466,8 @@ func (h *LifecycleHandler) CreateChecklist(w http.ResponseWriter, r *http.Reques
 
 func (h *LifecycleHandler) ListEmploymentChecklists(w http.ResponseWriter, r *http.Request) {
 	employmentID, ok := pathUUID(r, "emp_id")
-	if !ok || !h.allowed(r, "employees:read") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "employees:read") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -492,8 +483,8 @@ func (h *LifecycleHandler) ListEmploymentChecklists(w http.ResponseWriter, r *ht
 }
 
 func (h *LifecycleHandler) ListChecklists(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "employees:read") {
-		h.deny(w, r)
+	if !hasPermission(r, h.Authorizer, "employees:read") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -510,8 +501,8 @@ func (h *LifecycleHandler) ListChecklists(w http.ResponseWriter, r *http.Request
 
 func (h *LifecycleHandler) GetChecklist(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathUUID(r, "id")
-	if !ok || !h.allowed(r, "employees:read") {
-		h.deny(w, r)
+	if !ok || !hasPermission(r, h.Authorizer, "employees:read") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -529,12 +520,12 @@ func (h *LifecycleHandler) GetChecklist(w http.ResponseWriter, r *http.Request) 
 func (h *LifecycleHandler) UpdateItemStatus(w http.ResponseWriter, r *http.Request) {
 	iid, ok := pathUUID(r, "iid")
 	if !ok {
-		h.deny(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	uid, hasUID := httpinfra.UserIDFromContext(r.Context())
 	if !hasUID {
-		h.deny(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	var req UpdateChecklistItemStatusRequest
@@ -552,8 +543,8 @@ func (h *LifecycleHandler) UpdateItemStatus(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	isAssignee := assigneeID != nil && *assigneeID == uid
-	if !isAssignee && !h.allowed(r, "employees:update") {
-		h.deny(w, r)
+	if !isAssignee && !hasPermission(r, h.Authorizer, "employees:update") {
+		writeForbidden(w, r)
 		return
 	}
 	res, err := h.Repository.UpdateChecklistItemStatus(r.Context(), iid, req.Status, req.Notes, &uid)
@@ -567,7 +558,7 @@ func (h *LifecycleHandler) UpdateItemStatus(w http.ResponseWriter, r *http.Reque
 func (h *LifecycleHandler) GetMyTasks(w http.ResponseWriter, r *http.Request) {
 	uid, hasUID := httpinfra.UserIDFromContext(r.Context())
 	if !hasUID {
-		h.deny(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {

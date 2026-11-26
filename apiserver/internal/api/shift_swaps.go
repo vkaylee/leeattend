@@ -97,8 +97,8 @@ type ShiftSwapHandler struct {
 
 func (h *ShiftSwapHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK || !h.allowed(r, "shift_swaps:manage") {
-		h.forbidden(w, r)
+	if !userOK || !hasPermission(r, h.Authorizer, "shift_swaps:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateShiftSwapRequest](r, 1<<20)
@@ -115,8 +115,8 @@ func (h *ShiftSwapHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ShiftSwapHandler) List(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "shift_swaps:manage") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "shift_swaps:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	var status *ShiftSwapStatus
@@ -139,8 +139,8 @@ func (h *ShiftSwapHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *ShiftSwapHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	requestID, requestOK := pathUUID(r, "id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !requestOK || !userOK || !h.allowed(r, "shift_swaps:approve") {
-		h.forbidden(w, r)
+	if !requestOK || !userOK || !hasPermission(r, h.Authorizer, "shift_swaps:approve") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[ApproveShiftSwapRequest](r, 1<<20)
@@ -156,8 +156,8 @@ func (h *ShiftSwapHandler) Approve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ShiftSwapHandler) Stats(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "shift_swaps:manage") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "shift_swaps:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	stats, err := h.Repository.Stats(r.Context())
@@ -166,15 +166,6 @@ func (h *ShiftSwapHandler) Stats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, stats)
-}
-
-func (h *ShiftSwapHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
-}
-
-func (h *ShiftSwapHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
 func (h *ShiftSwapHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {

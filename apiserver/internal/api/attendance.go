@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -240,8 +239,8 @@ type AttendanceHandler struct {
 
 // PunchIn handles POST /api/v1/time/punch-in.
 func (h *AttendanceHandler) PunchIn(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "ess:clock") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "ess:clock") {
+		writeForbidden(w, r)
 		return
 	}
 	request, err := DecodeJSON[PunchInRequest](r, 1<<20)
@@ -265,8 +264,8 @@ func (h *AttendanceHandler) PunchIn(w http.ResponseWriter, r *http.Request) {
 // Requires attendance:force_clock_out; closes the active time entry for the target employee.
 func (h *AttendanceHandler) PunchOut(w http.ResponseWriter, r *http.Request) {
 	employeeID, empOK := pathUUID(r, "employee_id")
-	if !empOK || !h.allowed(r, "attendance:force_clock_out") {
-		h.forbidden(w, r)
+	if !empOK || !hasPermission(r, h.Authorizer, "attendance:force_clock_out") {
+		writeForbidden(w, r)
 		return
 	}
 	request, err := DecodeJSON[PunchOutRequest](r, 1<<20)
@@ -287,7 +286,7 @@ func (h *AttendanceHandler) PunchOut(w http.ResponseWriter, r *http.Request) {
 func (h *AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) {
 	employeeID, empOK := pathUUID(r, "employee_id")
 	if !empOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	query, queryOK := parseTimeHistoryQuery(r)
@@ -295,10 +294,10 @@ func (h *AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if !h.allowed(r, "attendance:logs:read") {
+	if !hasPermission(r, h.Authorizer, "attendance:logs:read") {
 		userID, userOK := httpinfra.UserIDFromContext(r.Context())
 		if !userOK {
-			h.forbidden(w, r)
+			writeForbidden(w, r)
 			return
 		}
 		owned, ownerErr := h.Repository.IsEmployeeOwnedByUser(r.Context(), employeeID, userID)
@@ -307,7 +306,7 @@ func (h *AttendanceHandler) TimeHistory(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		if !owned {
-			h.forbidden(w, r)
+			writeForbidden(w, r)
 			return
 		}
 	}
@@ -339,8 +338,8 @@ func parseTimeHistoryQuery(r *http.Request) (TimeHistoryQuery, bool) {
 // CreateAdjustment handles POST /api/v1/attendance/adjustments.
 // Requires attendance:adjustments:submit; creates a pending adjustment awaiting approval.
 func (h *AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "attendance:adjustments:submit") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "attendance:adjustments:submit") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[AdjustmentRequest](r, 1<<20)
@@ -354,7 +353,7 @@ func (h *AttendanceHandler) CreateAdjustment(w http.ResponseWriter, r *http.Requ
 	}
 	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	record, err := h.Repository.CreateAdjustment(r.Context(), req, userID)
@@ -393,8 +392,8 @@ func validateAdjustmentRequest(req AdjustmentRequest) error {
 
 // ListAdjustments handles GET /api/v1/attendance/adjustments.
 func (h *AttendanceHandler) ListAdjustments(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "attendance:adjustments:approve") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "attendance:adjustments:approve") {
+		writeForbidden(w, r)
 		return
 	}
 	pagination, err := ParsePagination(r.URL.Query())
@@ -432,13 +431,13 @@ func (h *AttendanceHandler) ListEmployeeAdjustments(w http.ResponseWriter, r *ht
 	employeeID, ok := pathUUID(r, "id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !ok || !userOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
-	if !h.allowed(r, "attendance:adjustments:approve") {
+	if !hasPermission(r, h.Authorizer, "attendance:adjustments:approve") {
 		owned, err := h.Repository.IsEmployeeOwnedByUser(r.Context(), employeeID, userID)
 		if err != nil || !owned {
-			h.forbidden(w, r)
+			writeForbidden(w, r)
 			return
 		}
 	}
@@ -453,8 +452,8 @@ func (h *AttendanceHandler) ListEmployeeAdjustments(w http.ResponseWriter, r *ht
 // ApproveAdjustment handles PUT /api/v1/attendance/adjustments/{id}/approve.
 func (h *AttendanceHandler) ApproveAdjustment(w http.ResponseWriter, r *http.Request) {
 	adjustmentID, adjustmentOK := pathUUID(r, "id")
-	if !adjustmentOK || !h.allowed(r, "attendance:adjustments:approve") {
-		h.forbidden(w, r)
+	if !adjustmentOK || !hasPermission(r, h.Authorizer, "attendance:adjustments:approve") {
+		writeForbidden(w, r)
 		return
 	}
 	request, err := DecodeJSON[ApproveAdjustmentRequest](r, 1<<20)
@@ -464,7 +463,7 @@ func (h *AttendanceHandler) ApproveAdjustment(w http.ResponseWriter, r *http.Req
 	}
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.Repository.ApproveAdjustment(r.Context(), adjustmentID, userID, request.Status); err != nil {
@@ -478,7 +477,7 @@ func (h *AttendanceHandler) ApproveAdjustment(w http.ResponseWriter, r *http.Req
 func (h *AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 
@@ -489,7 +488,7 @@ func (h *AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hasReadPerm := h.allowed(r, "attendance:summaries:read")
+	hasReadPerm := hasPermission(r, h.Authorizer, "attendance:summaries:read")
 	var targetEmployeeID *uuid.UUID
 
 	if empParam := r.URL.Query().Get("employee_id"); empParam != "" {
@@ -504,11 +503,11 @@ func (h *AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
 	if !hasReadPerm {
 		myID, err := h.Repository.GetEmployeeIDByUserID(r.Context(), userID)
 		if err != nil || myID == uuid.Nil {
-			h.forbidden(w, r)
+			writeForbidden(w, r)
 			return
 		}
 		if targetEmployeeID != nil && *targetEmployeeID != myID {
-			h.forbidden(w, r)
+			writeForbidden(w, r)
 			return
 		}
 		targetEmployeeID = &myID
@@ -535,8 +534,8 @@ func (h *AttendanceHandler) Summaries(w http.ResponseWriter, r *http.Request) {
 
 // ReprocessAll handles POST /api/v1/attendance/reprocess-all.
 func (h *AttendanceHandler) ReprocessAll(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "attendance:reprocess") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "attendance:reprocess") {
+		writeForbidden(w, r)
 		return
 	}
 	startDateStr := r.URL.Query().Get("start_date")
@@ -572,8 +571,8 @@ func (h *AttendanceHandler) ReprocessAll(w http.ResponseWriter, r *http.Request)
 // ReprocessEmployee handles POST /api/v1/attendance/reprocess/{employee_id}.
 func (h *AttendanceHandler) ReprocessEmployee(w http.ResponseWriter, r *http.Request) {
 	employeeID, empOK := pathUUID(r, "employee_id")
-	if !empOK || !h.allowed(r, "attendance:reprocess") {
-		h.forbidden(w, r)
+	if !empOK || !hasPermission(r, h.Authorizer, "attendance:reprocess") {
+		writeForbidden(w, r)
 		return
 	}
 	startDateStr := r.URL.Query().Get("start_date")
@@ -609,8 +608,8 @@ func (h *AttendanceHandler) ReprocessEmployee(w http.ResponseWriter, r *http.Req
 // UpdateTimeEntry handles PUT /api/v1/time/entries/{id}.
 func (h *AttendanceHandler) UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
 	entryID, entryOK := pathUUID(r, "id")
-	if !entryOK || !h.allowed(r, "attendance:logs:import") {
-		h.forbidden(w, r)
+	if !entryOK || !hasPermission(r, h.Authorizer, "attendance:logs:import") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[UpdateTimeEntryRequest](r, 1<<20)
@@ -620,7 +619,7 @@ func (h *AttendanceHandler) UpdateTimeEntry(w http.ResponseWriter, r *http.Reque
 	}
 	entry, err := h.Repository.UpdateTimeEntry(r.Context(), entryID, req)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, ErrNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 			return
 		}
@@ -633,13 +632,13 @@ func (h *AttendanceHandler) UpdateTimeEntry(w http.ResponseWriter, r *http.Reque
 // DeleteTimeEntry handles DELETE /api/v1/time/entries/{id}.
 func (h *AttendanceHandler) DeleteTimeEntry(w http.ResponseWriter, r *http.Request) {
 	entryID, entryOK := pathUUID(r, "id")
-	if !entryOK || !h.allowed(r, "attendance:logs:import") {
-		h.forbidden(w, r)
+	if !entryOK || !hasPermission(r, h.Authorizer, "attendance:logs:import") {
+		writeForbidden(w, r)
 		return
 	}
 	err := h.Repository.DeleteTimeEntry(r.Context(), entryID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, ErrNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 			return
 		}
@@ -649,39 +648,19 @@ func (h *AttendanceHandler) DeleteTimeEntry(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *AttendanceHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
-}
-
-func (h *AttendanceHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
-
 func (h *AttendanceHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, ErrInvalidAttendanceAdjustment) {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if errors.Is(err, ErrEmploymentInactive) {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-		return
-	}
-	if errors.Is(err, ErrNoActiveEmployment) {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if errors.Is(err, ErrAttendancePolicyMissing) {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if errors.Is(err, ErrAttendanceLockedPeriod) {
-		apperror.WriteError(w, r, apperror.Conflict("error.locked_period"))
-		return
-	}
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrWorkSegmentNotFound) {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-		return
-	}
-	apperror.WriteError(w, r, apperror.Internal(err))
+	writeMappedError(w, r, err, func(err error) *apperror.AppError {
+		switch {
+		case errors.Is(err, ErrInvalidAttendanceAdjustment), errors.Is(err, ErrNoActiveEmployment), errors.Is(err, ErrAttendancePolicyMissing):
+			return apperror.Validation(apperror.KeyValidation)
+		case errors.Is(err, ErrEmploymentInactive):
+			return apperror.Forbidden(apperror.KeyForbidden)
+		case errors.Is(err, ErrAttendanceLockedPeriod):
+			return apperror.Conflict("error.locked_period")
+		case errors.Is(err, ErrNotFound), errors.Is(err, ErrWorkSegmentNotFound):
+			return apperror.NotFound(apperror.KeyNotFound)
+		default:
+			return nil
+		}
+	})
 }

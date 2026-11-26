@@ -87,10 +87,6 @@ type EmployeeIdentityMatcher interface {
 	MatchEmployees(context.Context, EmployeeMatchQuery) ([]EmployeeMatchCandidate, error)
 }
 
-type EmployeeIdentityMatchAudit interface {
-	Emit(context.Context, audit.Event) error
-}
-
 // Match handles POST /api/v1/employees/match (read-only redacted candidate lookup).
 func (h *EmployeeHandler) Match(w http.ResponseWriter, r *http.Request) {
 	startedAt := time.Now()
@@ -152,7 +148,7 @@ func (h *EmployeeHandler) authorizeMatch(w http.ResponseWriter, r *http.Request)
 		return uuid.Nil, false
 	}
 	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionEmployeesIdentityMatch)) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return uuid.Nil, false
 	}
 	return userID, true

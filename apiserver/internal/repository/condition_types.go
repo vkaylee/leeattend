@@ -15,15 +15,8 @@ type ConditionTypeRepository struct {
 	DB DBTX
 }
 
-func (r ConditionTypeRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("condition type repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r ConditionTypeRepository) List(ctx context.Context, activeOnly bool) ([]api.ConditionTypeRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "condition type repository")
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +52,7 @@ func (r ConditionTypeRepository) List(ctx context.Context, activeOnly bool) ([]a
 }
 
 func (r ConditionTypeRepository) Get(ctx context.Context, id uuid.UUID) (api.ConditionTypeRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "condition type repository")
 	if err != nil {
 		return api.ConditionTypeRecord{}, err
 	}
@@ -87,7 +80,7 @@ func (r ConditionTypeRepository) Get(ctx context.Context, id uuid.UUID) (api.Con
 	return rec, nil
 }
 func (r ConditionTypeRepository) Create(ctx context.Context, record api.ConditionTypeRecord) (api.ConditionTypeRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "condition type repository")
 	if err != nil {
 		return api.ConditionTypeRecord{}, err
 	}
@@ -112,7 +105,7 @@ func (r ConditionTypeRepository) Create(ctx context.Context, record api.Conditio
 }
 
 func (r ConditionTypeRepository) Update(ctx context.Context, id uuid.UUID, req api.UpdateConditionTypeRequest) (api.ConditionTypeRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "condition type repository")
 	if err != nil {
 		return api.ConditionTypeRecord{}, err
 	}
@@ -162,7 +155,7 @@ func (r ConditionTypeRepository) Update(ctx context.Context, id uuid.UUID, req a
 }
 
 func (r ConditionTypeRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "condition type repository")
 	if err != nil {
 		return err
 	}

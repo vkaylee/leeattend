@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -120,11 +119,6 @@ type ESSHandler struct {
 	Payroll    PayrollRepository
 	Leaves     LeaveRepository
 	ShiftSwaps ShiftSwapRepository
-}
-
-func (h *ESSHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
 }
 
 func (h *ESSHandler) resolveContext(r *http.Request) (uuid.UUID, uuid.UUID, error) {
@@ -339,7 +333,7 @@ func (h *ESSHandler) GetAttendance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ESSHandler) AttendanceAction(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "ess:clock") {
+	if !hasPermission(r, h.Authorizer, "ess:clock") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -371,7 +365,7 @@ func (h *ESSHandler) AttendanceAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ESSHandler) AttendanceState(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "ess:clock") {
+	if !hasPermission(r, h.Authorizer, "ess:clock") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -561,7 +555,7 @@ func (h *ESSHandler) CancelShiftSwap(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ESSHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrESSNotFound) || errors.Is(err, ErrShiftSwapNotFound) {
+	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrESSNotFound) || errors.Is(err, ErrShiftSwapNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}

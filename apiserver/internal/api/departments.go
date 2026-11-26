@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -146,13 +145,14 @@ func (h *DepartmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DepartmentHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, ErrDepartmentNotFound) || errors.Is(err, pgx.ErrNoRows) {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
-		return
-	}
-	if errors.Is(err, ErrDepartmentConflict) {
-		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
-		return
-	}
-	apperror.WriteError(w, r, apperror.Internal(err))
+	writeMappedError(w, r, err, func(err error) *apperror.AppError {
+		switch {
+		case errors.Is(err, ErrDepartmentNotFound), errors.Is(err, ErrNotFound):
+			return apperror.NotFound(apperror.KeyNotFound)
+		case errors.Is(err, ErrDepartmentConflict):
+			return apperror.Conflict(apperror.KeyConflict)
+		default:
+			return nil
+		}
+	})
 }

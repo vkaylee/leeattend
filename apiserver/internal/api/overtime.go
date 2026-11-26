@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/workpolicy"
@@ -203,22 +202,13 @@ func (h *OvertimeHandler) userID(r *http.Request) (uuid.UUID, bool) {
 	return httpinfra.UserIDFromContext(r.Context())
 }
 
-func (h *OvertimeHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := h.userID(r)
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
-}
-
 func (h *OvertimeHandler) scopedAllowed(r *http.Request, permission string, departmentID *uuid.UUID) bool {
 	userID, ok := h.userID(r)
 	return ok && h.Authorizer != nil && h.Authorizer.HasScopedPermission(r.Context(), userID, permission, departmentID)
 }
 
-func (h *OvertimeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
-
 func (h *OvertimeHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, ErrNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
@@ -258,7 +248,7 @@ func validOvertimeClock(raw *string) bool {
 func (h *OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 
 	if _, userOK := h.userID(r); !userOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	pagination, err := ParsePagination(r.URL.Query())
@@ -276,8 +266,8 @@ func (h *OvertimeHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 
 func (h *OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := h.userID(r)
-	if !userOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
-		h.forbidden(w, r)
+	if !userOK || !hasPermission(r, h.Authorizer, PermissionOvertimePoliciesManage) {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateOvertimePolicyRequest](r, 1<<20)
@@ -305,7 +295,7 @@ func (h *OvertimeHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 
 func (h *OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 	if _, userOK := h.userID(r); !userOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	policyID, policyOK := pathUUID(r, "policy_id")
@@ -323,7 +313,7 @@ func (h *OvertimeHandler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 
 func (h *OvertimeHandler) ListPolicyVersions(w http.ResponseWriter, r *http.Request) {
 	if _, userOK := h.userID(r); !userOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	policyID, policyOK := pathUUID(r, "policy_id")
@@ -341,8 +331,8 @@ func (h *OvertimeHandler) ListPolicyVersions(w http.ResponseWriter, r *http.Requ
 
 func (h *OvertimeHandler) CreatePolicyVersion(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := h.userID(r)
-	if !userOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
-		h.forbidden(w, r)
+	if !userOK || !hasPermission(r, h.Authorizer, PermissionOvertimePoliciesManage) {
+		writeForbidden(w, r)
 		return
 	}
 	policyID, policyOK := pathUUID(r, "policy_id")
@@ -374,8 +364,8 @@ func (h *OvertimeHandler) CreatePolicyVersion(w http.ResponseWriter, r *http.Req
 }
 
 func (h *OvertimeHandler) PatchPolicyVersion(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, PermissionOvertimePoliciesManage) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, PermissionOvertimePoliciesManage) {
+		writeForbidden(w, r)
 		return
 	}
 	policyID, policyOK := pathUUID(r, "policy_id")
@@ -409,8 +399,8 @@ func (h *OvertimeHandler) PatchPolicyVersion(w http.ResponseWriter, r *http.Requ
 
 func (h *OvertimeHandler) PublishPolicyVersion(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := h.userID(r)
-	if !userOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
-		h.forbidden(w, r)
+	if !userOK || !hasPermission(r, h.Authorizer, PermissionOvertimePoliciesManage) {
+		writeForbidden(w, r)
 		return
 	}
 	policyID, policyOK := pathUUID(r, "policy_id")
@@ -434,8 +424,8 @@ func (h *OvertimeHandler) PublishPolicyVersion(w http.ResponseWriter, r *http.Re
 
 func (h *OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 
-	if !h.allowed(r, PermissionOvertimeRequestRead) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, PermissionOvertimeRequestRead) {
+		writeForbidden(w, r)
 		return
 	}
 	pagination, err := ParsePagination(r.URL.Query())
@@ -454,8 +444,8 @@ func (h *OvertimeHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 func (h *OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
 
 	userID, userOK := h.userID(r)
-	if !userOK || !h.allowed(r, PermissionOvertimeRequestCreate) {
-		h.forbidden(w, r)
+	if !userOK || !hasPermission(r, h.Authorizer, PermissionOvertimeRequestCreate) {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateOvertimeRequest](r, 1<<20)
@@ -463,7 +453,7 @@ func (h *OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	behalfAllowed := h.allowed(r, PermissionOvertimeRequestCreateBehalf)
+	behalfAllowed := hasPermission(r, h.Authorizer, PermissionOvertimeRequestCreateBehalf)
 	for _, employeeID := range req.Employees {
 		employee, err := h.Repository.GetEmployee(r.Context(), employeeID)
 		if err != nil {
@@ -472,7 +462,7 @@ func (h *OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) 
 		}
 		if employee.UserID == nil || *employee.UserID != userID {
 			if !behalfAllowed {
-				h.forbidden(w, r)
+				writeForbidden(w, r)
 				return
 			}
 		}
@@ -488,8 +478,8 @@ func (h *OvertimeHandler) CreateRequest(w http.ResponseWriter, r *http.Request) 
 func (h *OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
 
 	requestID, requestOK := pathUUID(r, "id")
-	if !requestOK || !h.allowed(r, PermissionOvertimeRequestRead) {
-		h.forbidden(w, r)
+	if !requestOK || !hasPermission(r, h.Authorizer, PermissionOvertimeRequestRead) {
+		writeForbidden(w, r)
 		return
 	}
 	result, err := h.Repository.GetOvertimeRequest(r.Context(), requestID)
@@ -503,8 +493,8 @@ func (h *OvertimeHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
 func (h *OvertimeHandler) SubmitRequest(w http.ResponseWriter, r *http.Request) {
 
 	requestID, requestOK := pathUUID(r, "id")
-	if !requestOK || !h.allowed(r, PermissionOvertimeRequestCreate) {
-		h.forbidden(w, r)
+	if !requestOK || !hasPermission(r, h.Authorizer, PermissionOvertimeRequestCreate) {
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.Repository.SubmitOvertimeRequest(r.Context(), requestID); err != nil {
@@ -520,7 +510,7 @@ func (h *OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request)
 	employeeID, employeeOK := pathUUID(r, "emp_id")
 	userID, userOK := h.userID(r)
 	if !requestOK || !employeeOK || !userOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	employee, err := h.Repository.GetEmployee(r.Context(), employeeID)
@@ -529,8 +519,8 @@ func (h *OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if employee.UserID == nil || *employee.UserID != userID {
-		if !h.allowed(r, PermissionOvertimeRequestCreateBehalf) {
-			h.forbidden(w, r)
+		if !hasPermission(r, h.Authorizer, PermissionOvertimeRequestCreateBehalf) {
+			writeForbidden(w, r)
 			return
 		}
 	}
@@ -549,7 +539,7 @@ func (h *OvertimeHandler) ConsentRequest(w http.ResponseWriter, r *http.Request)
 func (h *OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Request) {
 
 	if _, userOK := h.userID(r); !userOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	pagination, err := ParsePagination(r.URL.Query())
@@ -576,8 +566,8 @@ func (h *OvertimeHandler) ListRequestBehalf(w http.ResponseWriter, r *http.Reque
 
 func (h *OvertimeHandler) CreateRequestBehalf(w http.ResponseWriter, r *http.Request) {
 
-	if !h.allowed(r, PermissionOvertimePoliciesManage) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, PermissionOvertimePoliciesManage) {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateBehalfAssignmentRequest](r, 1<<20)
@@ -611,8 +601,8 @@ func (h *OvertimeHandler) RequestBehalfTargets(w http.ResponseWriter, r *http.Re
 func (h *OvertimeHandler) DeleteRequestBehalf(w http.ResponseWriter, r *http.Request) {
 
 	assignmentID, assignmentOK := pathUUID(r, "id")
-	if !assignmentOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
-		h.forbidden(w, r)
+	if !assignmentOK || !hasPermission(r, h.Authorizer, PermissionOvertimePoliciesManage) {
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), assignmentID, OvertimeRequestBehalfAssignmentType); err != nil {
@@ -627,7 +617,7 @@ func (h *OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
 	employeeID, employeeOK := pathUUID(r, "employee_id")
 	userID, userOK := h.userID(r)
 	if !employeeOK || !userOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	employee, err := h.Repository.GetEmployee(r.Context(), employeeID)
@@ -636,8 +626,8 @@ func (h *OvertimeHandler) ClaimOT(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	self := employee.UserID != nil && *employee.UserID == userID
-	if !self && !h.allowed(r, PermissionOvertimeClaimOnBehalf) && !h.allowed(r, PermissionOvertimeApprove) {
-		h.forbidden(w, r)
+	if !self && !hasPermission(r, h.Authorizer, PermissionOvertimeClaimOnBehalf) && !hasPermission(r, h.Authorizer, PermissionOvertimeApprove) {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[ClaimOTRequest](r, 1<<20)
@@ -657,7 +647,7 @@ func (h *OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
 	employeeID, employeeOK := pathUUID(r, "employee_id")
 	userID, userOK := h.userID(r)
 	if !employeeOK || !userOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[ApproveOTRequest](r, 1<<20)
@@ -671,7 +661,7 @@ func (h *OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.scopedAllowed(r, PermissionOvertimeApprove, departmentID) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.Repository.ApproveOvertime(r.Context(), employeeID, req, userID); err != nil {
@@ -684,7 +674,7 @@ func (h *OvertimeHandler) ApproveOT(w http.ResponseWriter, r *http.Request) {
 func (h *OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request) {
 
 	if _, userOK := h.userID(r); !userOK {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	items, err := h.BehalfRepository.ListBehalfAssignments(r.Context(), OvertimeClaimBehalfAssignmentType)
@@ -697,8 +687,8 @@ func (h *OvertimeHandler) ListClaimBehalf(w http.ResponseWriter, r *http.Request
 
 func (h *OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Request) {
 
-	if !h.allowed(r, PermissionOvertimePoliciesManage) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, PermissionOvertimePoliciesManage) {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateBehalfAssignmentRequest](r, 1<<20)
@@ -717,8 +707,8 @@ func (h *OvertimeHandler) CreateClaimBehalf(w http.ResponseWriter, r *http.Reque
 func (h *OvertimeHandler) DeleteClaimBehalf(w http.ResponseWriter, r *http.Request) {
 
 	assignmentID, assignmentOK := pathUUID(r, "id")
-	if !assignmentOK || !h.allowed(r, PermissionOvertimePoliciesManage) {
-		h.forbidden(w, r)
+	if !assignmentOK || !hasPermission(r, h.Authorizer, PermissionOvertimePoliciesManage) {
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), assignmentID, OvertimeRequestBehalfAssignmentType); err != nil {

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -56,7 +55,7 @@ func (m *mockEmployeeRepoForAssignments) ListEmployees(context.Context, int, int
 func (m *mockEmployeeRepoForAssignments) GetEmployee(_ context.Context, id uuid.UUID) (EmployeeRecord, error) {
 	e, ok := m.employees[id]
 	if !ok {
-		return EmployeeRecord{}, pgx.ErrNoRows
+		return EmployeeRecord{}, ErrNotFound
 	}
 	return e, nil
 }

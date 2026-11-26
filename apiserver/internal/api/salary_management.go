@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -60,13 +59,9 @@ type SalaryManagementResponse struct {
 	AsOf  string                `json:"as_of"`
 }
 
-type PayrollAudit interface {
-	Emit(context.Context, audit.Event) error
-}
-
 func (h *PayrollHandler) ListSalaryManagement(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "payroll:read") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "payroll:read") {
+		writeForbidden(w, r)
 		return
 	}
 

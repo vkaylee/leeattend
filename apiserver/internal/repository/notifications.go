@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,15 +13,8 @@ type NotificationRepository struct {
 	SystemDB DBTX
 }
 
-func (r NotificationRepository) db() (DBTX, error) {
-	if r.SystemDB == nil {
-		return nil, errors.New("notification repository: system database is not configured")
-	}
-	return r.SystemDB, nil
-}
-
 func (r NotificationRepository) List(ctx context.Context, userID uuid.UUID, limit int, cursor *time.Time) (api.NotificationResponse, error) {
-	db, err := r.db()
+	db, err := requireDB(r.SystemDB, "notification repository")
 	if err != nil {
 		return api.NotificationResponse{}, err
 	}
@@ -57,7 +49,7 @@ func (r NotificationRepository) List(ctx context.Context, userID uuid.UUID, limi
 	return api.NotificationResponse{Notifications: items, NextCursor: next, UnreadCount: unread}, nil
 }
 func (r NotificationRepository) MarkRead(ctx context.Context, userID, notificationID uuid.UUID) error {
-	db, err := r.db()
+	db, err := requireDB(r.SystemDB, "notification repository")
 	if err != nil {
 		return err
 	}
@@ -71,7 +63,7 @@ func (r NotificationRepository) MarkRead(ctx context.Context, userID, notificati
 	return nil
 }
 func (r NotificationRepository) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
-	db, err := r.db()
+	db, err := requireDB(r.SystemDB, "notification repository")
 	if err != nil {
 		return err
 	}

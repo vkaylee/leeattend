@@ -138,7 +138,7 @@ type ReportHandler struct {
 func (h *ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK || !h.allowed(r, userID) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	if r.ContentLength > maxExportRequestBytes {
@@ -227,7 +227,7 @@ func (h *ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request)
 	if !isGlobal {
 		hasBehalf := h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, "overtime:claim_on_behalf")
 		if !hasBehalf {
-			h.forbidden(w, r)
+			writeForbidden(w, r)
 			return
 		}
 	}
@@ -367,7 +367,7 @@ func (h *ReportHandler) NoShowReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "reports:read") {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	dateStr := r.URL.Query().Get("date")
@@ -472,9 +472,6 @@ func validateExportRequest(request *ExportReportRequest) error {
 		return ErrReportValidation
 	}
 	return nil
-}
-func (h *ReportHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 func (h *ReportHandler) validation(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))

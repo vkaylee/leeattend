@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -72,7 +71,7 @@ func (h *EmployeeConditionHandler) ListConditions(w http.ResponseWriter, r *http
 		return
 	}
 	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "employees:read") {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	items, err := h.Repository.ListOrganizationConditions(r.Context())
@@ -123,7 +122,7 @@ func (h *EmployeeConditionHandler) Create(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if !h.allowedScoped(r.Context(), userID, "employees:update", targetDept) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateEmployeeConditionRequest](r, 1<<20)
@@ -161,7 +160,7 @@ func (h *EmployeeConditionHandler) Delete(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if !h.allowedScoped(r.Context(), userID, "employees:update", targetDept) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.Repository.DeleteEmployeeCondition(r.Context(), employeeID, conditionID); err != nil {
@@ -188,15 +187,11 @@ func (h *EmployeeConditionHandler) allowedScoped(ctx context.Context, userID uui
 	return h.Authorizer.HasScopedPermission(ctx, userID, permission, dept)
 }
 
-func (h *EmployeeConditionHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
-
 func (h *EmployeeConditionHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrEmployeeNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))
-	case errors.Is(err, ErrEmployeeConditionNotFound), errors.Is(err, ErrEmploymentNotFound), errors.Is(err, pgx.ErrNoRows):
+	case errors.Is(err, ErrEmployeeConditionNotFound), errors.Is(err, ErrEmploymentNotFound), errors.Is(err, ErrNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	case errors.Is(err, ErrNoActiveEmployment):
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))

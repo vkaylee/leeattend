@@ -376,7 +376,7 @@ func resolvePunchSegment(ctx context.Context, db DBTX, employmentID uuid.UUID, r
 }
 
 func (r AttendanceRepository) GetESSAttendanceState(ctx context.Context, employeeID uuid.UUID) (api.AttendanceActionResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return api.AttendanceActionResponse{}, err
 	}
@@ -605,20 +605,13 @@ func (r AttendanceRepository) ReprocessAttendance(ctx context.Context, startDate
 	return response, nil
 }
 
-func (r AttendanceRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("attendance repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func resolveActiveEmployment(ctx context.Context, db DBTX, employeeID uuid.UUID) (uuid.UUID, error) {
 	var exists bool
 	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&exists); err != nil {
 		return uuid.Nil, err
 	}
 	if !exists {
-		return uuid.Nil, pgx.ErrNoRows
+		return uuid.Nil, errNoRows
 	}
 	var employmentID uuid.UUID
 	var status string
@@ -639,7 +632,7 @@ func scanLatestTimeEntry(ctx context.Context, db DBTX, employmentID uuid.UUID, r
 
 // ListTimeHistory returns entries for an employee's active employment.
 func (r AttendanceRepository) ListTimeHistory(ctx context.Context, employeeID uuid.UUID, start, end time.Time) ([]api.TimeEntryRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return nil, err
 	}
@@ -665,7 +658,7 @@ func (r AttendanceRepository) ListTimeHistory(ctx context.Context, employeeID uu
 
 // IsEmployeeOwnedByUser reports whether the employee's currently effective tenure belongs to the user.
 func (r AttendanceRepository) IsEmployeeOwnedByUser(ctx context.Context, employeeID, userID uuid.UUID) (bool, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return false, err
 	}
@@ -688,7 +681,7 @@ func (r AttendanceRepository) IsEmployeeOwnedByUser(ctx context.Context, employe
 
 // CreateAdjustment inserts a pending manual adjustment matching schema.
 func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.AdjustmentRequest, requestedByUserID ids.UserID) (api.AdjustmentRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return api.AdjustmentRecord{}, err
 	}
@@ -698,7 +691,7 @@ func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.Adju
 		return api.AdjustmentRecord{}, err
 	}
 	if !exists {
-		return api.AdjustmentRecord{}, pgx.ErrNoRows
+		return api.AdjustmentRecord{}, errNoRows
 	}
 	requestedTime := time.Time{}
 	requestedValue := req.RequestedPunchTime
@@ -738,7 +731,7 @@ func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.Adju
 }
 
 func (r AttendanceRepository) ListAdjustments(ctx context.Context, status *string, employeeID *uuid.UUID, page, limit int) (api.PaginatedAdjustments, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return api.PaginatedAdjustments{}, err
 	}
@@ -767,7 +760,7 @@ func (r AttendanceRepository) ListAdjustments(ctx context.Context, status *strin
 }
 
 func (r AttendanceRepository) ListEmployeeAdjustments(ctx context.Context, employeeID uuid.UUID) ([]api.AdjustmentRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return nil, err
 	}
@@ -812,7 +805,7 @@ func (r AttendanceRepository) ApproveAdjustment(ctx context.Context, adjustmentI
 			return err
 		}
 		if result.RowsAffected() != 1 {
-			return pgx.ErrNoRows
+			return errNoRows
 		}
 		if status != "approved" {
 			return nil
@@ -892,7 +885,7 @@ func scanTimeEntry(row pgx.Row, record *api.TimeEntryRecord) error {
 
 // GetAttendanceSummaries queries paginated daily summaries.
 func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, startDate, endDate string, employeeID *uuid.UUID, otStatus *string, page, limit int) (api.PaginatedSummaries, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return api.PaginatedSummaries{}, err
 	}
@@ -996,7 +989,7 @@ WHERE %s ORDER BY s.date DESC LIMIT $%d OFFSET $%d`, whereSQL, idx, idx+1)
 
 // GetEmployeeIDByUserID returns the employee ID for a given user ID via their active tenure.
 func (r AttendanceRepository) GetEmployeeIDByUserID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -1022,7 +1015,7 @@ func (r AttendanceRepository) GetEmployeeIDByUserID(ctx context.Context, userID 
 // UpdateTimeEntry updates time entry fields.
 // UpdateTimeEntry changes an attendance entry and remains guarded because it can alter closed evidence.
 func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.UUID, req api.UpdateTimeEntryRequest) (api.TimeEntryRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return api.TimeEntryRecord{}, err
 	}
@@ -1092,7 +1085,7 @@ func (r AttendanceRepository) UpdateTimeEntry(ctx context.Context, entryID uuid.
 
 // DeleteTimeEntry deletes a time entry.
 func (r AttendanceRepository) DeleteTimeEntry(ctx context.Context, entryID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "attendance repository")
 	if err != nil {
 		return err
 	}
@@ -1109,7 +1102,7 @@ func (r AttendanceRepository) DeleteTimeEntry(ctx context.Context, entryID uuid.
 		return err
 	}
 	if cmd.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return errNoRows
 	}
 	return nil
 }

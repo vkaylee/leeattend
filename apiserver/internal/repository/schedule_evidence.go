@@ -16,7 +16,7 @@ import (
 )
 
 func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, employerID uuid.UUID, startDate, endDate string) (api.ScheduleActivationReadiness, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return api.ScheduleActivationReadiness{}, err
 	}
@@ -154,7 +154,7 @@ func (r ScheduleRepository) RecordScheduleShadowMismatch(ctx context.Context, re
 	if err := validateScheduleShadowMismatchRecord(record); err != nil {
 		return err
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func (r ScheduleRepository) RecordScheduleShadowMismatch(ctx context.Context, re
 }
 
 func (r ScheduleRepository) AuthorizeScheduleEmployer(ctx context.Context, userID, employerID uuid.UUID, startDate, endDate string) (bool, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return false, err
 	}
@@ -208,7 +208,7 @@ func (r ScheduleRepository) AuthorizeScheduleEmployer(ctx context.Context, userI
 }
 
 func (r ScheduleRepository) AuthorizeScheduleShadowMismatch(ctx context.Context, userID, mismatchID uuid.UUID) (bool, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return false, err
 	}
@@ -240,7 +240,7 @@ func (r ScheduleRepository) AuthorizeScheduleShadowMismatch(ctx context.Context,
 }
 
 func (r ScheduleRepository) AuthorizeScheduleHistory(ctx context.Context, userID, employmentID uuid.UUID) (bool, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return false, err
 	}
@@ -263,7 +263,7 @@ func (r ScheduleRepository) AuthorizeScheduleHistory(ctx context.Context, userID
 }
 
 func (r ScheduleRepository) AuthorizeScheduleEmployment(ctx context.Context, userID, employmentID uuid.UUID, businessDate string) (bool, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return false, err
 	}
@@ -305,7 +305,7 @@ func (r ScheduleRepository) AuthorizeScheduleEmployment(ctx context.Context, use
 }
 
 func (r ScheduleRepository) ListScheduleHistory(ctx context.Context, query api.ScheduleHistoryQuery) (api.ScheduleHistoryResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return api.ScheduleHistoryResponse{}, err
 	}
@@ -399,7 +399,7 @@ func (r ScheduleRepository) ResolveScheduleShadowMismatch(ctx context.Context, m
 }
 
 func (r ScheduleRepository) ListScheduleShadowMismatches(ctx context.Context, employerID uuid.UUID, startDate, endDate string) ([]api.ScheduleShadowMismatch, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return nil, err
 	}
@@ -423,7 +423,7 @@ func (r ScheduleRepository) ListScheduleShadowMismatches(ctx context.Context, em
 }
 
 func (r ScheduleRepository) GetScheduleEvidence(ctx context.Context, actorID, employmentID uuid.UUID, businessDate string) (api.ScheduleEvidenceResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return api.ScheduleEvidenceResponse{}, err
 	}

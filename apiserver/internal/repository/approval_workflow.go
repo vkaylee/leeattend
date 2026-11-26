@@ -21,18 +21,11 @@ type ApprovalWorkflowRepository struct {
 	BeginTx  func(context.Context) (TxBeginner, error)
 }
 
-func (r ApprovalWorkflowRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("approval workflow repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r ApprovalWorkflowRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "approval workflow repository")
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +37,7 @@ func (r ApprovalWorkflowRepository) begin(ctx context.Context) (TxBeginner, erro
 }
 
 func (r ApprovalWorkflowRepository) ListWorkflows(ctx context.Context, entityType *string, page, limit int) (api.ApprovalWorkflowListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "approval workflow repository")
 	if err != nil {
 		return api.ApprovalWorkflowListResponse{}, err
 	}
@@ -126,7 +119,7 @@ func (r ApprovalWorkflowRepository) CreateWorkflow(ctx context.Context, creatorI
 }
 
 func (r ApprovalWorkflowRepository) GetWorkflow(ctx context.Context, workflowID uuid.UUID) (api.ApprovalWorkflowRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "approval workflow repository")
 	if err != nil {
 		return api.ApprovalWorkflowRecord{}, err
 	}
@@ -162,7 +155,7 @@ func (r ApprovalWorkflowRepository) GetWorkflow(ctx context.Context, workflowID 
 }
 
 func (r ApprovalWorkflowRepository) UpdateWorkflow(ctx context.Context, workflowID uuid.UUID, req api.UpdateWorkflowRequest) (api.ApprovalWorkflowRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "approval workflow repository")
 	if err != nil {
 		return api.ApprovalWorkflowRecord{}, err
 	}
@@ -193,7 +186,7 @@ func (r ApprovalWorkflowRepository) UpdateWorkflow(ctx context.Context, workflow
 }
 
 func (r ApprovalWorkflowRepository) DeleteWorkflow(ctx context.Context, workflowID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "approval workflow repository")
 	if err != nil {
 		return err
 	}
@@ -255,7 +248,7 @@ func normalizeApprovalAction(action string) string {
 }
 
 func (r ApprovalWorkflowRepository) ListHistory(ctx context.Context, entityType string, entityID uuid.UUID) ([]api.ApprovalActionLogRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "approval workflow repository")
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +272,7 @@ func (r ApprovalWorkflowRepository) ListHistory(ctx context.Context, entityType 
 
 // GetPendingTasksForUser returns pending approval workflow tasks matching the caller.
 func (r ApprovalWorkflowRepository) GetPendingTasksForUser(ctx context.Context, userID ids.UserID, page, limit int) (api.PaginatedTasksResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "approval workflow repository")
 	if err != nil {
 		return api.PaginatedTasksResponse{}, err
 	}

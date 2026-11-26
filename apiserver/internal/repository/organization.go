@@ -20,15 +20,8 @@ type OrganizationRepository struct {
 	DB DBTX
 }
 
-func (r OrganizationRepository) db() (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("organization repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r OrganizationRepository) GetOrganizationID(ctx context.Context) (uuid.UUID, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -42,7 +35,7 @@ func (r OrganizationRepository) GetOrganization(ctx context.Context) (api.Organi
 }
 
 func (r OrganizationRepository) getOrganization(ctx context.Context) (api.OrganizationRecord, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return api.OrganizationRecord{}, err
 	}
@@ -63,7 +56,7 @@ func (r OrganizationRepository) getOrganization(ctx context.Context) (api.Organi
 }
 
 func (r OrganizationRepository) UpdateOrganization(ctx context.Context, patch api.OrganizationPatch) (api.OrganizationRecord, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return api.OrganizationRecord{}, err
 	}
@@ -106,7 +99,7 @@ func (r OrganizationRepository) UpdateOrganization(ctx context.Context, patch ap
 }
 
 func (r OrganizationRepository) CreateRole(ctx context.Context, req api.CreateRoleRequest) error {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return err
 	}
@@ -115,7 +108,7 @@ func (r OrganizationRepository) CreateRole(ctx context.Context, req api.CreateRo
 }
 
 func (r OrganizationRepository) PutConfig(ctx context.Context, req api.ConfigEntryRequest, actorID uuid.UUID) error {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return err
 	}
@@ -173,7 +166,7 @@ func (r OrganizationRepository) PutConfig(ctx context.Context, req api.ConfigEnt
 }
 
 func (r OrganizationRepository) ListConfigs(ctx context.Context, request api.ConfigListRequest) ([]api.OrganizationConfigEntry, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +230,7 @@ FROM config_entries WHERE `+where+` ORDER BY created_at DESC`, args...)
 }
 
 func (r OrganizationRepository) GetConfig(ctx context.Context, key string, request api.ConfigReadRequest) (api.ResolvedConfig, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return api.ResolvedConfig{}, err
 	}
@@ -281,7 +274,7 @@ ORDER BY effective_from DESC, id DESC LIMIT 1`, key, request.ScopeType, scopeID,
 }
 
 func (r OrganizationRepository) DeleteConfig(ctx context.Context, entryID uuid.UUID) error {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return err
 	}
@@ -312,7 +305,7 @@ func scanFeatureFlag(row pgx.Row) (api.FeatureFlagRecord, error) {
 const featureFlagColumns = `id, flag_key, enabled, description, metadata, created_at, updated_at`
 
 func (r OrganizationRepository) ListFeatureFlags(ctx context.Context) ([]api.FeatureFlagRecord, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +334,7 @@ func (r OrganizationRepository) ListFeatureFlags(ctx context.Context) ([]api.Fea
 }
 
 func (r OrganizationRepository) CreateFeatureFlag(ctx context.Context, req api.FeatureFlagRequest) (api.FeatureFlagRecord, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return api.FeatureFlagRecord{}, err
 	}
@@ -353,7 +346,7 @@ func (r OrganizationRepository) CreateFeatureFlag(ctx context.Context, req api.F
 }
 
 func (r OrganizationRepository) UpdateFeatureFlag(ctx context.Context, flagID uuid.UUID, patch api.FeatureFlagPatch) (api.FeatureFlagRecord, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return api.FeatureFlagRecord{}, err
 	}
@@ -377,7 +370,7 @@ func (r OrganizationRepository) UpdateFeatureFlag(ctx context.Context, flagID uu
 }
 
 func (r OrganizationRepository) GetFeatureFlag(ctx context.Context, key string) (api.FeatureFlagRecord, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return api.FeatureFlagRecord{}, err
 	}
@@ -385,7 +378,7 @@ func (r OrganizationRepository) GetFeatureFlag(ctx context.Context, key string) 
 }
 
 func (r OrganizationRepository) GetFeatureFlagByID(ctx context.Context, flagID uuid.UUID) (api.FeatureFlagRecord, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return api.FeatureFlagRecord{}, err
 	}
@@ -393,7 +386,7 @@ func (r OrganizationRepository) GetFeatureFlagByID(ctx context.Context, flagID u
 }
 
 func (r OrganizationRepository) DeleteFeatureFlag(ctx context.Context, flagID uuid.UUID) (bool, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return false, err
 	}
@@ -402,7 +395,7 @@ func (r OrganizationRepository) DeleteFeatureFlag(ctx context.Context, flagID uu
 }
 
 func (r OrganizationRepository) UpsertFeatureFlag(ctx context.Context, req api.FeatureFlagRequest) (api.FeatureFlagRecord, error) {
-	db, err := r.db()
+	db, err := requireDB(r.DB, "organization repository")
 	if err != nil {
 		return api.FeatureFlagRecord{}, err
 	}

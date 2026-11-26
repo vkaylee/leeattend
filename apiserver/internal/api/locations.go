@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
@@ -70,7 +69,7 @@ type LocationHandler struct {
 
 func (h *LocationHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	p, err := ParsePagination(r.URL.Query())
@@ -88,7 +87,7 @@ func (h *LocationHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *LocationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateLocationRequest](r, 1<<20)
@@ -112,7 +111,7 @@ func (h *LocationHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *LocationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	loc, err := h.Repository.GetLocation(r.Context(), id)
@@ -126,7 +125,7 @@ func (h *LocationHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *LocationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[UpdateLocationRequest](r, 1<<20)
@@ -153,7 +152,7 @@ func (h *LocationHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *LocationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
 	if !idOK || !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.Repository.DeleteLocation(r.Context(), id); err != nil {
@@ -172,12 +171,8 @@ func (h *LocationHandler) isMember(r *http.Request) bool {
 	return err == nil && isMem
 }
 
-func (h *LocationHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
-
 func (h *LocationHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrLocationNotFound) {
+	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrLocationNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}

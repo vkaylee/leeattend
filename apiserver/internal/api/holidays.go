@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
@@ -398,7 +397,7 @@ func (h *HolidayHandler) checkManagePermission(w http.ResponseWriter, r *http.Re
 }
 
 func (h *HolidayHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, ErrHolidayNotFound) || errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, ErrHolidayNotFound) || errors.Is(err, ErrNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyHolidayNotFound))
 		return
 	}

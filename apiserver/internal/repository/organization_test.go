@@ -245,8 +245,8 @@ func TestOrganizationRepository_ListAndGetConfigs(t *testing.T) {
 	}
 
 	_, err = repo.GetConfig(context.Background(), "non_existent", api.ConfigReadRequest{ScopeType: "organization", AsOf: now})
-	if err != pgx.ErrNoRows {
-		t.Fatalf("expected ErrNoRows, got: %v", err)
+	if !errors.Is(err, pgx.ErrNoRows) || !errors.Is(err, api.ErrNotFound) {
+		t.Fatalf("expected ErrNoRows/ErrNotFound, got: %v", err)
 	}
 
 	if err := repo.DeleteConfig(context.Background(), entryID); err != nil {

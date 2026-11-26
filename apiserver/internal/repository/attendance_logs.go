@@ -16,7 +16,7 @@ import (
 )
 
 func (r AttendanceRepository) attendanceDB(ctx context.Context) (DBTX, error) {
-	return r.db(ctx)
+	return requireDB(r.DB, "attendance repository")
 }
 
 // CreateAttendanceImportJob inserts a processing import job.
@@ -135,7 +135,7 @@ func resolveImportedEmployment(ctx context.Context, db DBTX, code string, punchT
 		return uuid.Nil, errAmbiguousImportedEmployment
 	}
 	if candidateCount == 0 || employmentID == nil {
-		return uuid.Nil, pgx.ErrNoRows
+		return uuid.Nil, errNoRows
 	}
 	return *employmentID, nil
 }
@@ -236,7 +236,7 @@ func (r AttendanceRepository) GetAttendanceLogErrorFile(ctx context.Context, id 
 		return nil, err
 	}
 	if job == nil || job.FilePath == nil {
-		return nil, pgx.ErrNoRows
+		return nil, errNoRows
 	}
 	errorPath := filepath.Join(filepath.Dir(*job.FilePath), "error_"+id.String()+".xlsx")
 	return os.ReadFile(errorPath)

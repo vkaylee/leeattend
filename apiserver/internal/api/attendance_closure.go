@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -84,7 +83,7 @@ func (h *AttendanceHandler) closureAllowed(r *http.Request, permission string) b
 // GetAttendancePeriodStatus returns current attendance period and payroll lock state.
 func (h *AttendanceHandler) GetAttendancePeriodStatus(w http.ResponseWriter, r *http.Request) {
 	if !h.closureAllowed(r, "attendance:closure:read") {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	year, month, employerID, ok := parseAttendancePeriodPath(r)
@@ -116,7 +115,7 @@ func (h *AttendanceHandler) CloseAttendancePeriod(w http.ResponseWriter, r *http
 
 func (h *AttendanceHandler) closeAttendancePeriod(w http.ResponseWriter, r *http.Request) {
 	if !h.closureAllowed(r, "attendance:closure:close") {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	request, err := DecodeJSON[AttendanceClosureRequest](r, 1<<20)
@@ -131,7 +130,7 @@ func (h *AttendanceHandler) closeAttendancePeriod(w http.ResponseWriter, r *http
 	}
 	actorID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || h.Repository == nil {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	repository, ok := h.Repository.(AttendanceClosureRepository)
@@ -154,7 +153,7 @@ func (h *AttendanceHandler) ReopenAttendancePeriod(w http.ResponseWriter, r *htt
 
 func (h *AttendanceHandler) reopenAttendancePeriod(w http.ResponseWriter, r *http.Request) {
 	if !h.closureAllowed(r, "attendance:closure:reopen") {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	request, err := DecodeJSON[AttendanceClosureRequest](r, 1<<20)
@@ -169,7 +168,7 @@ func (h *AttendanceHandler) reopenAttendancePeriod(w http.ResponseWriter, r *htt
 	}
 	actorID, ok := httpinfra.UserIDValueFromContext(r.Context())
 	if !ok || h.Repository == nil {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	repository, ok := h.Repository.(AttendanceClosureRepository)
@@ -203,7 +202,7 @@ func (h *AttendanceHandler) writeClosureError(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Conflict("error.closure_conflict"))
 	case errors.Is(err, ErrAttendanceClosureValidation):
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-	case errors.Is(err, ErrAttendancePeriodNotFound), errors.Is(err, pgx.ErrNoRows):
+	case errors.Is(err, ErrAttendancePeriodNotFound), errors.Is(err, ErrNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	case errors.Is(err, ErrEmployerNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))

@@ -16,18 +16,11 @@ type ESSRepository struct {
 	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-func (r ESSRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("ess repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r ESSRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "ess repository")
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +32,7 @@ func (r ESSRepository) begin(ctx context.Context) (TxBeginner, error) {
 }
 
 func (r ESSRepository) ResolveEmployeeForUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "ess repository")
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -52,7 +45,7 @@ func (r ESSRepository) ResolveEmployeeForUser(ctx context.Context, userID uuid.U
 }
 
 func (r ESSRepository) GetMyProfile(ctx context.Context, employeeID uuid.UUID) (api.MyProfileResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "ess repository")
 	if err != nil {
 		return api.MyProfileResponse{}, err
 	}
@@ -147,7 +140,7 @@ func (r ESSRepository) GetMyProfile(ctx context.Context, employeeID uuid.UUID) (
 }
 
 func (r ESSRepository) UpsertProfile(ctx context.Context, employeeID uuid.UUID, req api.UpdateEmployeeProfileRequest) (api.EmployeeProfileRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "ess repository")
 	if err != nil {
 		return api.EmployeeProfileRecord{}, err
 	}
@@ -165,7 +158,7 @@ func (r ESSRepository) UpsertProfile(ctx context.Context, employeeID uuid.UUID, 
 }
 
 func (r ESSRepository) GetEmergencyContacts(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeEmergencyContactRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "ess repository")
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +208,7 @@ func (r ESSRepository) AddEmergencyContact(ctx context.Context, employeeID uuid.
 }
 
 func (r ESSRepository) DeleteEmergencyContact(ctx context.Context, employeeID, contactID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "ess repository")
 	if err != nil {
 		return err
 	}
@@ -230,7 +223,7 @@ func (r ESSRepository) DeleteEmergencyContact(ctx context.Context, employeeID, c
 }
 
 func (r ESSRepository) GetPendingDocuments(ctx context.Context, employeeID uuid.UUID) ([]api.AcknowledgementRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "ess repository")
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +266,7 @@ func (r ESSRepository) GetPendingDocuments(ctx context.Context, employeeID uuid.
 }
 
 func (r ESSRepository) AcknowledgeDocument(ctx context.Context, employeeID, docID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "ess repository")
 	if err != nil {
 		return err
 	}
@@ -303,7 +296,7 @@ func (r ESSRepository) AcknowledgeDocument(ctx context.Context, employeeID, docI
 }
 
 func (r ESSRepository) GetEmployeeDocuments(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeDocumentRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "ess repository")
 	if err != nil {
 		return nil, err
 	}

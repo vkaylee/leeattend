@@ -17,13 +17,6 @@ type DepartmentRepository struct {
 	DB DBTX
 }
 
-func (r DepartmentRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("department repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 const departmentColumns = `
 	d.id, d.name, d.description, d.manager_id,
 	d.created_at, d.updated_at,
@@ -54,7 +47,7 @@ func scanDepartment(row pgx.Row) (api.DepartmentRecord, error) {
 }
 
 func (r DepartmentRepository) ListDepartments(ctx context.Context, page, limit int) (api.DepartmentListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "department repository")
 	if err != nil {
 		return api.DepartmentListResponse{}, err
 	}
@@ -89,7 +82,7 @@ func (r DepartmentRepository) ListDepartments(ctx context.Context, page, limit i
 }
 
 func (r DepartmentRepository) GetDepartmentByID(ctx context.Context, deptID uuid.UUID) (api.DepartmentRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "department repository")
 	if err != nil {
 		return api.DepartmentRecord{}, err
 	}
@@ -105,7 +98,7 @@ func (r DepartmentRepository) GetDepartmentByID(ctx context.Context, deptID uuid
 }
 
 func (r DepartmentRepository) CreateDepartment(ctx context.Context, req api.CreateDepartmentRequest) (api.DepartmentRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "department repository")
 	if err != nil {
 		return api.DepartmentRecord{}, err
 	}
@@ -123,7 +116,7 @@ func (r DepartmentRepository) CreateDepartment(ctx context.Context, req api.Crea
 }
 
 func (r DepartmentRepository) UpdateDepartment(ctx context.Context, deptID uuid.UUID, req api.UpdateDepartmentRequest) (api.DepartmentRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "department repository")
 	if err != nil {
 		return api.DepartmentRecord{}, err
 	}
@@ -159,7 +152,7 @@ func (r DepartmentRepository) UpdateDepartment(ctx context.Context, deptID uuid.
 }
 
 func (r DepartmentRepository) DeleteDepartment(ctx context.Context, deptID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "department repository")
 	if err != nil {
 		return err
 	}

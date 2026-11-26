@@ -203,6 +203,118 @@ func (c *Client) Ping(ctx context.Context) error {
 	return client.Ping(ctx).Err()
 }
 
+// IsAvailable reports whether a non-closed shared Redis client is configured.
+func (c *Client) IsAvailable() bool {
+	client, err := c.Shared()
+	return err == nil && client != nil
+}
+
+// DeleteKey removes a single key via the shared client.
+func (c *Client) DeleteKey(ctx context.Context, key string) error {
+	client, err := c.Shared()
+	if err != nil {
+		return err
+	}
+	if client == nil {
+		return ErrNilRedisClient
+	}
+	return client.Del(ctx, key).Err()
+}
+
+// LLen returns the length of a Redis list.
+func (c *Client) LLen(ctx context.Context, key string) (int64, error) {
+	client, err := c.Shared()
+	if err != nil {
+		return 0, err
+	}
+	if client == nil {
+		return 0, ErrNilRedisClient
+	}
+	return client.LLen(ctx, key).Result()
+}
+
+// GetString returns a string value and whether the key existed (translating redis.Nil).
+func (c *Client) GetString(ctx context.Context, key string) (string, bool, error) {
+	client, err := c.Shared()
+	if err != nil {
+		return "", false, err
+	}
+	if client == nil {
+		return "", false, ErrNilRedisClient
+	}
+	val, err := client.Get(ctx, key).Result()
+	if errors.Is(err, goredis.Nil) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return val, true, nil
+}
+
+// GetUint64 returns a uint64 counter value.
+func (c *Client) GetUint64(ctx context.Context, key string) (uint64, error) {
+	client, err := c.Shared()
+	if err != nil {
+		return 0, err
+	}
+	if client == nil {
+		return 0, ErrNilRedisClient
+	}
+	return client.Get(ctx, key).Uint64()
+}
+
+// Keys returns keys matching pattern.
+func (c *Client) Keys(ctx context.Context, pattern string) ([]string, error) {
+	client, err := c.Shared()
+	if err != nil {
+		return nil, err
+	}
+	if client == nil {
+		return nil, ErrNilRedisClient
+	}
+	return client.Keys(ctx, pattern).Result()
+}
+
+// ZRevRange returns sorted-set members in reverse order.
+func (c *Client) ZRevRange(ctx context.Context, key string, start, stop int64) ([]string, error) {
+	client, err := c.Shared()
+	if err != nil {
+		return nil, err
+	}
+	if client == nil {
+		return nil, ErrNilRedisClient
+	}
+	return client.ZRevRange(ctx, key, start, stop).Result()
+}
+
+// ZRevRangeByScore returns sorted-set members and scores in reverse score order.
+func (c *Client) ZRevRangeByScore(ctx context.Context, key, min, max string, count int64) ([]string, []float64, error) {
+	client, err := c.Shared()
+	if err != nil {
+		return nil, nil, err
+	}
+	if client == nil {
+		return nil, nil, ErrNilRedisClient
+	}
+	items, err := client.ZRevRangeByScoreWithScores(ctx, key, &goredis.ZRangeBy{
+		Min:    min,
+		Max:    max,
+		Offset: 0,
+		Count:  count,
+	}).Result()
+	if err != nil {
+		return nil, nil, err
+	}
+	members := make([]string, len(items))
+	scores := make([]float64, len(items))
+	for i, item := range items {
+		members[i] = fmt.Sprint(item.Member)
+		scores[i] = item.Score
+	}
+	return members, scores, nil
+}
+
 // Close shuts down both shared and blocking connections.
 func (c *Client) Close() error {
 	c.mu.Lock()

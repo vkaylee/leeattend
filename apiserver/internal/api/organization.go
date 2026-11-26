@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
@@ -169,14 +168,10 @@ type OrganizationRepository interface {
 	PutConfig(context.Context, ConfigEntryRequest, uuid.UUID) error
 }
 
-type OrganizationFeatureFlagAudit interface {
-	Emit(context.Context, audit.Event) error
-}
-
 type OrganizationHandler struct {
 	Repository OrganizationRepository
 	Authorizer Authorizer
-	Audit      OrganizationFeatureFlagAudit
+	Audit      AuditEmitter
 }
 
 func (h *OrganizationHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -187,7 +182,7 @@ func (h *OrganizationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 	org, err := h.Repository.GetOrganization(r.Context())
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, ErrNotFound) {
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyOrganizationNotFound))
 			return
 		}
@@ -415,7 +410,7 @@ func (h *OrganizationHandler) GetFeatureFlagByID(w http.ResponseWriter, r *http.
 		return
 	}
 	flag, err := h.Repository.GetFeatureFlagByID(r.Context(), flagID)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, ErrNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyFeatureFlagNotFound))
 		return
 	}
@@ -445,7 +440,7 @@ func (h *OrganizationHandler) UpdateFeatureFlag(w http.ResponseWriter, r *http.R
 		return
 	}
 	flag, err := h.Repository.UpdateFeatureFlag(r.Context(), flagID, patch)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, ErrNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyFeatureFlagNotFound))
 		return
 	}
@@ -534,7 +529,7 @@ func (h *OrganizationHandler) CheckFeatureFlag(w http.ResponseWriter, r *http.Re
 		return
 	}
 	flag, err := h.Repository.GetFeatureFlag(r.Context(), key)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, ErrNotFound) {
 		apperror.WriteJSON(w, http.StatusOK, FeatureFlagCheck{Key: key, Enabled: false})
 		return
 	}
@@ -622,7 +617,7 @@ func (h *OrganizationHandler) writeRepositoryError(w http.ResponseWriter, r *htt
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, ErrEmployerNotFound) {
+	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrEmployerNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}

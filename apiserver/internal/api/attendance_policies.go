@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -47,17 +46,8 @@ type AttendancePolicyHandler struct {
 	Authorizer       Authorizer
 }
 
-func (h *AttendancePolicyHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
-}
-
-func (h *AttendancePolicyHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
-
 func (h *AttendancePolicyHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, ErrNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
@@ -70,8 +60,8 @@ func (h *AttendancePolicyHandler) fail(w http.ResponseWriter, r *http.Request, e
 }
 
 func (h *AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
+		writeForbidden(w, r)
 		return
 	}
 	result, err := h.BehalfRepository.ListBehalfAssignments(r.Context(), AttendanceAdjustmentAssignmentType)
@@ -83,8 +73,8 @@ func (h *AttendancePolicyHandler) ListBehalfAssignments(w http.ResponseWriter, r
 }
 
 func (h *AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateBehalfAssignmentRequest](r, 1<<20)
@@ -102,8 +92,8 @@ func (h *AttendancePolicyHandler) CreateBehalfAssignment(w http.ResponseWriter, 
 
 func (h *AttendancePolicyHandler) DeleteBehalfAssignment(w http.ResponseWriter, r *http.Request) {
 	assignmentID, assignmentOK := pathUUID(r, "id")
-	if !assignmentOK || !h.allowed(r, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
-		h.forbidden(w, r)
+	if !assignmentOK || !hasPermission(r, h.Authorizer, string(auth.PermissionAttendanceAdjustmentsManageBehalf)) {
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.BehalfRepository.DeleteBehalfAssignment(r.Context(), assignmentID, AttendanceAdjustmentAssignmentType); err != nil {

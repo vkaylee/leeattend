@@ -13,7 +13,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var ErrInvalidInput = errors.New("invalid input")
+var (
+	ErrInvalidInput = errors.New("invalid input")
+	ErrNotFound     = errors.New("not found")
+)
 
 func DecodeJSON[T any](r *http.Request, limit int64) (T, error) {
 	var value T

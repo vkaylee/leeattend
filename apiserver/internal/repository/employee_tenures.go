@@ -331,7 +331,7 @@ func insertRehireTenureAndEmployment(
 
 // ListEmployeeTenures returns all non-deleted tenures for an employee newest-first, with employer relationships.
 func (r EmployeeRepository) ListEmployeeTenures(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeTenureRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee repository")
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +354,7 @@ func requireEmployeeExistsForTenures(ctx context.Context, db DBTX, employeeID uu
 		return err
 	}
 	if !exists {
-		return pgx.ErrNoRows
+		return errNoRows
 	}
 	return nil
 }

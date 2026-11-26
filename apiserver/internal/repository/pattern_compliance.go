@@ -473,7 +473,7 @@ func patternComplianceValidator(ctx context.Context, db DBTX, employmentID uuid.
 }
 
 func (r WorkingPatternRepository) CheckPatternCompliance(ctx context.Context, employmentID uuid.UUID, req api.AssignPatternRequest) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "working pattern repository")
 	if err != nil {
 		return err
 	}
@@ -481,7 +481,7 @@ func (r WorkingPatternRepository) CheckPatternCompliance(ctx context.Context, em
 }
 
 func (r WorkingPatternRepository) CheckBulkPatternCompliance(ctx context.Context, req api.BulkAssignPatternRequest) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "working pattern repository")
 	if err != nil {
 		return err
 	}

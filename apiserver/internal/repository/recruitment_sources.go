@@ -17,13 +17,6 @@ type RecruitmentSourceRepository struct {
 	DB DBTX
 }
 
-func (r RecruitmentSourceRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("recruitment source repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 const recruitmentSourceColumns = `id, source_type, name, referrer_employee_id,
 	referral_bonus_amount::text, referral_bonus_paid, agency_contact_name, agency_contact_email,
 	agency_fee_amount::text, agency_fee_paid, notes, created_at, updated_at`
@@ -57,7 +50,7 @@ func scanRecruitmentSource(row interface{ Scan(...any) error }) (api.Recruitment
 }
 
 func (r RecruitmentSourceRepository) ListRecruitmentSources(ctx context.Context, page, limit int) (api.RecruitmentSourceListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "recruitment source repository")
 	if err != nil {
 		return api.RecruitmentSourceListResponse{}, err
 	}
@@ -81,7 +74,7 @@ func (r RecruitmentSourceRepository) ListRecruitmentSources(ctx context.Context,
 }
 
 func (r RecruitmentSourceRepository) CreateRecruitmentSource(ctx context.Context, req api.CreateRecruitmentSourceRequest) (api.RecruitmentSource, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "recruitment source repository")
 	if err != nil {
 		return api.RecruitmentSource{}, err
 	}
@@ -95,7 +88,7 @@ func (r RecruitmentSourceRepository) CreateRecruitmentSource(ctx context.Context
 }
 
 func (r RecruitmentSourceRepository) UpdateRecruitmentSource(ctx context.Context, id uuid.UUID, req api.UpdateRecruitmentSourceRequest) (api.RecruitmentSource, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "recruitment source repository")
 	if err != nil {
 		return api.RecruitmentSource{}, err
 	}
@@ -142,7 +135,7 @@ func (r RecruitmentSourceRepository) UpdateRecruitmentSource(ctx context.Context
 }
 
 func (r RecruitmentSourceRepository) DeleteRecruitmentSource(ctx context.Context, id uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "recruitment source repository")
 	if err != nil {
 		return err
 	}
@@ -157,7 +150,7 @@ func (r RecruitmentSourceRepository) DeleteRecruitmentSource(ctx context.Context
 }
 
 func (r RecruitmentSourceRepository) RecruitmentSourceBreakdown(ctx context.Context) ([]api.RecruitmentSourceBreakdown, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "recruitment source repository")
 	if err != nil {
 		return nil, err
 	}

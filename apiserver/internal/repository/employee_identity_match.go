@@ -72,7 +72,7 @@ func (r EmployeeIdentityRepository) MatchEmployees(
 	if !query.HasCriteria() {
 		return []api.EmployeeMatchCandidate{}, nil
 	}
-	db, err := r.db()
+	db, err := requireDB(r.DB, "employee identity repository")
 	if err != nil {
 		return nil, err
 	}

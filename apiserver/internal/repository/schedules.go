@@ -19,7 +19,7 @@ func (r ScheduleRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return nil, err
 	}
@@ -28,13 +28,6 @@ func (r ScheduleRepository) begin(ctx context.Context) (TxBeginner, error) {
 		return nil, errors.New("schedule repository: database does not support transactions")
 	}
 	return beginner, nil
-}
-
-func (r ScheduleRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("schedule repository: database is not configured")
-	}
-	return r.DB, nil
 }
 
 type employeeRow struct {
@@ -195,7 +188,7 @@ type scheduleResolution struct {
 }
 
 func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
@@ -315,7 +308,7 @@ func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate,
 }
 
 func (r ScheduleRepository) GetOfficialSchedulesWithCoverage(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int, coverage string) (api.PaginatedEmployeeSchedules, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
@@ -385,7 +378,7 @@ func (r ScheduleRepository) GetOfficialSchedulesWithCoverage(ctx context.Context
 }
 
 func (r ScheduleRepository) GetActivationAwareSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
@@ -412,7 +405,7 @@ func (r ScheduleRepository) GetActivationAwareSchedules(ctx context.Context, sta
 }
 
 func (r ScheduleRepository) GetOrganizationSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}

@@ -222,23 +222,14 @@ type WorkPolicyGroupRepository interface {
 	TransferWorkPolicyMembership(context.Context, workpolicy.TransferMembershipInput) (TransferWorkPolicyMembershipResponse, error)
 }
 
-type WorkPolicyGroupAudit interface {
-	Emit(context.Context, audit.Event) error
-}
-
 type WorkPolicyGroupHandler struct {
 	Repository WorkPolicyGroupRepository
 	Authorizer Authorizer
-	Audit      WorkPolicyGroupAudit
-}
-
-func (h *WorkPolicyGroupHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
+	Audit      AuditEmitter
 }
 
 func (h *WorkPolicyGroupHandler) List(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "payroll:read") {
+	if !hasPermission(r, h.Authorizer, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -256,7 +247,7 @@ func (h *WorkPolicyGroupHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WorkPolicyGroupHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "payroll:read") {
+	if !hasPermission(r, h.Authorizer, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -284,7 +275,7 @@ func (h *WorkPolicyGroupHandler) ListVersions(w http.ResponseWriter, r *http.Req
 }
 
 func (h *WorkPolicyGroupHandler) Detail(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "payroll:read") {
+	if !hasPermission(r, h.Authorizer, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -303,7 +294,7 @@ func (h *WorkPolicyGroupHandler) Detail(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *WorkPolicyGroupHandler) Validate(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "payroll:read") {
+	if !hasPermission(r, h.Authorizer, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -322,7 +313,7 @@ func (h *WorkPolicyGroupHandler) Validate(w http.ResponseWriter, r *http.Request
 }
 
 func (h *WorkPolicyGroupHandler) Resolve(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "payroll:read") {
+	if !hasPermission(r, h.Authorizer, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -347,7 +338,7 @@ func (h *WorkPolicyGroupHandler) Resolve(w http.ResponseWriter, r *http.Request)
 
 func (h *WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
-	if !ok || !h.allowed(r, "payroll:manage") {
+	if !ok || !hasPermission(r, h.Authorizer, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -379,7 +370,7 @@ func (h *WorkPolicyGroupHandler) Create(w http.ResponseWriter, r *http.Request) 
 
 func (h *WorkPolicyGroupHandler) CreateVersion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
-	if !ok || !h.allowed(r, "payroll:manage") {
+	if !ok || !hasPermission(r, h.Authorizer, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -421,7 +412,7 @@ func (h *WorkPolicyGroupHandler) CreateVersion(w http.ResponseWriter, r *http.Re
 
 func (h *WorkPolicyGroupHandler) PatchVersion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
-	if !ok || !h.allowed(r, "payroll:manage") {
+	if !ok || !hasPermission(r, h.Authorizer, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -459,7 +450,7 @@ func (h *WorkPolicyGroupHandler) PatchVersion(w http.ResponseWriter, r *http.Req
 
 func (h *WorkPolicyGroupHandler) PublishVersion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
-	if !ok || !h.allowed(r, "payroll:manage") {
+	if !ok || !hasPermission(r, h.Authorizer, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -497,7 +488,7 @@ func (h *WorkPolicyGroupHandler) PublishVersion(w http.ResponseWriter, r *http.R
 }
 
 func (h *WorkPolicyGroupHandler) ListMemberships(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "payroll:read") {
+	if !hasPermission(r, h.Authorizer, "payroll:read") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -516,7 +507,7 @@ func (h *WorkPolicyGroupHandler) ListMemberships(w http.ResponseWriter, r *http.
 
 func (h *WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
-	if !ok || !h.allowed(r, "payroll:manage") {
+	if !ok || !hasPermission(r, h.Authorizer, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -549,7 +540,7 @@ func (h *WorkPolicyGroupHandler) CreateMembership(w http.ResponseWriter, r *http
 
 func (h *WorkPolicyGroupHandler) TransferMembership(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httpinfra.UserIDValueFromContext(r.Context())
-	if !ok || !h.allowed(r, "payroll:manage") {
+	if !ok || !hasPermission(r, h.Authorizer, "payroll:manage") {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}

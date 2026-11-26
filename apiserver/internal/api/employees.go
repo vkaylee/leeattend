@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/identity"
@@ -81,7 +80,7 @@ type EmployeeHandler struct {
 	IdentityMatcher EmployeeIdentityMatcher
 	IdentityHasher  identity.Hasher
 	Authorizer      Authorizer
-	Audit           EmployeeIdentityMatchAudit
+	Audit           AuditEmitter
 	Metrics         *EmployeeIdentityMetrics
 }
 
@@ -93,7 +92,7 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), actorID, "employees:create") {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	request, err := DecodeJSON[CreateEmployeeRequest](r, 1<<20)
@@ -212,8 +211,8 @@ func normalizeOptionalNationalID(raw *string, hasher identity.Hasher) (*string, 
 }
 
 func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "employees:read") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "employees:read") {
+		writeForbidden(w, r)
 		return
 	}
 	pagination, err := ParsePagination(r.URL.Query())
@@ -231,8 +230,8 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	employeeID, employeeOK := pathUUID(r, "id")
-	if !employeeOK || !h.allowed(r, "employees:read") {
-		h.forbidden(w, r)
+	if !employeeOK || !hasPermission(r, h.Authorizer, "employees:read") {
+		writeForbidden(w, r)
 		return
 	}
 	employee, err := h.Repository.GetEmployee(r.Context(), employeeID)
@@ -245,8 +244,8 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	employeeID, employeeOK := pathUUID(r, "id")
-	if !employeeOK || !h.allowed(r, "employees:update") {
-		h.forbidden(w, r)
+	if !employeeOK || !hasPermission(r, h.Authorizer, "employees:update") {
+		writeForbidden(w, r)
 		return
 	}
 	request, err := DecodeJSON[UpdateEmployeeRequest](r, 1<<20)
@@ -264,8 +263,8 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	employeeID, employeeOK := pathUUID(r, "id")
-	if !employeeOK || !h.allowed(r, "employees:delete") {
-		h.forbidden(w, r)
+	if !employeeOK || !hasPermission(r, h.Authorizer, "employees:delete") {
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.Repository.SoftDeleteEmployee(r.Context(), employeeID); err != nil {
@@ -275,13 +274,6 @@ func (h *EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *EmployeeHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
-}
-func (h *EmployeeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
 func (h *EmployeeHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrInvalidInput) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
@@ -291,7 +283,7 @@ func (h *EmployeeHandler) writeError(w http.ResponseWriter, r *http.Request, err
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, ErrNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}

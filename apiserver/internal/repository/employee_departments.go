@@ -16,18 +16,11 @@ type EmployeeDepartmentRepository struct {
 	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-func (r EmployeeDepartmentRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("employee department repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r EmployeeDepartmentRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee department repository")
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +32,7 @@ func (r EmployeeDepartmentRepository) begin(ctx context.Context) (TxBeginner, er
 }
 
 func (r EmployeeDepartmentRepository) CurrentEmployeeDepartment(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee department repository")
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +48,7 @@ func (r EmployeeDepartmentRepository) CurrentEmployeeDepartment(ctx context.Cont
 }
 
 func (r EmployeeDepartmentRepository) GetEmployeeDepartmentHistory(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeDepartmentHistory, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee department repository")
 	if err != nil {
 		return nil, err
 	}

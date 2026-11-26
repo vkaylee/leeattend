@@ -29,18 +29,11 @@ var (
 	_ api.LeaveImportRepository = LeaveRepository{}
 )
 
-func (r LeaveRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("leave repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r LeaveRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +45,7 @@ func (r LeaveRepository) begin(ctx context.Context) (TxBeginner, error) {
 }
 
 func (r LeaveRepository) CreateLeaveType(ctx context.Context, req api.CreateLeaveTypeRequest) (api.LeaveTypeRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return api.LeaveTypeRecord{}, err
 	}
@@ -82,7 +75,7 @@ func (r LeaveRepository) CreateLeaveType(ctx context.Context, req api.CreateLeav
 }
 
 func (r LeaveRepository) ListLeaveTypes(ctx context.Context) ([]api.LeaveTypeRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +100,7 @@ func (r LeaveRepository) ListLeaveTypes(ctx context.Context) ([]api.LeaveTypeRec
 }
 
 func (r LeaveRepository) UpdateLeaveTypeConfig(ctx context.Context, leaveTypeID uuid.UUID, policyConfig json.RawMessage) (api.LeaveTypeRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return api.LeaveTypeRecord{}, err
 	}
@@ -128,7 +121,7 @@ func (r LeaveRepository) UpdateLeaveTypeConfig(ctx context.Context, leaveTypeID 
 }
 
 func (r LeaveRepository) DeleteLeaveType(ctx context.Context, leaveTypeID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return err
 	}
@@ -151,7 +144,7 @@ func (r LeaveRepository) DeleteLeaveType(ctx context.Context, leaveTypeID uuid.U
 }
 
 func (r LeaveRepository) RestoreLeaveType(ctx context.Context, leaveTypeID uuid.UUID) (api.LeaveTypeRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return api.LeaveTypeRecord{}, err
 	}
@@ -224,7 +217,7 @@ func (r LeaveRepository) SubmitLeaveRequest(ctx context.Context, requesterID uui
 }
 
 func (r LeaveRepository) ListOrganizationLeaveRequests(ctx context.Context, status *string) ([]api.LeaveRequestRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +260,7 @@ func (r LeaveRepository) ApproveLeaveRequest(ctx context.Context, approverID, re
 }
 
 func (r LeaveRepository) GetEmployeeLeaveBalances(ctx context.Context, employeeID uuid.UUID, year int) ([]api.EmployeeLeaveBalanceRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +307,7 @@ func (r LeaveRepository) GetEmployeeLeaveBalances(ctx context.Context, employeeI
 }
 
 func (r LeaveRepository) ResolveEmployeeForUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -747,7 +740,7 @@ func loadLeaveScheduleContext(ctx context.Context, db DBTX, employmentIDs []uuid
 }
 
 func (r LeaveRepository) GetOrganizationLeaveBalances(ctx context.Context, year, page, limit int, q string) ([]api.OrganizationLeaveBalance, int64, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, 0, err
 	}
@@ -884,7 +877,7 @@ func (r LeaveRepository) GetOrganizationLeaveBalances(ctx context.Context, year,
 }
 
 func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, employeeID uuid.UUID, year int, leaveTypeID *uuid.UUID) ([]api.LeaveHistoryItem, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, err
 	}
@@ -1053,7 +1046,7 @@ func (r LeaveRepository) AdjustLeaveBalance(ctx context.Context, employeeID uuid
 }
 
 func (r LeaveRepository) ListEmployeeLeaveRequests(ctx context.Context, employeeID uuid.UUID) ([]api.LeaveRequestRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, err
 	}
@@ -1087,7 +1080,7 @@ func (r LeaveRepository) ListEmployeeLeaveRequests(ctx context.Context, employee
 }
 
 func (r LeaveRepository) ListLeavePolicies(ctx context.Context) ([]api.LeavePolicyDefinition, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, err
 	}
@@ -1118,7 +1111,7 @@ func (r LeaveRepository) ListLeavePolicies(ctx context.Context) ([]api.LeavePoli
 }
 
 func (r LeaveRepository) CreateLeavePolicy(ctx context.Context, req api.CreateLeavePolicyRequest) (api.LeavePolicyDefinition, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return api.LeavePolicyDefinition{}, err
 	}
@@ -1150,7 +1143,7 @@ func (r LeaveRepository) CreateLeavePolicy(ctx context.Context, req api.CreateLe
 }
 
 func (r LeaveRepository) UpdateLeavePolicy(ctx context.Context, policyID uuid.UUID, req api.UpdateLeavePolicyRequest) (api.LeavePolicyDefinition, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return api.LeavePolicyDefinition{}, err
 	}
@@ -1287,7 +1280,7 @@ func (r LeaveRepository) AssignLeavePolicy(ctx context.Context, req api.AssignLe
 }
 
 func (r LeaveRepository) ListLeavePolicyAssignments(ctx context.Context) ([]api.LeavePolicyAssignmentDetail, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, err
 	}
@@ -1361,7 +1354,7 @@ func (r LeaveRepository) DeleteLeavePolicyAssignment(ctx context.Context, assign
 	})
 }
 func (r LeaveRepository) CreateAccrualJob(ctx context.Context, userID uuid.UUID, dateStr string) (uuid.UUID, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -1375,7 +1368,7 @@ func (r LeaveRepository) CreateAccrualJob(ctx context.Context, userID uuid.UUID,
 }
 
 func (r LeaveRepository) GetJobStatus(ctx context.Context, jobID uuid.UUID) (api.LeaveJobStatusResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return api.LeaveJobStatusResponse{}, err
 	}
@@ -1402,7 +1395,7 @@ func (r LeaveRepository) GetJobStatus(ctx context.Context, jobID uuid.UUID) (api
 }
 
 func (r LeaveRepository) CreateLeaveImportJob(ctx context.Context, userID uuid.UUID, filePath string) (api.LeaveImportJob, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return api.LeaveImportJob{}, err
 	}
@@ -1414,7 +1407,7 @@ func (r LeaveRepository) CreateLeaveImportJob(ctx context.Context, userID uuid.U
 }
 
 func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, userID uuid.UUID, job api.LeaveImportJob, rows []api.LeaveImportRow, autoApprove bool) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return err
 	}
@@ -1475,7 +1468,7 @@ func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, userID uuid.UUI
 }
 
 func (r LeaveRepository) GetLatestLeaveImport(ctx context.Context) (*api.LeaveImportJob, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, err
 	}
@@ -1493,7 +1486,7 @@ func (r LeaveRepository) GetLatestLeaveImport(ctx context.Context) (*api.LeaveIm
 }
 
 func (r LeaveRepository) GetLeaveImport(ctx context.Context, jobID uuid.UUID) (*api.LeaveImportJob, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return nil, err
 	}
@@ -1516,7 +1509,7 @@ func (r LeaveRepository) GetLeaveImportErrorFile(ctx context.Context, jobID uuid
 		return nil, err
 	}
 	if job == nil || job.FilePath == nil {
-		return nil, pgx.ErrNoRows
+		return nil, errNoRows
 	}
 	errorPath := filepath.Join(filepath.Dir(*job.FilePath), "error_"+jobID.String()+".xlsx")
 	return os.ReadFile(errorPath)

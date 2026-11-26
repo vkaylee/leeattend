@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	"github.com/vkaylee/leeattend/apiserver/internal/auth"
@@ -92,7 +91,7 @@ func (h *CompensationHistoryHandler) Get(w http.ResponseWriter, r *http.Request)
 	result, err := h.Repository.GetEmployeeCompensationHistory(r.Context(), employeeID, employmentID)
 	if err != nil {
 		switch {
-		case errors.Is(err, pgx.ErrNoRows), errors.Is(err, ErrEmployeeNotFound):
+		case errors.Is(err, ErrNotFound), errors.Is(err, ErrEmployeeNotFound):
 			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		default:
 			apperror.WriteError(w, r, apperror.Internal(err))

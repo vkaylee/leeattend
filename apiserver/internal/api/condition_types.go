@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 var (
@@ -76,8 +75,8 @@ type ConditionTypeHandler struct {
 }
 
 func (h *ConditionTypeHandler) List(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "organization:settings:read") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "organization:settings:read") {
+		writeForbidden(w, r)
 		return
 	}
 	activeOnly := r.URL.Query().Get("active_only") == "true"
@@ -95,8 +94,8 @@ func (h *ConditionTypeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *ConditionTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, "organization:settings:read") {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, "organization:settings:read") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -112,8 +111,8 @@ func (h *ConditionTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "organization:settings:write") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	var req CreateConditionTypeRequest
@@ -163,8 +162,8 @@ func (h *ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, "organization:settings:write") {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	var req UpdateConditionTypeRequest
@@ -186,8 +185,8 @@ func (h *ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *ConditionTypeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, "organization:settings:write") {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -199,15 +198,6 @@ func (h *ConditionTypeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *ConditionTypeHandler) allowed(r *http.Request, p string) bool {
-	u, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, p)
-}
-
-func (h *ConditionTypeHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
 func (h *ConditionTypeHandler) validation(w http.ResponseWriter, r *http.Request) {

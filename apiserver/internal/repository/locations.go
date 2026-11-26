@@ -16,13 +16,6 @@ type LocationRepository struct {
 	DB DBTX
 }
 
-func (r LocationRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("location repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func scanLocation(row interface{ Scan(...any) error }) (api.WorkLocation, error) {
 	var item api.WorkLocation
 	var createdAt, updatedAt time.Time
@@ -36,7 +29,7 @@ func scanLocation(row interface{ Scan(...any) error }) (api.WorkLocation, error)
 }
 
 func (r LocationRepository) ListLocations(ctx context.Context, page, limit int) (api.LocationListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "location repository")
 	if err != nil {
 		return api.LocationListResponse{}, err
 	}
@@ -61,7 +54,7 @@ func (r LocationRepository) ListLocations(ctx context.Context, page, limit int) 
 }
 
 func (r LocationRepository) CreateLocation(ctx context.Context, req api.CreateLocationRequest) (api.WorkLocation, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "location repository")
 	if err != nil {
 		return api.WorkLocation{}, err
 	}
@@ -83,7 +76,7 @@ func (r LocationRepository) CreateLocation(ctx context.Context, req api.CreateLo
 }
 
 func (r LocationRepository) GetLocation(ctx context.Context, id uuid.UUID) (api.WorkLocation, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "location repository")
 	if err != nil {
 		return api.WorkLocation{}, err
 	}
@@ -105,7 +98,7 @@ func (r LocationRepository) UpdateLocation(ctx context.Context, id uuid.UUID, re
 			return api.WorkLocation{}, api.ErrLocationHQCannotChange
 		}
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "location repository")
 	if err != nil {
 		return api.WorkLocation{}, err
 	}
@@ -144,7 +137,7 @@ func (r LocationRepository) DeleteLocation(ctx context.Context, id uuid.UUID) er
 	if existing.IsHeadquarters {
 		return api.ErrLocationHQCannotDelete
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "location repository")
 	if err != nil {
 		return err
 	}

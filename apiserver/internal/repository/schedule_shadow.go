@@ -50,7 +50,7 @@ func (r ScheduleRepository) RunScheduleShadowComparison(ctx context.Context, emp
 	if employerID == uuid.Nil || endDate.Before(startDate) || shadowDaysInRange(startDate, endDate) > scheduleShadowMaxDays {
 		return ScheduleShadowRunResult{}, errors.New("schedule shadow comparison scope is invalid")
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "schedule repository")
 	if err != nil {
 		return ScheduleShadowRunResult{}, err
 	}

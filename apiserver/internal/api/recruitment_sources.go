@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
@@ -83,7 +82,7 @@ type RecruitmentSourceHandler struct {
 
 func (h *RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !h.isMember(r) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	p, err := ParsePagination(r.URL.Query())
@@ -100,8 +99,8 @@ func (h *RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *RecruitmentSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "recruitment:manage") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "recruitment:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[CreateRecruitmentSourceRequest](r, 1<<20)
@@ -120,8 +119,8 @@ func (h *RecruitmentSourceHandler) Create(w http.ResponseWriter, r *http.Request
 
 func (h *RecruitmentSourceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, "recruitment:manage") {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, "recruitment:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[UpdateRecruitmentSourceRequest](r, 1<<20)
@@ -147,8 +146,8 @@ func (h *RecruitmentSourceHandler) Update(w http.ResponseWriter, r *http.Request
 
 func (h *RecruitmentSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, "recruitment:manage") {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, "recruitment:manage") {
+		writeForbidden(w, r)
 		return
 	}
 	if err := h.Repository.DeleteRecruitmentSource(r.Context(), id); err != nil {
@@ -159,8 +158,8 @@ func (h *RecruitmentSourceHandler) Delete(w http.ResponseWriter, r *http.Request
 }
 
 func (h *RecruitmentSourceHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "dashboard:read") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "dashboard:read") {
+		writeForbidden(w, r)
 		return
 	}
 	result, err := h.Repository.RecruitmentSourceBreakdown(r.Context())
@@ -180,17 +179,8 @@ func (h *RecruitmentSourceHandler) isMember(r *http.Request) bool {
 	return err == nil && member
 }
 
-func (h *RecruitmentSourceHandler) allowed(r *http.Request, permission string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), userID, permission)
-}
-
-func (h *RecruitmentSourceHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-}
-
 func (h *RecruitmentSourceHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, ErrRecruitmentSourceNotFound) || errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, ErrRecruitmentSourceNotFound) || errors.Is(err, ErrNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}

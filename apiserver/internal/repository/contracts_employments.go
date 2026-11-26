@@ -19,18 +19,11 @@ type ContractRepository struct {
 	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-func (r ContractRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("contract repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r ContractRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "contract repository")
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +46,7 @@ func scanContract(row interface{ Scan(...any) error }) (api.EmployeeContract, er
 }
 
 func (r ContractRepository) ListContracts(ctx context.Context) ([]api.EmployeeContractWithEmployee, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "contract repository")
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +92,7 @@ func (r ContractRepository) ListContracts(ctx context.Context) ([]api.EmployeeCo
 }
 
 func (r ContractRepository) ListEmployeeContracts(ctx context.Context, employeeID uuid.UUID) ([]api.EmployeeContract, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "contract repository")
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +122,7 @@ func (r ContractRepository) ListEmployeeContracts(ctx context.Context, employeeI
 }
 
 func (r ContractRepository) GetContract(ctx context.Context, contractID uuid.UUID) (api.EmployeeContract, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "contract repository")
 	if err != nil {
 		return api.EmployeeContract{}, err
 	}
@@ -162,7 +155,7 @@ func (r ContractRepository) CreateContract(ctx context.Context, req api.CreateCo
 		})
 		return created, err
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "contract repository")
 	if err != nil {
 		return api.EmployeeContract{}, err
 	}
@@ -231,7 +224,7 @@ func (r ContractRepository) createContractTx(ctx context.Context, db DBTX, req a
 }
 
 func (r ContractRepository) UpdateContract(ctx context.Context, contractID uuid.UUID, req api.UpdateContractRequest) (api.EmployeeContract, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "contract repository")
 	if err != nil {
 		return api.EmployeeContract{}, err
 	}
@@ -286,7 +279,7 @@ func (r ContractRepository) UpdateContract(ctx context.Context, contractID uuid.
 }
 
 func (r ContractRepository) SoftDeleteContract(ctx context.Context, contractID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "contract repository")
 	if err != nil {
 		return err
 	}
@@ -304,7 +297,7 @@ func (r EmploymentRepository) beginEmploymentTx(ctx context.Context) (TxBeginner
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment repository")
 	if err != nil {
 		return nil, err
 	}
@@ -313,13 +306,6 @@ func (r EmploymentRepository) beginEmploymentTx(ctx context.Context) (TxBeginner
 		return nil, errors.New("employment repository: database does not support transactions")
 	}
 	return beginner, nil
-}
-
-func (r EmploymentRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("employment repository: database is not configured")
-	}
-	return r.DB, nil
 }
 
 func scanEmployment(row interface{ Scan(...any) error }) (api.Employment, error) {
@@ -360,7 +346,7 @@ func scanEmploymentRelationship(row interface{ Scan(...any) error }) (api.Employ
 }
 
 func (r EmploymentRepository) ListEmploymentRelationships(ctx context.Context, employeeID uuid.UUID, page, limit int, employerID *uuid.UUID, asOf *time.Time) (api.EmploymentRelationshipListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment repository")
 	if err != nil {
 		return api.EmploymentRelationshipListResponse{}, err
 	}
@@ -400,7 +386,7 @@ func (r EmploymentRepository) ListEmploymentRelationships(ctx context.Context, e
 }
 
 func (r EmploymentRepository) GetEmploymentRelationship(ctx context.Context, id uuid.UUID) (api.EmploymentRelationship, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment repository")
 	if err != nil {
 		return api.EmploymentRelationship{}, err
 	}
@@ -496,7 +482,7 @@ func mapRelationshipConstraintError(err error) error {
 }
 
 func (r EmploymentRepository) ListEmployments(ctx context.Context, employeeID uuid.UUID) ([]api.Employment, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment repository")
 	if err != nil {
 		return nil, err
 	}
@@ -610,7 +596,7 @@ func (r EmploymentRepository) CreateEmployment(ctx context.Context, req api.Crea
 }
 
 func (r EmploymentRepository) GetEmployment(ctx context.Context, id uuid.UUID) (api.Employment, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment repository")
 	if err != nil {
 		return api.Employment{}, err
 	}
@@ -623,7 +609,7 @@ func (r EmploymentRepository) GetEmployment(ctx context.Context, id uuid.UUID) (
 }
 
 func (r EmploymentRepository) UpdateEmployment(ctx context.Context, id uuid.UUID, req api.UpdateEmploymentRequest) (api.Employment, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment repository")
 	if err != nil {
 		return api.Employment{}, err
 	}
@@ -908,7 +894,7 @@ func maybeCloseParentTenureOnTermination(ctx context.Context, tx pgx.Tx, revoker
 }
 
 func (r EmploymentRepository) SoftDeleteEmployment(ctx context.Context, id uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employment repository")
 	if err != nil {
 		return err
 	}

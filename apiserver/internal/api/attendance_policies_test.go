@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -105,7 +104,7 @@ func TestAttendancePolicy_BehalfAssignments_CRUD(t *testing.T) {
 	}
 
 	// Delete NotFound
-	hNotFound := AttendancePolicyHandler{BehalfRepository: &mockBehalfRepo{err: pgx.ErrNoRows}, Authorizer: mockAttendancePolicyAuthorizer{allowed: true}}
+	hNotFound := AttendancePolicyHandler{BehalfRepository: &mockBehalfRepo{err: ErrNotFound}, Authorizer: mockAttendancePolicyAuthorizer{allowed: true}}
 	reqDelNF := httptest.NewRequest(http.MethodDelete, "/api/v1/attendance/adjustments/behalf-assignments/"+uuid.NewString(), nil)
 	reqDelNF.SetPathValue("id", uuid.NewString())
 	reqDelNF = reqDelNF.WithContext(httpinfra.WithUserIDForTest(reqDelNF.Context(), assignee))

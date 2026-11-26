@@ -14,15 +14,8 @@ type FileRepository struct {
 	DB DBTX
 }
 
-func (r FileRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("file repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r FileRepository) GetOrganizationID(ctx context.Context) (uuid.UUID, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "file repository")
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -44,7 +37,7 @@ func (r FileRepository) GetOrganizationID(ctx context.Context) (uuid.UUID, error
 }
 
 func (r FileRepository) CreateFile(ctx context.Context, file api.FileRecord) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "file repository")
 	if err != nil {
 		return err
 	}
@@ -69,7 +62,7 @@ func (r FileRepository) CreateFile(ctx context.Context, file api.FileRecord) err
 }
 
 func (r FileRepository) GetFile(ctx context.Context, fileID uuid.UUID) (api.FileRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "file repository")
 	if err != nil {
 		return api.FileRecord{}, err
 	}
@@ -105,7 +98,7 @@ func (r FileRepository) GetFile(ctx context.Context, fileID uuid.UUID) (api.File
 }
 
 func (r FileRepository) DeleteFile(ctx context.Context, fileID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "file repository")
 	if err != nil {
 		return err
 	}
@@ -127,7 +120,7 @@ func (r FileRepository) DeleteFile(ctx context.Context, fileID uuid.UUID) error 
 }
 
 func (r FileRepository) CreateSignatureRequest(ctx context.Context, req api.SignatureRequestRecord) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "file repository")
 	if err != nil {
 		return err
 	}
@@ -138,7 +131,7 @@ func (r FileRepository) CreateSignatureRequest(ctx context.Context, req api.Sign
 }
 
 func (r FileRepository) ListPendingSignatures(ctx context.Context, signerID uuid.UUID) ([]api.SignatureRequestRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "file repository")
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +164,7 @@ func (r FileRepository) ListPendingSignatures(ctx context.Context, signerID uuid
 }
 
 func (r FileRepository) SignDocument(ctx context.Context, requestID, signerID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "file repository")
 	if err != nil {
 		return err
 	}
@@ -198,7 +191,7 @@ func (r FileRepository) SignDocument(ctx context.Context, requestID, signerID uu
 }
 
 func (r FileRepository) CreateFileVersion(ctx context.Context, oldFileID uuid.UUID, newFile api.FileRecord) (api.FileRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "file repository")
 	if err != nil {
 		return api.FileRecord{}, err
 	}
@@ -242,7 +235,7 @@ func (r FileRepository) CreateFileVersion(ctx context.Context, oldFileID uuid.UU
 }
 
 func (r FileRepository) ListFileVersions(ctx context.Context, fileID uuid.UUID) ([]api.FileRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "file repository")
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +282,7 @@ func (r FileRepository) ListFileVersions(ctx context.Context, fileID uuid.UUID) 
 }
 
 func (r FileRepository) ListFilesByOwner(ctx context.Context, ownerType string, ownerID uuid.UUID) ([]api.FileRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "file repository")
 	if err != nil {
 		return nil, err
 	}

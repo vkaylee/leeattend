@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
@@ -10,13 +9,6 @@ import (
 
 type AssignmentHistoryRepository struct {
 	DB DBTX
-}
-
-func (r AssignmentHistoryRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("assignment history repository: database is not configured")
-	}
-	return r.DB, nil
 }
 
 func scanAssignmentHistory(row interface{ Scan(...any) error }) (api.AssignmentHistory, error) {
@@ -63,7 +55,7 @@ const assignmentHistoryQuery = `
 `
 
 func (r AssignmentHistoryRepository) ListAssignmentHistory(ctx context.Context, page, limit int) ([]api.AssignmentHistory, int64, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "assignment history repository")
 	if err != nil {
 		return nil, 0, err
 	}

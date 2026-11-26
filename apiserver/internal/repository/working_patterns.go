@@ -16,18 +16,11 @@ type WorkingPatternRepository struct {
 	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-func (r WorkingPatternRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("working pattern repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r WorkingPatternRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "working pattern repository")
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +73,7 @@ func (r WorkingPatternRepository) CreatePattern(ctx context.Context, req api.Cre
 }
 
 func (r WorkingPatternRepository) ListPatterns(ctx context.Context) ([]api.WorkingPattern, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "working pattern repository")
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +97,7 @@ func (r WorkingPatternRepository) ListPatterns(ctx context.Context) ([]api.Worki
 }
 
 func (r WorkingPatternRepository) GetPatternDetails(ctx context.Context, patternID uuid.UUID) ([]api.WorkingPatternDetail, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "working pattern repository")
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +173,7 @@ func (r WorkingPatternRepository) UpdatePattern(ctx context.Context, patternID u
 }
 
 func (r WorkingPatternRepository) DeletePattern(ctx context.Context, patternID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "working pattern repository")
 	if err != nil {
 		return err
 	}
@@ -320,7 +313,7 @@ func patternEndDate(startDate string, endDate *string) string {
 }
 
 func (r WorkingPatternRepository) EmploymentPatternHistory(ctx context.Context, employmentID uuid.UUID) ([]api.EmployeeWorkingPattern, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "working pattern repository")
 	if err != nil {
 		return nil, err
 	}

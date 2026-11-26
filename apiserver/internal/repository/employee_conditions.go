@@ -13,13 +13,6 @@ type EmployeeConditionRepository struct {
 	DB DBTX
 }
 
-func (r EmployeeConditionRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("employee condition repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func employeeExists(ctx context.Context, db DBTX, employeeID uuid.UUID) error {
 	var exists bool
 	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employees WHERE id = $1 AND deleted_at IS NULL)`, employeeID).Scan(&exists); err != nil {
@@ -57,7 +50,7 @@ func scanEmployeeCondition(row interface{ Scan(...any) error }) (api.EmployeeCon
 }
 
 func (r EmployeeConditionRepository) ListOrganizationConditions(ctx context.Context) ([]api.EmployeeConditionWithEmployee, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee condition repository")
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +89,7 @@ func (r EmployeeConditionRepository) ListOrganizationConditions(ctx context.Cont
 }
 
 func (r EmployeeConditionRepository) ListEmployeeConditions(ctx context.Context, employeeID uuid.UUID, page, limit int) (api.EmployeeConditionListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee condition repository")
 	if err != nil {
 		return api.EmployeeConditionListResponse{}, err
 	}
@@ -129,7 +122,7 @@ func (r EmployeeConditionRepository) ListEmployeeConditions(ctx context.Context,
 }
 
 func (r EmployeeConditionRepository) CreateEmployeeCondition(ctx context.Context, employeeID uuid.UUID, req api.CreateEmployeeConditionRequest) (api.EmployeeCondition, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee condition repository")
 	if err != nil {
 		return api.EmployeeCondition{}, err
 	}
@@ -158,7 +151,7 @@ func (r EmployeeConditionRepository) CreateEmployeeCondition(ctx context.Context
 }
 
 func (r EmployeeConditionRepository) DeleteEmployeeCondition(ctx context.Context, employeeID, conditionID uuid.UUID) error {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee condition repository")
 	if err != nil {
 		return err
 	}
@@ -177,7 +170,7 @@ func (r EmployeeConditionRepository) DeleteEmployeeCondition(ctx context.Context
 }
 
 func (r EmployeeConditionRepository) CurrentEmployeeDepartment(ctx context.Context, employeeID uuid.UUID) (*uuid.UUID, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee condition repository")
 	if err != nil {
 		return nil, err
 	}

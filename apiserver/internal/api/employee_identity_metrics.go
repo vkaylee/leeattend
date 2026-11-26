@@ -6,8 +6,6 @@ import (
 	"log/slog"
 	"sync/atomic"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 )
 
 // EmployeeIdentityMetrics tracks aggregate-only counts and emits PII-free
@@ -116,7 +114,7 @@ func classifyWriteOutcome(operation string, err error, target *EmployeeIdentityM
 		}
 		return "conflict"
 	}
-	if errors.Is(err, ErrInvalidInput) || errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, ErrInvalidInput) || errors.Is(err, ErrNotFound) {
 		return "rejected"
 	}
 	if operation == "reuse_tenure" {

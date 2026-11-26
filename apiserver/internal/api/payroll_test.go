@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/audit"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
@@ -520,7 +519,7 @@ func TestPayrollHandlersMapRepositoryFailures(t *testing.T) {
 		err  error
 		want int
 	}{
-		{name: "not found", err: pgx.ErrNoRows, want: http.StatusNotFound},
+		{name: "not found", err: ErrNotFound, want: http.StatusNotFound},
 		{name: "internal", err: errors.New("repository unavailable"), want: http.StatusInternalServerError},
 	} {
 		t.Run(test.name, func(t *testing.T) {

@@ -18,18 +18,11 @@ type ShiftRepository struct {
 	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-func (r ShiftRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("shift repository: database is not configured")
-	}
-	return r.DB, nil
-}
-
 func (r ShiftRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "shift repository")
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +72,7 @@ func (r ShiftRepository) CreateShift(ctx context.Context, actorID uuid.UUID, req
 }
 
 func (r ShiftRepository) ListShifts(ctx context.Context, locationID, employerID *uuid.UUID, page, limit int) (api.PaginatedShifts, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "shift repository")
 	if err != nil {
 		return api.PaginatedShifts{}, err
 	}
@@ -164,7 +157,7 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, templateID, actorID uu
 		var versionNumber int
 		var currentEffectiveFrom time.Time
 		if err := db.QueryRow(ctx, `SELECT v.id, v.version_number, v.effective_from FROM shift_templates t JOIN shift_versions v ON v.id = t.current_version_id WHERE t.id = $1 FOR UPDATE`, templateID).Scan(&currentVersionID, &versionNumber, &currentEffectiveFrom); err != nil {
-			return pgx.ErrNoRows
+			return errNoRows
 		}
 		correction := req.IsCorrection || req.EffectiveDate == nil || *req.EffectiveDate == ""
 		effectiveDate := currentEffectiveFrom.Format("2006-01-02")
@@ -210,7 +203,7 @@ func (r ShiftRepository) UpdateShift(ctx context.Context, templateID, actorID uu
 }
 
 func (r ShiftRepository) ListShiftVersions(ctx context.Context, templateID uuid.UUID) ([]api.ShiftVersionRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "shift repository")
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +212,7 @@ func (r ShiftRepository) ListShiftVersions(ctx context.Context, templateID uuid.
 		return nil, err
 	}
 	if !exists {
-		return nil, pgx.ErrNoRows
+		return nil, errNoRows
 	}
 	rows, err := db.Query(ctx, `SELECT id, template_id, version_number, name, report_symbol, location_id, employer_id, effective_from, effective_to, change_type, change_reason, superseded_by, created_by, created_at FROM shift_versions WHERE template_id = $1 ORDER BY version_number DESC`, templateID)
 	if err != nil {

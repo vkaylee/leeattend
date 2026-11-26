@@ -24,7 +24,7 @@ func (r EmployeeRepository) begin(ctx context.Context) (service.TxBeginner, erro
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee repository")
 	if err != nil {
 		return nil, err
 	}
@@ -33,13 +33,6 @@ func (r EmployeeRepository) begin(ctx context.Context) (service.TxBeginner, erro
 		return nil, errors.New("employee repository: database does not support transactions")
 	}
 	return beginner, nil
-}
-
-func (r EmployeeRepository) db(ctx context.Context) (DBTX, error) {
-	if r.DB == nil {
-		return nil, errors.New("employee repository: database is not configured")
-	}
-	return r.DB, nil
 }
 
 func (r EmployeeRepository) CreateEmployee(ctx context.Context, req api.CreateEmployeeRequest) (api.EmployeeRecord, error) {
@@ -200,7 +193,7 @@ func scanEmployeeRecord(row interface{ Scan(...any) error }) (api.EmployeeRecord
 }
 
 func (r EmployeeRepository) ListEmployees(ctx context.Context, page, limit int, search string) (api.EmployeeListResponse, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee repository")
 	if err != nil {
 		return api.EmployeeListResponse{}, err
 	}
@@ -244,7 +237,7 @@ func (r EmployeeRepository) ListEmployees(ctx context.Context, page, limit int, 
 }
 
 func (r EmployeeRepository) GetEmployee(ctx context.Context, employeeID uuid.UUID) (api.EmployeeRecord, error) {
-	db, err := r.db(ctx)
+	db, err := requireDB(r.DB, "employee repository")
 	if err != nil {
 		return api.EmployeeRecord{}, err
 	}
@@ -358,7 +351,7 @@ func (r EmployeeRepository) SoftDeleteEmployee(ctx context.Context, employeeID u
 			return err
 		}
 		if command.RowsAffected() == 0 {
-			return pgx.ErrNoRows
+			return errNoRows
 		}
 		rows, err := tx.Query(ctx, `SELECT DISTINCT user_id FROM employee_tenures WHERE employee_id = $1 AND user_id IS NOT NULL AND end_date IS NULL AND deleted_at IS NULL`, employeeID)
 		if err != nil {

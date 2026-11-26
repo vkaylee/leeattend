@@ -101,8 +101,8 @@ type EmployeeTenureManager interface {
 
 // ListTenures handles GET /api/v1/employees/{employee_id}/tenures.
 func (h *EmployeeHandler) ListTenures(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "employees:read") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "employees:read") {
+		writeForbidden(w, r)
 		return
 	}
 	employeeID, ok := pathUUID(r, "employee_id")
@@ -206,8 +206,8 @@ func (h *EmployeeHandler) parseCloseTenureRequest(w http.ResponseWriter, r *http
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return uuid.Nil, uuid.Nil, uuid.Nil, CloseEmployeeTenureRequest{}, false
 	}
-	if !h.allowed(r, "employees:update") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "employees:update") {
+		writeForbidden(w, r)
 		return uuid.Nil, uuid.Nil, uuid.Nil, CloseEmployeeTenureRequest{}, false
 	}
 	employeeID, empOK := pathUUID(r, "employee_id")
@@ -250,7 +250,7 @@ func (h *EmployeeHandler) emitTenureClosedAudit(ctx context.Context, actorID uui
 
 func (h *EmployeeHandler) authorizeCreateTenure(w http.ResponseWriter, r *http.Request, actorID uuid.UUID, departmentID *uuid.UUID) bool {
 	if h.Authorizer == nil || !h.Authorizer.HasScopedPermission(r.Context(), actorID, string(auth.PermissionEmployeesRehire), departmentID) {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return false
 	}
 	return true

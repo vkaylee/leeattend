@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 var (
@@ -99,8 +98,8 @@ type CustomFieldHandler struct {
 }
 
 func (h *CustomFieldHandler) CreateDefinition(w http.ResponseWriter, r *http.Request) {
-	if !h.allowed(r, "organization:settings:write") {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	var req CreateCustomFieldDefinitionRequest
@@ -147,8 +146,8 @@ func (h *CustomFieldHandler) CreateDefinition(w http.ResponseWriter, r *http.Req
 
 func (h *CustomFieldHandler) GetDefinition(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, "organization:settings:read") {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, "organization:settings:read") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -168,17 +167,17 @@ func (h *CustomFieldHandler) ListDefinitions(w http.ResponseWriter, r *http.Requ
 	if raw := r.URL.Query().Get("entity_type"); raw != "" {
 		entityType = &raw
 	}
-	allowed := h.allowed(r, "organization:settings:read")
+	allowed := hasPermission(r, h.Authorizer, "organization:settings:read")
 	if !allowed && entityType != nil {
 		switch *entityType {
 		case "employee", "employment":
-			allowed = h.allowed(r, "employees:read")
+			allowed = hasPermission(r, h.Authorizer, "employees:read")
 		case "department":
-			allowed = h.allowed(r, "departments:read")
+			allowed = hasPermission(r, h.Authorizer, "departments:read")
 		}
 	}
 	if !allowed {
-		h.forbidden(w, r)
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -195,8 +194,8 @@ func (h *CustomFieldHandler) ListDefinitions(w http.ResponseWriter, r *http.Requ
 
 func (h *CustomFieldHandler) UpdateDefinition(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, "organization:settings:write") {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	var req UpdateCustomFieldDefinitionRequest
@@ -218,8 +217,8 @@ func (h *CustomFieldHandler) UpdateDefinition(w http.ResponseWriter, r *http.Req
 
 func (h *CustomFieldHandler) DeleteDefinition(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.allowed(r, "organization:settings:write") {
-		h.forbidden(w, r)
+	if !idOK || !hasPermission(r, h.Authorizer, "organization:settings:write") {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -244,8 +243,8 @@ func (h *CustomFieldHandler) GetValues(w http.ResponseWriter, r *http.Request) {
 	if entityType == "department" {
 		perm = "departments:read"
 	}
-	if !h.allowed(r, perm) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, perm) {
+		writeForbidden(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -271,8 +270,8 @@ func (h *CustomFieldHandler) SetValues(w http.ResponseWriter, r *http.Request) {
 	if entityType == "department" {
 		perm = "departments:update"
 	}
-	if !h.allowed(r, perm) {
-		h.forbidden(w, r)
+	if !hasPermission(r, h.Authorizer, perm) {
+		writeForbidden(w, r)
 		return
 	}
 	var req BulkSetCustomFieldValuesRequest
@@ -290,15 +289,6 @@ func (h *CustomFieldHandler) SetValues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, values)
-}
-
-func (h *CustomFieldHandler) allowed(r *http.Request, p string) bool {
-	u, ok := httpinfra.UserIDFromContext(r.Context())
-	return ok && h.Authorizer != nil && h.Authorizer.HasPermission(r.Context(), u, p)
-}
-
-func (h *CustomFieldHandler) forbidden(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 }
 
 func (h *CustomFieldHandler) validation(w http.ResponseWriter, r *http.Request) {
