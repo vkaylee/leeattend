@@ -649,6 +649,10 @@ func (h *AttendanceHandler) DeleteTimeEntry(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *AttendanceHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+	if mapped := mapLifecycleGuardError(err); mapped != nil {
+		apperror.WriteError(w, r, mapped)
+		return
+	}
 	writeMappedError(w, r, err, func(err error) *apperror.AppError {
 		switch {
 		case errors.Is(err, ErrInvalidAttendanceAdjustment), errors.Is(err, ErrNoActiveEmployment), errors.Is(err, ErrAttendancePolicyMissing):
@@ -657,6 +661,8 @@ func (h *AttendanceHandler) writeError(w http.ResponseWriter, r *http.Request, e
 			return apperror.Forbidden(apperror.KeyForbidden)
 		case errors.Is(err, ErrAttendanceLockedPeriod):
 			return apperror.Conflict("error.locked_period")
+		case errors.Is(err, ErrAttendanceIdempotencyConflict):
+			return apperror.Conflict(apperror.KeyConflict)
 		case errors.Is(err, ErrNotFound), errors.Is(err, ErrWorkSegmentNotFound):
 			return apperror.NotFound(apperror.KeyNotFound)
 		default:

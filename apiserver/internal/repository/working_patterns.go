@@ -178,7 +178,7 @@ func (r WorkingPatternRepository) DeletePattern(ctx context.Context, patternID u
 		return err
 	}
 	if err := guardLifecyclePatternMutation(ctx, db, patternID); err != nil {
-		return err
+		return finishLifecycleMutationDB(ctx, db, err)
 	}
 	tag, err := db.Exec(ctx, `UPDATE working_patterns SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL`, patternID)
 	if err != nil {

@@ -170,6 +170,10 @@ type AttendanceLogsHandler struct {
 }
 
 func (h *AttendanceLogsHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
+	if mapped := mapLifecycleGuardError(err); mapped != nil {
+		apperror.WriteError(w, r, mapped)
+		return
+	}
 	writeMappedError(w, r, err, nil)
 }
 

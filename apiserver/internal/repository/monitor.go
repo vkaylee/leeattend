@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
-	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 )
 
 type MonitorRepository struct {
@@ -103,7 +102,7 @@ func (r MonitorRepository) ListAlerts(ctx context.Context, status, severity *str
 
 func (r MonitorRepository) GetAlert(ctx context.Context, alertID uuid.UUID) (*api.MonitorAlertResponse, []api.MonitorAlertEventResponse, error) {
 	if r.SystemDB == nil {
-		return nil, nil, apperror.NotFound(apperror.KeyNotFound)
+		return nil, nil, api.ErrMonitorNotFound
 	}
 
 	var a api.MonitorAlertResponse
@@ -119,7 +118,7 @@ func (r MonitorRepository) GetAlert(ctx context.Context, alertID uuid.UUID) (*ap
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil, apperror.NotFound(apperror.KeyNotFound)
+			return nil, nil, api.ErrMonitorNotFound
 		}
 		return nil, nil, err
 	}
@@ -147,7 +146,7 @@ func (r MonitorRepository) GetAlert(ctx context.Context, alertID uuid.UUID) (*ap
 
 func (r MonitorRepository) MutateAlert(ctx context.Context, alertID uuid.UUID, action string, reason string, actorID uuid.UUID) (*api.MonitorAlertResponse, error) {
 	if r.SystemDB == nil {
-		return nil, apperror.NotFound(apperror.KeyNotFound)
+		return nil, api.ErrMonitorNotFound
 	}
 
 	var current api.MonitorAlertResponse
@@ -163,7 +162,7 @@ func (r MonitorRepository) MutateAlert(ctx context.Context, alertID uuid.UUID, a
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, apperror.NotFound(apperror.KeyNotFound)
+			return nil, api.ErrMonitorNotFound
 		}
 		return nil, err
 	}
@@ -184,7 +183,7 @@ func (r MonitorRepository) MutateAlert(ctx context.Context, alertID uuid.UUID, a
 			return &current, nil
 		}
 		if current.Status != "active" {
-			return nil, apperror.Conflict(apperror.KeyConflict)
+			return nil, api.ErrMonitorConflict
 		}
 
 		eventID := uuid.New()
@@ -202,7 +201,7 @@ func (r MonitorRepository) MutateAlert(ctx context.Context, alertID uuid.UUID, a
 			return &current, nil
 		}
 		if current.Status != "active" {
-			return nil, apperror.Conflict(apperror.KeyConflict)
+			return nil, api.ErrMonitorConflict
 		}
 
 		var updated api.MonitorAlertResponse
@@ -460,7 +459,7 @@ func (r MonitorRepository) ListCorrelations(ctx context.Context, requestID *uuid
 
 func (r MonitorRepository) GetDurableJob(ctx context.Context, jobID uuid.UUID) (*api.MonitorInfraJobRecord, error) {
 	if r.SystemDB == nil {
-		return nil, apperror.NotFound(apperror.KeyJobNotFound)
+		return nil, api.ErrMonitorNotFound
 	}
 
 	var j api.MonitorInfraJobRecord
@@ -479,7 +478,7 @@ func (r MonitorRepository) GetDurableJob(ctx context.Context, jobID uuid.UUID) (
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, apperror.NotFound(apperror.KeyJobNotFound)
+			return nil, api.ErrMonitorNotFound
 		}
 		return nil, err
 	}

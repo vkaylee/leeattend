@@ -302,5 +302,6 @@ func (r HolidayRepository) ProcessHolidayLeave(ctx context.Context, holidayID uu
 		}
 		return EnqueueRosterCacheInvalidation(ctx, db)
 	})
+	err = finishLifecycleMutation(ctx, tx, err)
 	return results, err
 }

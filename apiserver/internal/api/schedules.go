@@ -29,6 +29,9 @@ var (
 	ErrScheduleApprovalInvalid      = errors.New("schedule lifecycle approval is invalid")
 	ErrScheduleConflict             = errors.New("schedule lifecycle schedule conflict")
 	ErrScheduleBreakOverrideInvalid = errors.New("schedule lifecycle break override is invalid")
+	ErrLifecycleMutationBlocked     = errors.New("schedule lifecycle blocks legacy mutation")
+	ErrLifecycleSchemaUnavailable   = errors.New("schedule lifecycle schema is unavailable for managed target")
+	ErrLifecycleEvidenceFailed      = errors.New("schedule lifecycle legacy mutation evidence write failed")
 )
 
 const (
@@ -561,6 +564,19 @@ func (h *ScheduleHandler) lifecycleRepository() (ScheduleLifecycleRepository, bo
 	}
 	lifecycle, ok := h.Repository.(ScheduleLifecycleRepository)
 	return lifecycle, ok
+}
+
+func mapLifecycleGuardError(err error) *apperror.AppError {
+	switch {
+	case errors.Is(err, ErrLifecycleEvidenceFailed):
+		return apperror.Internal(err)
+	case errors.Is(err, ErrLifecycleSchemaUnavailable):
+		return apperror.ServiceUnavailable(apperror.KeyServiceUnavailable)
+	case errors.Is(err, ErrLifecycleMutationBlocked):
+		return apperror.Conflict(apperror.KeyConflict)
+	default:
+		return nil
+	}
 }
 
 func (h *ScheduleHandler) lifecycleUnavailable(w http.ResponseWriter, r *http.Request) {

@@ -3,17 +3,34 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
 
 var (
-	ErrLifecycleMutationBlocked   = errors.New("schedule lifecycle blocks legacy mutation")
-	ErrLifecycleSchemaUnavailable = errors.New("schedule lifecycle schema is unavailable for managed target")
+	ErrLifecycleMutationBlocked             = api.ErrLifecycleMutationBlocked
+	ErrLifecycleSchemaUnavailable           = api.ErrLifecycleSchemaUnavailable
+	ErrLifecycleEvidenceFailed              = api.ErrLifecycleEvidenceFailed
+	errLifecycleEvidenceBeginnerUnavailable = errors.New("transaction beginner unavailable for lifecycle evidence")
 )
+
+type lifecycleEvidenceFailureError struct {
+	blockedErr  error
+	evidenceErr error
+}
+
+func (e *lifecycleEvidenceFailureError) Error() string {
+	return fmt.Sprintf("%s: %v (blocked: %v)", ErrLifecycleEvidenceFailed.Error(), e.evidenceErr, e.blockedErr)
+}
+
+func (e *lifecycleEvidenceFailureError) Unwrap() []error {
+	return []error{ErrLifecycleEvidenceFailed, e.evidenceErr}
+}
 
 type lifecycleMutationBlockedError struct {
 	employmentIDs []uuid.UUID
@@ -29,8 +46,11 @@ func blockedMutation(employmentIDs []uuid.UUID, dates []string) error {
 
 func writeBlockedMutationEvidence(ctx context.Context, beginner TxBeginner, blocked error) error {
 	var event *lifecycleMutationBlockedError
-	if !errors.As(blocked, &event) || beginner == nil {
+	if !errors.As(blocked, &event) {
 		return nil
+	}
+	if beginner == nil {
+		return errLifecycleEvidenceBeginnerUnavailable
 	}
 	return service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
 		return recordLegacyMutationEvidence(ctx, tx, event.employmentIDs, event.dates, "guard_blocked")
@@ -42,16 +62,16 @@ func finishLifecycleMutation(ctx context.Context, beginner TxBeginner, err error
 		return nil
 	}
 	if evidenceErr := writeBlockedMutationEvidence(ctx, beginner, err); evidenceErr != nil {
-		return errors.Join(err, evidenceErr)
+		return &lifecycleEvidenceFailureError{blockedErr: err, evidenceErr: evidenceErr}
 	}
 	return err
 }
 
 func finishLifecycleMutationDB(ctx context.Context, db DBTX, err error) error {
-	beginner, ok := db.(TxBeginner)
-	if !ok {
-		return err
+	if err == nil {
+		return nil
 	}
+	beginner, _ := db.(TxBeginner)
 	return finishLifecycleMutation(ctx, beginner, err)
 }
 
@@ -241,7 +261,7 @@ func guardLifecycleShiftMutation(ctx context.Context, db DBTX, templateID uuid.U
 		return err
 	}
 	if official {
-		return ErrLifecycleMutationBlocked
+		return blockedMutation(nil, nil)
 	}
 	return nil
 }

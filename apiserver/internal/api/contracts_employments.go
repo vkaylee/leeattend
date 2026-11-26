@@ -354,6 +354,8 @@ func (h *ContractEmploymentHandler) error(w http.ResponseWriter, r *http.Request
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	case errors.Is(err, ErrContractOverlap), errors.Is(err, ErrEmploymentOverlap), errors.Is(err, ErrConflict):
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
+	case errors.Is(err, ErrInvalidInput):
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 	case errors.Is(err, ErrNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 	default:

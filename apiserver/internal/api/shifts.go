@@ -368,6 +368,10 @@ func (h *ShiftHandler) writeError(w http.ResponseWriter, r *http.Request, err er
 		}
 		return
 	}
+	if mapped := mapLifecycleGuardError(err); mapped != nil {
+		apperror.WriteError(w, r, mapped)
+		return
+	}
 	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrEmploymentNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

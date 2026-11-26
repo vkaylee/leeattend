@@ -169,16 +169,24 @@ func (h *ShiftSwapHandler) Stats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ShiftSwapHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+	if mapped := mapLifecycleGuardError(err); mapped != nil {
+		apperror.WriteError(w, r, mapped)
+		return
+	}
 	if errors.Is(err, ErrShiftSwapNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
-	if errors.Is(err, ErrShiftSwapConflict) {
+	if errors.Is(err, ErrShiftSwapConflict) || errors.Is(err, ErrScheduleLockedPeriod) || errors.Is(err, ErrScheduleNoCurrentRevision) || errors.Is(err, ErrScheduleConflict) {
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}
-	if errors.Is(err, ErrShiftSwapValidation) {
+	if errors.Is(err, ErrShiftSwapValidation) || errors.Is(err, ErrNoActiveEmployment) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if errors.Is(err, ErrShiftSwapForbidden) {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
 	apperror.WriteError(w, r, apperror.Internal(err))

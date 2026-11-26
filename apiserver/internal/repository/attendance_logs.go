@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -534,7 +535,12 @@ func (r AttendanceRepository) BulkPaperOT(ctx context.Context, rows []api.BulkPa
 				return errors.New("employee not found")
 			}
 			if guardErr := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{row.Date}); guardErr != nil {
-				return finishLifecycleMutationDB(ctx, db, guardErr)
+				finishedErr := finishLifecycleMutationDB(ctx, db, guardErr)
+				if errors.Is(finishedErr, ErrLifecycleEvidenceFailed) {
+					slog.ErrorContext(ctx, "Lifecycle evidence write failed during bulk paper OT", "error", finishedErr, "line_number", row.LineNumber)
+					return ErrLifecycleEvidenceFailed
+				}
+				return finishedErr
 			}
 			_, upsertErr := upsertPaperOT(ctx, db, employmentID, api.PaperOTRequest{Date: row.Date, ClaimedMinutes: row.ClaimedMinutes, Reason: row.Reason}, user)
 			return upsertErr

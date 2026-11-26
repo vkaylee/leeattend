@@ -187,7 +187,7 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 		return err
 	}
 	now := time.Now().UTC()
-	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
+	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var currentStatus string
 		var requesterID, targetID uuid.UUID
 		var swapDate string
@@ -230,9 +230,6 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 				}
 			}
 			if err := guardLifecycleDateMutation(ctx, db, []uuid.UUID{reqEmp, tgtEmp}, []string{swapDate}); err != nil {
-				if errors.Is(err, ErrLifecycleMutationBlocked) || errors.Is(err, ErrLifecycleSchemaUnavailable) {
-					return api.ErrShiftSwapConflict
-				}
 				return err
 			}
 			note := fmt.Sprintf("Shift swap #%s", requestID)
@@ -256,6 +253,7 @@ func (r ShiftSwapRepository) ApproveSwap(ctx context.Context, requestID, approve
 		}
 		return nil
 	})
+	return finishLifecycleMutation(ctx, tx, err)
 }
 
 func (r ShiftSwapRepository) Stats(ctx context.Context) (api.SwapStats, error) {

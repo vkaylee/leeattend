@@ -93,6 +93,10 @@ func (h *EmployeeDepartmentHandler) writeError(w http.ResponseWriter, r *http.Re
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))
 	case errors.Is(err, ErrDepartmentNotFound), errors.Is(err, ErrNotFound), errors.Is(err, ErrEmploymentNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
+	case errors.Is(err, ErrNoActiveEmployment):
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	case errors.Is(err, ErrConflict):
+		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 	default:
 		apperror.WriteError(w, r, apperror.Internal(err))
 	}

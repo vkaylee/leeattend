@@ -300,6 +300,10 @@ func (h *AssignmentHandler) validateEmployee(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Request, err error) {
+	if mapped := mapLifecycleGuardError(err); mapped != nil {
+		apperror.WriteError(w, r, mapped)
+		return
+	}
 	switch {
 	case errors.Is(err, ErrEmployeeAssignmentNotFound):
 		apperror.WriteError(w, r, apperror.NotFound("error.employee_assignment_not_found"))
@@ -309,6 +313,8 @@ func (h *AssignmentHandler) assignmentError(w http.ResponseWriter, r *http.Reque
 		apperror.WriteError(w, r, apperror.Validation("error.no_active_employment"))
 	case errors.Is(err, ErrHomeHostLocationSame):
 		apperror.WriteError(w, r, apperror.Validation("error.home_host_location_same"))
+	case errors.Is(err, ErrConflict):
+		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 	case errors.Is(err, ErrNotFound):
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyEmployeeNotFound))
 	default:

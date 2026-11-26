@@ -397,6 +397,10 @@ func (h *HolidayHandler) checkManagePermission(w http.ResponseWriter, r *http.Re
 }
 
 func (h *HolidayHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+	if mapped := mapLifecycleGuardError(err); mapped != nil {
+		apperror.WriteError(w, r, mapped)
+		return
+	}
 	if errors.Is(err, ErrHolidayNotFound) || errors.Is(err, ErrNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyHolidayNotFound))
 		return

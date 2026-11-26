@@ -19,6 +19,9 @@ import (
 
 type mockMonitorRepo struct {
 	listAlertsErr error
+	getAlertErr   error
+	mutateErr     error
+	getJobErr     error
 	alerts        map[uuid.UUID]MonitorAlertResponse
 	alertEvents   map[uuid.UUID][]MonitorAlertEventResponse
 	durableJobs   []MonitorInfraJobRecord
@@ -57,18 +60,24 @@ func (m *mockMonitorRepo) ListAlerts(_ context.Context, status, severity *string
 }
 
 func (m *mockMonitorRepo) GetAlert(_ context.Context, alertID uuid.UUID) (*MonitorAlertResponse, []MonitorAlertEventResponse, error) {
+	if m.getAlertErr != nil {
+		return nil, nil, m.getAlertErr
+	}
 	a, ok := m.alerts[alertID]
 	if !ok {
-		return nil, nil, apperror.NotFound(apperror.KeyNotFound)
+		return nil, nil, ErrMonitorNotFound
 	}
 	events := m.alertEvents[alertID]
 	return &a, events, nil
 }
 
 func (m *mockMonitorRepo) MutateAlert(_ context.Context, alertID uuid.UUID, action string, reason string, _ uuid.UUID) (*MonitorAlertResponse, error) {
+	if m.mutateErr != nil {
+		return nil, m.mutateErr
+	}
 	a, ok := m.alerts[alertID]
 	if !ok {
-		return nil, apperror.NotFound(apperror.KeyNotFound)
+		return nil, ErrMonitorNotFound
 	}
 	switch action {
 	case "acknowledge":
@@ -76,7 +85,7 @@ func (m *mockMonitorRepo) MutateAlert(_ context.Context, alertID uuid.UUID, acti
 			return &a, nil
 		}
 		if a.Status != "active" {
-			return nil, apperror.Conflict(apperror.KeyConflict)
+			return nil, ErrMonitorConflict
 		}
 		m.acknowledged[alertID] = true
 		ev := MonitorAlertEventResponse{
@@ -93,7 +102,7 @@ func (m *mockMonitorRepo) MutateAlert(_ context.Context, alertID uuid.UUID, acti
 			return &a, nil
 		}
 		if a.Status != "active" {
-			return nil, apperror.Conflict(apperror.KeyConflict)
+			return nil, ErrMonitorConflict
 		}
 		now := time.Now().UTC()
 		a.Status = "resolved"
@@ -152,6 +161,9 @@ func (m *mockMonitorRepo) ListCorrelations(_ context.Context, requestID *uuid.UU
 }
 
 func (m *mockMonitorRepo) GetDurableJob(_ context.Context, jobID uuid.UUID) (*MonitorInfraJobRecord, error) {
+	if m.getJobErr != nil {
+		return nil, m.getJobErr
+	}
 	for _, j := range m.durableJobs {
 		if j.JobID == jobID {
 			return &j, nil
@@ -613,4 +625,92 @@ func TestDurableMonitorJob(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
+}
+
+func assertMonitorWireError(t *testing.T, w *httptest.ResponseRecorder, wantStatus int, wantCode apperror.ErrorCode, wantKey string) {
+	t.Helper()
+	if w.Code != wantStatus {
+		t.Fatalf("status = %d, want %d", w.Code, wantStatus)
+	}
+	var env apperror.WireErrorEnvelope
+	if err := json.NewDecoder(w.Body).Decode(&env); err != nil {
+		t.Fatalf("decode wire error: %v", err)
+	}
+	if env.Error.Code != wantCode || env.Error.Message != apperror.Translate("en", wantKey) {
+		t.Fatalf("envelope = %+v, want %s %s", env, wantCode, wantKey)
+	}
+	if wantStatus == http.StatusInternalServerError && strings.Contains(env.Error.Message, "secret") {
+		t.Fatalf("500 response leaked internal error: %q", env.Error.Message)
+	}
+}
+
+func TestMonitorGetAlertErrorContract(t *testing.T) {
+	admin := uuid.New()
+	authz := monitorInfraAuthz(admin)
+	id := uuid.NewString()
+
+	repo := newMockMonitorRepo()
+	handler := MonitorHandler{Repo: repo, Authorizer: authz}
+	req := setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/alerts/"+id+"?lang=en", nil), admin)
+	req.SetPathValue("alert_id", id)
+	w := httptest.NewRecorder()
+	handler.GetAlert(w, req)
+	assertMonitorWireError(t, w, http.StatusNotFound, apperror.CodeNotFound, apperror.KeyNotFound)
+
+	repo.getAlertErr = errors.New("secret sql detail")
+	req = setInfraReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/alerts/"+id+"?lang=en", nil), admin)
+	req.SetPathValue("alert_id", id)
+	w = httptest.NewRecorder()
+	handler.GetAlert(w, req)
+	assertMonitorWireError(t, w, http.StatusInternalServerError, apperror.CodeInternalError, apperror.KeyInternal)
+}
+
+func TestMonitorGetJobErrorContract(t *testing.T) {
+	admin := uuid.New()
+	authz := monitorInfraAuthz(admin)
+	authz.members = map[uuid.UUID]bool{admin: true}
+	id := uuid.NewString()
+
+	repo := newMockMonitorRepo()
+	handler := MonitorHandler{Repo: repo, Authorizer: authz}
+	req := setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs/"+id+"?lang=en", nil), admin)
+	req.SetPathValue("job_id", id)
+	w := httptest.NewRecorder()
+	handler.GetMonitorJob(w, req)
+	assertMonitorWireError(t, w, http.StatusNotFound, apperror.CodeNotFound, apperror.KeyJobNotFound)
+
+	repo.getJobErr = errors.New("secret pg detail")
+	req = setReqContext(httptest.NewRequest(http.MethodGet, "/api/v1/monitor/jobs/"+id+"?lang=en", nil), admin)
+	req.SetPathValue("job_id", id)
+	w = httptest.NewRecorder()
+	handler.GetMonitorJob(w, req)
+	assertMonitorWireError(t, w, http.StatusInternalServerError, apperror.CodeInternalError, apperror.KeyInternal)
+}
+
+func TestMonitorMutateAlertErrorContract(t *testing.T) {
+	admin := uuid.New()
+	authz := monitorInfraAuthz(admin)
+	id := uuid.NewString()
+	repo := newMockMonitorRepo()
+	handler := MonitorHandler{Repo: repo, Authorizer: authz}
+
+	call := func(action string, body string) *httptest.ResponseRecorder {
+		req := setInfraReqContext(httptest.NewRequest(http.MethodPost, "/api/v1/monitor/alerts/"+id+"/"+action+"?lang=en", strings.NewReader(body)), admin)
+		req.SetPathValue("alert_id", id)
+		w := httptest.NewRecorder()
+		if action == "acknowledge" {
+			handler.AcknowledgeAlert(w, req)
+		} else {
+			handler.ResolveAlert(w, req)
+		}
+		return w
+	}
+
+	assertMonitorWireError(t, call("acknowledge", `{"reason":"check"}`), http.StatusNotFound, apperror.CodeNotFound, apperror.KeyNotFound)
+
+	repo.mutateErr = ErrMonitorConflict
+	assertMonitorWireError(t, call("resolve", `{"reason":"done"}`), http.StatusConflict, apperror.CodeConflict, apperror.KeyConflict)
+
+	repo.mutateErr = errors.New("secret db failure")
+	assertMonitorWireError(t, call("resolve", `{"reason":"done"}`), http.StatusInternalServerError, apperror.CodeInternalError, apperror.KeyInternal)
 }

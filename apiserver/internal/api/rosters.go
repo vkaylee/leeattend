@@ -204,6 +204,10 @@ func duplicateRosterDates(items []RosterItem) bool {
 }
 
 func (h *RosterHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
+	if mapped := mapLifecycleGuardError(err); mapped != nil {
+		apperror.WriteError(w, r, mapped)
+		return
+	}
 	if errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrRosterNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return

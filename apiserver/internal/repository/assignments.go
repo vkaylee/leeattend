@@ -361,7 +361,7 @@ func (r AssignmentRuleRepository) DeleteAssignmentRule(ctx context.Context, rule
 		return err
 	}
 	if err := guardLifecycleGlobalMutation(ctx, db); err != nil {
-		return err
+		return finishLifecycleMutationDB(ctx, db, err)
 	}
 	_, err = db.Exec(ctx, `DELETE FROM assignment_rules WHERE id = $1`, ruleID)
 	return err

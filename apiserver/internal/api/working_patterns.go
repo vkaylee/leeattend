@@ -293,7 +293,11 @@ func (h *WorkingPatternHandler) writeError(w http.ResponseWriter, r *http.Reques
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
 		return
 	}
-	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrPatternNotFound) {
+	if mapped := mapLifecycleGuardError(err); mapped != nil {
+		apperror.WriteError(w, r, mapped)
+		return
+	}
+	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrPatternNotFound) || errors.Is(err, ErrEmploymentNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}

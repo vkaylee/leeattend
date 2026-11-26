@@ -301,7 +301,11 @@ func optionalDateString(value string) *string {
 }
 
 func (h *WorkSegmentHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrWorkSegmentNotFound) {
+	if mapped := mapLifecycleGuardError(err); mapped != nil {
+		apperror.WriteError(w, r, mapped)
+		return
+	}
+	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrWorkSegmentNotFound) || errors.Is(err, ErrEmploymentNotFound) || errors.Is(err, ErrShiftNotFound) {
 		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyNotFound))
 		return
 	}
