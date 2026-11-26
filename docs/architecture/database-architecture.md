@@ -7,16 +7,16 @@ LeeAttend is a single-organization appliance with one PostgreSQL database and on
 | Component | Contract |
 |---|---|
 | PostgreSQL | One database, one `public` schema |
-| Fresh-install phases | `docs/plans/migration-phase-manifest.yaml` |
-| Historical schema oracle | `apiserver/migrations/20261110000000_single_organization_baseline/` plus current numeric migrations |
+| Active fresh-install phases | `apiserver/migrations/phases/` (`foundation`, `hr_core`, `attendance_schedule`, `payroll`, `runtime_seeds`) |
+| Schema contract | `apiserver/migrations/testdata/phased_schema_contract.sql` + `employment_relationship_integrity.sql` |
 | Runtime pools | API and worker pools connect to the same database; no tenant routing |
 | Migration runner | `apiserver/migrations/run-dev.sh` |
 
-Physical database split is gone. The baseline creates final organization tables directly, including `organization_settings`, `roles`, `role_permissions`, and `user_roles`; it does not create legacy platform or workspace objects.
+Physical database split is gone. The phased schema creates final organization tables directly, including `organization_settings`, `roles`, `role_permissions`, and `user_roles`; it does not create legacy platform or workspace objects.
 
 ## Schema groups
 
-The phased fresh-install schema contains all existing system and business objects. Historical baseline currently owns most of these objects and remains schema oracle until phased catalog comparison passes:
+The phased fresh-install schema in `apiserver/migrations/phases/` is the sole active schema source:
 
 - Authentication and platform objects: `users`, `sessions`, `organization_settings`, `roles`, `role_permissions`, `user_roles`, `user_extra_roles`, `user_extra_permissions`, notifications, storage, and infrastructure ledger tables.
 - Business objects: employees, departments, shifts, attendance, leave, payroll, contracts, workflows, files, reports, and outbox tables.
@@ -46,9 +46,11 @@ foundation
   -> runtime_seeds
 ```
 
-Fresh install target is described by `docs/plans/migration-phase-manifest.yaml`. Active fresh phases live under `apiserver/migrations/phases/`. Current numeric migrations remain schema oracle and historical upgrade context; do not apply them through active runner. Apply historical chain only on disposable verification databases. `down.sql` files are rollback/recovery artifacts and require verified backup before use.
+Active fresh-install phases live under `apiserver/migrations/phases/` and are the schema source before production go-live. The historical numeric chain is available in git history. A PostgreSQL 18 comparison found remaining catalog differences; it did not establish complete parity (see `ADR-013`). `down.sql` files are disposable rollback artifacts and require verified backup before any non-disposable use.
 
-Migration phase versions MUST remain unique. New post-production changes MUST append to the active phase runner; do not rewrite an installed phase.
+Before production, schema changes edit the owning phase directly and require recreating a confirmed disposable database; existing phase markers do not cause the runner to reapply modified phase SQL. Never reset a database or volume without confirming its target and data recovery requirements.
+
+Once in production, freeze the fresh-install phases and append new incremental migrations to the active runner rather than rewriting installed phases.
 
 `config_entries` uses typed values, explicit business-key registry in Go, effective dates, and NULL-safe uniqueness for organization scope. `system_settings` remains JSON key/value storage for system/integration documents such as `smtp`; it is not business configuration.
 

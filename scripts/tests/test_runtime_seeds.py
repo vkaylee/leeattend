@@ -3,8 +3,8 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SEEDS = ROOT / "docs/plans/runtime-seeds.sql"
-ROLLBACK = ROOT / "docs/plans/runtime-seeds.down.sql"
+SEEDS = ROOT / "apiserver/migrations/phases/runtime_seeds.up.sql"
+ROLLBACK = ROOT / "apiserver/migrations/phases/runtime_seeds.down.sql"
 
 
 def test_runtime_seeds_are_idempotent_and_not_user_dependent() -> None:

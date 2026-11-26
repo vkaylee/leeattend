@@ -203,7 +203,6 @@ Generated from tracked Markdown/text/CSV files during documentation consolidatio
 - `docs/plans/search-typography-migration-plan.md`
 - `docs/plans/settings-hub-uiux-improvement-plan.md`
 - `docs/plans/single-db-unification-plan.md`
-- `docs/plans/squash-single-organization-migrations.md`
 - `docs/plans/standalone-db-pool-unification.md`
 - `docs/plans/standalone-only-conversion.md`
 - `docs/plans/standalone-onprem-plan.md`

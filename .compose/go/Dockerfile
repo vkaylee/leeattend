@@ -16,7 +16,7 @@ ENV GOTOOLCHAIN=local \
     CGO_ENABLED=1
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3-yaml \
+    && apt-get install -y --no-install-recommends python3-yaml postgresql-client \
     && rm -rf /var/lib/apt/lists/* \
     && git config --global --add safe.directory '*' \
     && go version \

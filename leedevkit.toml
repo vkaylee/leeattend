@@ -30,6 +30,11 @@ lint-web = ["bun_init", "webdashboard"]
 unit-web = ["bun_init", "webdashboard"]
 e2e-web = ["bun_init", "webdashboard"]
 
+[test.gates.int-api]
+setup_command = ["sh", "-ec", "for phase in foundation hr_core attendance_schedule payroll; do psql \"$DB_PRIMARY_URL\" -v ON_ERROR_STOP=1 -f migrations/phases/$phase/up.sql; done; psql \"$DB_PRIMARY_URL\" -v ON_ERROR_STOP=1 -v seed_effective_date=$(date -u +%F) -f migrations/phases/runtime_seeds.up.sql; psql \"$DB_PRIMARY_URL\" -v ON_ERROR_STOP=1 -f migrations/testdata/phased_schema_contract.sql"]
+env = { LEEATTEND_DB_INTEGRATION = "1" }
+required_env = ["DB_PRIMARY_URL"]
+
 [ai]
 rules_dir = ".agent/rules"
 override_manifest = ".agent/overrides.yaml"

@@ -42,13 +42,12 @@ Removing client-selectable tenant scope reduces accidental cross-organization ro
 
 The baseline runs atomically. Before any destructive development reset, confirm database/volume is disposable. Recovery means recreating a disposable database or restoring a backup/snapshot. Do not treat `down.sql` as a production recovery mechanism.
 
-The migration acceptance gate compares final schema catalogs for tables, columns, types, defaults, nullability, constraints, indexes, triggers, functions, views, comments, and extensions before legacy migration files are removed. Phase ownership and cross-phase/cyclic foreign-key handling are recorded in `docs/plans/migration-phase-object-matrix.md`; phase SQL must add final constraints after referenced tables exist, without weakening them.
+Phase SQL must add final constraints after referenced tables exist, without weakening them. Historical phase ownership and cross-phase dependency records remain available in git history.
 
 ## Migration and ownership
 
-- Phase inventory: `docs/plans/migration-phase-inventory.md`
-- Phase manifest: `docs/plans/migration-phase-manifest.yaml`
-- Historical schema oracle: `apiserver/migrations/20261110000000_single_organization_baseline/` plus current numeric migrations
+- Active schema source: `apiserver/migrations/phases/` (`foundation`, `hr_core`, `attendance_schedule`, `payroll`, `runtime_seeds`)
+- Schema contracts: `apiserver/migrations/testdata/phased_schema_contract.sql`, `apiserver/migrations/testdata/employment_relationship_integrity.sql`
 - Runner: `apiserver/migrations/run-dev.sh`
 - Owner: LeeAttend repository maintainer
-- Removal criterion: phased catalog comparison, schema contract, bootstrap, API integration, and full-suite verification pass; no active runtime, migration runner, or schema object depends on workspace terminology
+- The numeric chain was removed from the working tree on 2026-11-26; it remains available in git history. A PostgreSQL 18 comparison checked selected catalog properties and found differences in CHECK constraints, including a stricter `time_entry_snapshot` check and consolidated minute checks. This comparison did not establish full catalog equivalence or explain the origin of those differences. Fresh-phase contract, disposable reverse/reapply, and `leedevkit test all --json` passed; review remaining catalog differences before relying on parity.
