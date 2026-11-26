@@ -16,8 +16,13 @@ import {
 import PermissionGate from "@/components/common/permission-gate";
 import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
-import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
+import {
+    DashboardChartEmpty,
+    DashboardChartError,
+    DashboardChartLoading,
+} from "@/components/features/dashboard/dashboard-chart-state";
 import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
+import { toISODate } from "@/components/features/dashboard/dashboard-hr-shared";
 import { useDashboardChartError } from "@/components/features/dashboard/use-dashboard-chart-error";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -33,11 +38,9 @@ type GroupBy = "department" | "employee";
 
 function defaultRange(): { startDate: string; endDate: string } {
     const now = new Date();
-    const end = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const s = new Date(now);
     s.setDate(s.getDate() - 29);
-    const start = `${s.getFullYear()}-${String(s.getMonth() + 1).padStart(2, "0")}-${String(s.getDate()).padStart(2, "0")}`;
-    return { startDate: start, endDate: end };
+    return { startDate: toISODate(s), endDate: toISODate(now) };
 }
 
 const COLORS = {
@@ -110,11 +113,11 @@ export default function UnexcusedAbsencesChart() {
             />
 
             {isLoading ? (
-                <ChartLoading />
+                <DashboardChartLoading heightClass="h-[320px]" />
             ) : error ? (
                 <DashboardChartError icon={<ShieldAlert size={48} />} />
             ) : !hasData ? (
-                <ChartEmpty />
+                <DashboardChartEmpty heightClass="h-[320px]" icon={<ShieldAlert size={48} />} />
             ) : (
                 <>
                     <ChartSummary text={summary} />
@@ -300,22 +303,3 @@ function ChartHeader({
     );
 }
 
-function ChartLoading() {
-    return (
-        <div className="h-[320px] flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin" />
-        </div>
-    );
-}
-
-function ChartEmpty() {
-    const { t } = useTranslation();
-    return (
-        <div className="h-[320px] flex flex-col items-center justify-center">
-            <ShieldAlert className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
-            <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">
-                {t("common.no_data")}
-            </Typography>
-        </div>
-    );
-}

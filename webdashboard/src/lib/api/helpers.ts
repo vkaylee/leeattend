@@ -1,4 +1,5 @@
 import {
+  clearAuthSession,
   getFullUrl,
   handleSessionExpired,
   handleUnauthorized,
@@ -6,10 +7,8 @@ import {
   forceRefreshToken,
   TIMEOUT,
 } from "./api-fetch-helpers";
-export { forceRefreshToken, TIMEOUT } from "./api-fetch-helpers";
-import { API_BASE_URL } from "./config";
+export { clearAuthSession, forceRefreshToken, TIMEOUT } from "./api-fetch-helpers";
 import {
-  clearMemorySession,
   getAccessToken as storeGetAccessToken,
   getCurrentUserId as storeGetCurrentUserId,
   setAccessToken as storeSetAccessToken,
@@ -26,25 +25,8 @@ export const setCurrentUserId = storeSetCurrentUserId;
 
 // NOTE: getRefreshToken / setRefreshToken are INTENTIONALLY removed.
 // The refresh token is persisted exclusively as an HttpOnly cookie set by the
-// backend (`apiserver/src/handlers/auth.rs::create_auth_cookies`). JS can no
-// longer read it — by design. The refresh endpoint reads the cookie directly,
-// so the frontend never needs to touch the refresh token.
-
-export const clearAuthSession = () => {
-  // Wipe in-memory credentials immediately (synchronous, before navigation).
-  clearMemorySession();
-
-  // Ask the backend to expire the HttpOnly cookies. Best-effort: if this call
-  // fails (network down, tab closed) the cookies still expire naturally via
-  // Max-Age. We intentionally do NOT `await` — logout must be fire-and-forget
-  // so the user isn't blocked on a slow/flaky network call.
-  fetch(`${API_BASE_URL}/v1/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}),
-  }).catch(() => { /* silent — cookies expire via Max-Age server-side */ });
-};
+// backend. JS can no longer read it — by design. The refresh endpoint reads
+// the cookie directly, so the frontend never needs to touch the refresh token.
 
 function getHeaders() {
   const headers: Record<string, string> = {

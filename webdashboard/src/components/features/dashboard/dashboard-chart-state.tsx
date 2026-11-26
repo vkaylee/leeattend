@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
+import { cn } from "@/lib/utils";
 
 import { DashboardChartErrorContext } from "./dashboard-chart-context";
 import { useDashboardChartError } from "./use-dashboard-chart-error";
@@ -16,6 +17,36 @@ export function DashboardChartErrorProvider({ children, onErrorChange }: Dashboa
     <DashboardChartErrorContext.Provider value={{ reportError: onErrorChange ?? (() => undefined) }}>
       {children}
     </DashboardChartErrorContext.Provider>
+  );
+}
+
+interface DashboardChartLoadingProps {
+  heightClass?: string;
+}
+
+export function DashboardChartLoading({ heightClass = "h-[280px]" }: DashboardChartLoadingProps) {
+  return (
+    <div className={cn(heightClass, "flex items-center justify-center")}>
+      <div className="w-8 h-8 border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin" />
+    </div>
+  );
+}
+
+interface DashboardChartEmptyProps {
+  heightClass?: string;
+  icon: ReactNode;
+}
+
+export function DashboardChartEmpty({ icon, heightClass = "h-[280px]" }: DashboardChartEmptyProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div className={cn(heightClass, "flex flex-col items-center justify-center")}>
+      <div className="text-slate-200 dark:text-slate-700 mb-4">{icon}</div>
+      <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">
+        {t("common.no_data")}
+      </Typography>
+    </div>
   );
 }
 

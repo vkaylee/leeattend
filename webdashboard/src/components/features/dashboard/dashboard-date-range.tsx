@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { toISODate } from "@/components/features/dashboard/dashboard-hr-shared";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -13,13 +14,6 @@ interface DashboardDateRangeProps {
   startDate: string;
   /** Organization timezone label (informational; the caller sends it as a param). */
   timezone?: string;
-}
-
-function toISODate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
 }
 
 /**

@@ -1,5 +1,5 @@
-// Low-level API fetch helpers (token refresh, unauthorized handler, timeout).
-// Split out from helpers.ts to keep the helpers file under max-lines.
+// Low-level API fetch helpers (session cleanup, token refresh, unauthorized handler, timeout).
+// Keeps dependency direction strictly one-way: token-store -> api-fetch-helpers -> helpers -> client.
 
 import { logError } from "@/lib/logger";
 import { ROUTES } from "@/lib/routes";
@@ -7,11 +7,27 @@ import { ROUTES } from "@/lib/routes";
 import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
 import {
-  clearAuthSession,
+  clearMemorySession,
   getAccessToken,
+  hasAuthSessionHint,
   setAccessToken,
-} from "./helpers";
-import { clearMemorySession, hasAuthSessionHint } from "./token-store";
+} from "./token-store";
+
+export const clearAuthSession = () => {
+  // Wipe in-memory credentials immediately (synchronous, before navigation).
+  clearMemorySession();
+
+  // Ask the backend to expire the HttpOnly cookies. Best-effort: if this call
+  // fails (network down, tab closed) the cookies still expire naturally via
+  // Max-Age. We intentionally do NOT `await` — logout must be fire-and-forget
+  // so the user isn't blocked on a slow/flaky network call.
+  fetch(`${API_BASE_URL}/v1/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  }).catch(() => { /* silent — cookies expire via Max-Age server-side */ });
+};
 
 export const TIMEOUT = {
   /** Standard API calls (10 seconds) */

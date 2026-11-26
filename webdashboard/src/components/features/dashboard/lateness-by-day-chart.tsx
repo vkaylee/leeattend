@@ -14,7 +14,11 @@ import {
 
 import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
-import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
+import {
+    DashboardChartEmpty,
+    DashboardChartError,
+    DashboardChartLoading,
+} from "@/components/features/dashboard/dashboard-chart-state";
 import { MetricSelector } from "@/components/features/dashboard/metric-selector";
 import { useDashboardChartError } from "@/components/features/dashboard/use-dashboard-chart-error";
 import { Typography } from "@/components/ui/typography";
@@ -64,11 +68,11 @@ export default function LatenessByDayChart() {
             </div>
 
             {isLoading ? (
-                <ChartLoading />
+                <DashboardChartLoading />
             ) : error ? (
-                <ChartError />
+                <DashboardChartError icon={<CalendarClock size={48} />} />
             ) : !hasData ? (
-                <ChartEmpty />
+                <DashboardChartEmpty icon={<CalendarClock size={48} />} />
             ) : (
                 <>
                     <ChartSummary text={summary} />
@@ -143,26 +147,3 @@ function ChartHeader() {
     );
 }
 
-function ChartLoading() {
-    return (
-        <div className="h-[280px] flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin" />
-        </div>
-    );
-}
-
-function ChartError() {
-    return <DashboardChartError icon={<CalendarClock size={48} />} />;
-}
-
-function ChartEmpty() {
-    const { t } = useTranslation();
-    return (
-        <div className="h-[280px] flex flex-col items-center justify-center">
-            <CalendarClock className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
-            <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">
-                {t("common.no_data")}
-            </Typography>
-        </div>
-    );
-}
