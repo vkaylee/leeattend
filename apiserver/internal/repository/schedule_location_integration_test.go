@@ -19,7 +19,7 @@ func TestIntegrationResolverUsesAssignedLocationTimezoneAndHolidayOverlay(t *tes
 	if _, err := pool.Exec(ctx, `INSERT INTO work_locations (id, name, timezone, status) VALUES ($1, 'timezone-resolver-location', 'America/New_York', 'active')`, locationID); err != nil {
 		t.Fatalf("insert location: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `UPDATE employments SET primary_location_id = $2 WHERE id = $1`, employmentID, locationID); err != nil {
+	if _, err := pool.Exec(ctx, `UPDATE employment_segments SET primary_location_id = $2 WHERE id = $1`, employmentID, locationID); err != nil {
 		t.Fatalf("assign location: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO holidays (id, name, date, is_paid) VALUES ($1, 'Resolver holiday', DATE '2026-11-16', true)`, uuid.New()); err != nil {

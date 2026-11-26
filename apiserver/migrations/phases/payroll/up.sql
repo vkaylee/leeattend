@@ -689,7 +689,7 @@ ALTER TABLE ONLY public.attendance_daily_summaries
     ADD CONSTRAINT attendance_daily_summaries_work_policy_version_id_fkey FOREIGN KEY (work_policy_version_id) REFERENCES public.work_policy_versions(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.payroll_calculation_runs
-    ADD CONSTRAINT payroll_calculation_runs_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id);
+    ADD CONSTRAINT payroll_calculation_runs_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id);
 
 ALTER TABLE ONLY public.payroll_calculation_runs
     ADD CONSTRAINT payroll_calculation_runs_formula_version_id_fkey FOREIGN KEY (formula_version_id) REFERENCES public.payroll_formula_rule_versions(id);
@@ -737,7 +737,7 @@ ALTER TABLE ONLY public.payroll_inputs
     ADD CONSTRAINT payroll_inputs_corrected_by_fkey FOREIGN KEY (corrected_by) REFERENCES public.users(id);
 
 ALTER TABLE ONLY public.payroll_inputs
-    ADD CONSTRAINT payroll_inputs_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id);
+    ADD CONSTRAINT payroll_inputs_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id);
 
 ALTER TABLE ONLY public.payroll_inputs
     ADD CONSTRAINT payroll_inputs_metric_definition_id_fkey FOREIGN KEY (metric_definition_id) REFERENCES public.payroll_metric_definitions(id);
@@ -764,7 +764,7 @@ ALTER TABLE ONLY public.payslip_segments
     ADD CONSTRAINT payslip_segments_payslip_id_fkey FOREIGN KEY (payslip_id) REFERENCES public.payslips(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.payslips
-    ADD CONSTRAINT payslips_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT payslips_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.salary_component_definitions
     ADD CONSTRAINT salary_component_definitions_linked_rule_id_fkey FOREIGN KEY (linked_rule_id) REFERENCES public.payroll_rule_definitions(id) ON DELETE SET NULL;

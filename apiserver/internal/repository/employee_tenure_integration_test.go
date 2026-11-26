@@ -76,11 +76,11 @@ func TestIntegrationEmployeeTenuresKeepHistoricalNumbersDateBound(t *testing.T) 
 	if _, err := tx.Exec(ctx, `INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date, end_date) VALUES ($1, $2, $3, (SELECT id FROM employee_tenures WHERE employee_id = $2 AND employee_number = 'old-1541'), 'terminated', DATE '2026-01-01', DATE '2026-06-30')`, relationshipID, employeeID, employerID); err != nil {
 		t.Fatalf("insert relationship: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date, end_date) VALUES ($1, $2, $3, $4, 'terminated', DATE '2026-01-01', DATE '2026-06-30')`, employmentID, employeeID, employerID, relationshipID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date, end_date) VALUES ($1, $2, $3, $4, 'terminated', DATE '2026-01-01', DATE '2026-06-30')`, employmentID, employeeID, employerID, relationshipID); err != nil {
 		t.Fatalf("insert employment: %v", err)
 	}
 	var number string
-	if err := tx.QueryRow(ctx, `SELECT t.employee_number FROM employments em JOIN employment_relationships er ON er.id = em.relationship_id JOIN employee_tenures t ON t.id = er.tenure_id WHERE em.id = $1 AND t.start_date <= DATE '2026-06-30' AND (t.end_date IS NULL OR t.end_date >= DATE '2026-06-30')`, employmentID).Scan(&number); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT t.employee_number FROM employment_segments em JOIN employment_relationships er ON er.id = em.relationship_id JOIN employee_tenures t ON t.id = er.tenure_id WHERE em.id = $1 AND t.start_date <= DATE '2026-06-30' AND (t.end_date IS NULL OR t.end_date >= DATE '2026-06-30')`, employmentID).Scan(&number); err != nil {
 		t.Fatalf("read historical number: %v", err)
 	}
 	if number != "old-1541" {

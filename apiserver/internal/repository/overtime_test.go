@@ -142,7 +142,7 @@ func TestOvertimeRepository_ClaimAndApprove(t *testing.T) {
 
 	tx := &fakeTx{}
 	tx.queryRowFn = func(_ context.Context, sql string, _ ...any) pgx.Row {
-		if strings.Contains(sql, "FROM employments") {
+		if strings.Contains(sql, "FROM employment_segments") {
 			return fakeRow{scanFn: func(dest ...any) error {
 				*(dest[0].(*uuid.UUID)) = employmentID
 				return nil
@@ -172,7 +172,7 @@ func TestOvertimeRepository_ClaimAndApprove(t *testing.T) {
 
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
-			if strings.Contains(sql, "FROM employments") {
+			if strings.Contains(sql, "FROM employment_segments") {
 				return fakeRow{scanFn: func(dest ...any) error {
 					*(dest[0].(*uuid.UUID)) = employmentID
 					return nil

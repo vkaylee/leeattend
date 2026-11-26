@@ -27,7 +27,7 @@ func TestIntegrationResolveUnscheduledPublishesPairsAndReplaysAtomically(t *test
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	patternID, otPolicyID, otVersionID, groupID, policyVersionID := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	var relationshipID uuid.UUID
-	if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employmentID).Scan(&relationshipID); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employment_segments WHERE id = $1`, employmentID).Scan(&relationshipID); err != nil {
 		t.Fatalf("load relationship: %v", err)
 	}
 	mustExec(`INSERT INTO working_patterns (id, name, pattern_type, is_active) VALUES ($1, 'resolve policy pattern', 'weekly', true)`, patternID)
@@ -102,7 +102,7 @@ func TestIntegrationResolveUnscheduledPublishesPairsAndReplaysAtomically(t *test
 	}
 	mustExec(`INSERT INTO employers (id, name) VALUES ($1, 'resolve-other-employer')`, otherEmployerID)
 	mustExec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, otherRelID, employeeID, otherEmployerID, tenureID)
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, otherEmploymentID, employeeID, otherEmployerID, otherRelID)
+	mustExec(`INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, otherEmploymentID, employeeID, otherEmployerID, otherRelID)
 	mustExec(`INSERT INTO attendance_periods (id, employer_id, period_year, period_month, status, version) VALUES ($1, $2, 2026, 11, 'closed', 1)`, uuid.New(), otherEmployerID)
 	mustExec(`INSERT INTO raw_attendance_logs (id, employment_id, punch_time, source, raw_data, punch, status, created_at) VALUES (gen_random_uuid(), $1, TIMESTAMPTZ '2026-11-23 08:00:00+00', 'import', '{}'::jsonb, 0, 1, NOW())`, otherEmploymentID)
 
@@ -192,7 +192,7 @@ func TestIntegrationConcurrentResolveUnscheduledWithESSPunchAndReprocessHasNoDea
 	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, employeeID.String(), "concurrent-resolve-employee", "2026-01-01", "2026-01-01", "")
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	var relationshipID uuid.UUID
-	if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employmentID).Scan(&relationshipID); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employment_segments WHERE id = $1`, employmentID).Scan(&relationshipID); err != nil {
 		t.Fatalf("load relationship: %v", err)
 	}
 	patternID, otPolicyID, otVersionID, groupID, policyVersionID := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()

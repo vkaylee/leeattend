@@ -45,7 +45,7 @@ func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, 
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM (SELECT employment_id, business_date FROM schedule_day_revisions WHERE employer_id = $1 AND business_date BETWEEN $2::date AND $3::date AND state IN ('published', 'explicit_off') GROUP BY employment_id, business_date HAVING count(*) > 1) duplicates`, employerID, startDate, endDate).Scan(&result.CurrentDuplicateCount); err != nil {
 		return result, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM schedule_legacy_mutation_evidence WHERE operation = 'guard_blocked' AND business_date BETWEEN $2::date AND $3::date AND employment_id IN (SELECT id FROM employments WHERE employer_id = $1)`, employerID, startDate, endDate).Scan(&result.LegacyMutationCount); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM schedule_legacy_mutation_evidence WHERE operation = 'guard_blocked' AND business_date BETWEEN $2::date AND $3::date AND employment_id IN (SELECT id FROM employment_segments WHERE employer_id = $1)`, employerID, startDate, endDate).Scan(&result.LegacyMutationCount); err != nil {
 		return result, err
 	}
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM outbox_jobs
@@ -53,19 +53,19 @@ func (r ScheduleRepository) GetScheduleActivationReadiness(ctx context.Context, 
 		  AND status = 'dead_letter'
 		  AND payload->>'employer_id' = $1
 		  AND payload->>'business_date' BETWEEN $2 AND $3
-			  AND EXISTS (SELECT 1 FROM employments e WHERE e.id::text = payload->>'employment_id' AND e.employer_id = $1::uuid AND e.deleted_at IS NULL AND e.start_date <= (payload->>'business_date')::date AND (e.end_date IS NULL OR e.end_date >= (payload->>'business_date')::date))`, employerID.String(), startDate, endDate).Scan(&result.DeadLetterCount); err != nil {
+			  AND EXISTS (SELECT 1 FROM employment_segments e WHERE e.id::text = payload->>'employment_id' AND e.employer_id = $1::uuid AND e.deleted_at IS NULL AND e.start_date <= (payload->>'business_date')::date AND (e.end_date IS NULL OR e.end_date >= (payload->>'business_date')::date))`, employerID.String(), startDate, endDate).Scan(&result.DeadLetterCount); err != nil {
 		return result, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments e CROSS JOIN generate_series($2::date, $3::date, interval '1 day') d WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= d::date AND (e.end_date IS NULL OR e.end_date >= d::date)`, employerID, startDate, endDate).Scan(&result.ExpectedCoverageDays); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employment_segments e CROSS JOIN generate_series($2::date, $3::date, interval '1 day') d WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= d::date AND (e.end_date IS NULL OR e.end_date >= d::date)`, employerID, startDate, endDate).Scan(&result.ExpectedCoverageDays); err != nil {
 		return result, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments e CROSS JOIN generate_series($2::date, $3::date, interval '1 day') d JOIN schedule_day_revisions r ON r.employment_id = e.id AND r.business_date = d::date AND r.state IN ('published', 'explicit_off') WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= d::date AND (e.end_date IS NULL OR e.end_date >= d::date)`, employerID, startDate, endDate).Scan(&result.CoveredOfficialDays); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employment_segments e CROSS JOIN generate_series($2::date, $3::date, interval '1 day') d JOIN schedule_day_revisions r ON r.employment_id = e.id AND r.business_date = d::date AND r.state IN ('published', 'explicit_off') WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= d::date AND (e.end_date IS NULL OR e.end_date >= d::date)`, employerID, startDate, endDate).Scan(&result.CoveredOfficialDays); err != nil {
 		return result, err
 	}
 	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM schedule_office_policies p JOIN approval_workflow_instances i ON i.id = p.approval_instance_id WHERE p.employer_id = $1 AND p.status = 'active' AND p.effective_from <= $3::date AND (p.effective_to IS NULL OR p.effective_to >= $2::date) AND i.entity_type = 'schedule_policy' AND i.status = 'approved')`, employerID, startDate, endDate).Scan(&result.OfficePolicyConfigured); err != nil {
 		return result, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments e JOIN schedule_office_policies p ON p.employer_id = e.employer_id AND p.status = 'active' AND p.effective_from <= $3::date AND (p.effective_to IS NULL OR p.effective_to >= $2::date) JOIN approval_workflow_instances i ON i.id = p.approval_instance_id AND i.entity_type = 'schedule_policy' AND i.status = 'approved' CROSS JOIN generate_series(GREATEST($2::date, p.effective_from), LEAST($3::date, COALESCE(p.effective_to, $3::date)), interval '1 day') days WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= days.day::date AND (e.end_date IS NULL OR e.end_date >= days.day::date)`, employerID, startDate, endDate).Scan(&result.RequiredOfficeDays); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employment_segments e JOIN schedule_office_policies p ON p.employer_id = e.employer_id AND p.status = 'active' AND p.effective_from <= $3::date AND (p.effective_to IS NULL OR p.effective_to >= $2::date) JOIN approval_workflow_instances i ON i.id = p.approval_instance_id AND i.entity_type = 'schedule_policy' AND i.status = 'approved' CROSS JOIN generate_series(GREATEST($2::date, p.effective_from), LEAST($3::date, COALESCE(p.effective_to, $3::date)), interval '1 day') days WHERE e.employer_id = $1 AND e.deleted_at IS NULL AND e.start_date <= days.day::date AND (e.end_date IS NULL OR e.end_date >= days.day::date)`, employerID, startDate, endDate).Scan(&result.RequiredOfficeDays); err != nil {
 		return result, err
 	}
 	if err := db.QueryRow(ctx, `SELECT count(DISTINCT r.employment_id::text || ':' || r.business_date::text) FROM schedule_day_revisions r JOIN schedule_office_policies p ON p.employer_id = r.employer_id AND p.status = 'active' AND p.effective_from <= r.business_date AND (p.effective_to IS NULL OR p.effective_to >= r.business_date) JOIN approval_workflow_instances i ON i.id = p.approval_instance_id AND i.entity_type = 'schedule_policy' AND i.status = 'approved' WHERE r.employer_id = $1 AND r.business_date BETWEEN $2::date AND $3::date AND r.state IN ('published', 'explicit_off')`, employerID, startDate, endDate).Scan(&result.CoveredOfficeDays); err != nil {
@@ -195,7 +195,7 @@ func (r ScheduleRepository) AuthorizeScheduleEmployer(ctx context.Context, userI
 		FROM employee_tenures manager_tenure
 		JOIN employees manager ON manager.id = manager_tenure.employee_id AND manager.deleted_at IS NULL
 		JOIN departments managed ON managed.manager_id = manager.id AND managed.deleted_at IS NULL
-		JOIN employments target ON target.department_id = managed.id AND target.employer_id = $2
+		JOIN employment_segments target ON target.department_id = managed.id AND target.employer_id = $2
 		WHERE manager_tenure.user_id = $1
 		  AND manager_tenure.deleted_at IS NULL
 		  AND manager_tenure.start_date <= `+orgTodaySQL+`
@@ -223,7 +223,7 @@ func (r ScheduleRepository) AuthorizeScheduleShadowMismatch(ctx context.Context,
 		UNION ALL
 		SELECT 1
 		FROM schedule_shadow_mismatches sm
-		JOIN employments target ON target.id = sm.employment_id AND target.deleted_at IS NULL
+		JOIN employment_segments target ON target.id = sm.employment_id AND target.deleted_at IS NULL
 		JOIN departments managed ON managed.id = target.department_id AND managed.deleted_at IS NULL
 		JOIN employees manager ON manager.id = managed.manager_id AND manager.deleted_at IS NULL
 		JOIN employee_tenures manager_tenure
@@ -246,7 +246,7 @@ func (r ScheduleRepository) AuthorizeScheduleHistory(ctx context.Context, userID
 	}
 	var allowed bool
 	err = db.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM employments em
+		SELECT 1 FROM employment_segments em
 		JOIN employment_relationships er ON er.id = em.relationship_id AND er.deleted_at IS NULL
 		JOIN employee_tenures t ON t.id = er.tenure_id AND t.deleted_at IS NULL
 		WHERE em.id = $1 AND em.deleted_at IS NULL
@@ -270,7 +270,7 @@ func (r ScheduleRepository) AuthorizeScheduleEmployment(ctx context.Context, use
 	var allowed bool
 	err = db.QueryRow(ctx, `SELECT EXISTS (
 		SELECT 1
-		FROM employments em
+		FROM employment_segments em
 		JOIN employment_relationships er ON er.id = em.relationship_id AND er.deleted_at IS NULL
 		JOIN employee_tenures t ON t.id = er.tenure_id AND t.deleted_at IS NULL
 		WHERE em.id = $1 AND em.deleted_at IS NULL
@@ -358,7 +358,7 @@ func (r ScheduleRepository) AuthorizeScheduleMutation(ctx context.Context, userI
 		  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
 	)
 	SELECT DISTINCT em.id
-	FROM employments em
+	FROM employment_segments em
 	JOIN managed_departments md ON md.department_id = em.department_id
 	WHERE em.id = ANY($2)
 	  AND em.deleted_at IS NULL
@@ -366,7 +366,7 @@ func (r ScheduleRepository) AuthorizeScheduleMutation(ctx context.Context, userI
 	  AND (em.end_date IS NULL OR em.end_date >= $3::date)
 	UNION
 	SELECT DISTINCT em.id
-	FROM employments em
+	FROM employment_segments em
 	JOIN employment_relationships er ON er.id = em.relationship_id AND er.deleted_at IS NULL
 	JOIN employee_tenures t ON t.id = er.tenure_id AND t.deleted_at IS NULL
 	WHERE $5::boolean
@@ -408,7 +408,7 @@ func (r ScheduleRepository) ResolveAuthorizedScheduleEmployments(ctx context.Con
 	startStr, endStr := startDate.Format("2006-01-02"), endDate.Format("2006-01-02")
 	rows, err := db.Query(ctx, `WITH own_employments AS (
 		SELECT DISTINCT em.id
-		FROM employments em
+		FROM employment_segments em
 		JOIN employment_relationships er ON er.id = em.relationship_id AND er.deleted_at IS NULL
 		JOIN employee_tenures t ON t.id = er.tenure_id AND t.deleted_at IS NULL
 		WHERE em.deleted_at IS NULL
@@ -427,7 +427,7 @@ func (r ScheduleRepository) ResolveAuthorizedScheduleEmployments(ctx context.Con
 		  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
 	), dept_employments AS (
 		SELECT DISTINCT em.id
-		FROM employments em
+		FROM employment_segments em
 		JOIN managed_departments md ON md.department_id = em.department_id
 		WHERE em.deleted_at IS NULL
 		  AND em.start_date <= $3::date

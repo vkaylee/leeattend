@@ -451,7 +451,7 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, emp
 
 	var employment lifecycleEmployment
 	err = db.QueryRow(ctx, `SELECT employee_id, start_date::text, end_date::text, manager_employment_id
-		FROM employments
+		FROM employment_segments
 		WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(
 		&employment.EmployeeID, &employment.StartDate, &employment.EndDate, &employment.ManagerEmploymentID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -507,7 +507,7 @@ func (r LifecycleRepository) createChecklistTx(ctx context.Context, db DBTX, emp
 	var directManagerUserID *uuid.UUID
 	if hasDirectManager && employment.ManagerEmploymentID != nil {
 		var managerEmployeeID uuid.UUID
-		if err := db.QueryRow(ctx, `SELECT employee_id FROM employments WHERE id = $1`, *employment.ManagerEmploymentID).Scan(&managerEmployeeID); err == nil {
+		if err := db.QueryRow(ctx, `SELECT employee_id FROM employment_segments WHERE id = $1`, *employment.ManagerEmploymentID).Scan(&managerEmployeeID); err == nil {
 			var managerUserID *uuid.UUID
 			if err := db.QueryRow(ctx, `SELECT t.user_id FROM employee_tenures t WHERE t.employee_id = $1 AND t.deleted_at IS NULL AND t.start_date <= `+orgTodaySQL+` AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`) ORDER BY t.start_date DESC, t.id DESC LIMIT 1`, managerEmployeeID).Scan(&managerUserID); err == nil {
 				directManagerUserID = managerUserID
@@ -719,7 +719,7 @@ func (r LifecycleRepository) ListChecklists(ctx context.Context) ([]api.Lifecycl
 		COALESCE(item_counts.total_items, 0), COALESCE(item_counts.completed_items, 0),
 		c.started_at, c.completed_at, c.created_at, c.updated_at
 	FROM lifecycle_checklists c
-	INNER JOIN employments em ON em.id = c.employment_id
+	INNER JOIN employment_segments em ON em.id = c.employment_id
 	INNER JOIN employees e ON e.id = em.employee_id
 	LEFT JOIN employment_relationships er ON er.id = em.relationship_id
 	LEFT JOIN employee_tenures et ON et.id = er.tenure_id
@@ -855,7 +855,7 @@ func (r LifecycleRepository) GetPendingTasksForUser(ctx context.Context, userID 
 		i.category, i.due_date::text, i.is_required
 	FROM lifecycle_checklist_items i
 	INNER JOIN lifecycle_checklists c ON c.id = i.checklist_id
-	INNER JOIN employments em ON em.id = c.employment_id
+	INNER JOIN employment_segments em ON em.id = c.employment_id
 	INNER JOIN employees e ON e.id = em.employee_id
 	WHERE i.assignee_user_id = $1
 	  AND i.status = 'pending'

@@ -50,7 +50,7 @@ func lookupActiveEmployeeEmployment(ctx context.Context, db DBTX, employeeID uui
 		return uuid.Nil, uuid.Nil, api.ErrEmployeeNotFound
 	}
 	var employmentID, employerID uuid.UUID
-	err := db.QueryRow(ctx, `SELECT id, employer_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID, &employerID)
+	err := db.QueryRow(ctx, `SELECT id, employer_id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID, &employerID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, uuid.Nil, api.ErrNoActiveEmployment
 	}
@@ -135,7 +135,7 @@ func (r PayrollRepository) simulateEmployeePayrollPure(ctx context.Context, empl
 
 func lookupActiveEmploymentIDOnly(ctx context.Context, db DBTX, employeeID uuid.UUID) (uuid.UUID, error) {
 	var employmentID uuid.UUID
-	err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID)
+	err := db.QueryRow(ctx, `SELECT id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, api.ErrNoActiveEmployment
 	}

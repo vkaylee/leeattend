@@ -28,7 +28,7 @@ func TestIntegrationOfficialScheduleParityAcrossReaderNoShowPunchAndPayroll(t *t
 
 	employerID, employmentID := insertActivationAwareEmployment(t, pool, ctx, "2026-01-01", "2026-12-31")
 	var employeeID uuid.UUID
-	if err := pool.QueryRow(ctx, `SELECT employee_id FROM employments WHERE id = $1`, employmentID).Scan(&employeeID); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT employee_id FROM employment_segments WHERE id = $1`, employmentID).Scan(&employeeID); err != nil {
 		t.Fatalf("load employee: %v", err)
 	}
 

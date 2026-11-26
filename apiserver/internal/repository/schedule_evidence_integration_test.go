@@ -83,7 +83,7 @@ func TestIntegrationResolveAuthorizedScheduleEmploymentsEnforcesRoleScope(t *tes
 		mustExec(`INSERT INTO employees (id, full_name) VALUES ($1, $2)`, employeeID, name)
 		mustExec(`INSERT INTO employee_tenures (id, employee_id, user_id, employee_number, start_date) VALUES ($1, $2, $3, $4, DATE '2026-01-01')`, tenureID, employeeID, userID, employeeID.String())
 		mustExec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, relID, employeeID, employerID, tenureID)
-		mustExec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, department_id, status, start_date) VALUES ($1, $2, $3, $4, $5, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID, relID, deptID)
+		mustExec(`INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, department_id, status, start_date) VALUES ($1, $2, $3, $4, $5, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID, relID, deptID)
 	}
 	seedScopedEmp(empAUser, empA, empAEmployment, deptA, "Employee A")
 	seedScopedEmp(leadUser, leadEmp, leadEmployment, deptA, "Lead A")

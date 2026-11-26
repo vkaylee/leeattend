@@ -62,7 +62,7 @@ func validatePayrollInputMetrics(ctx context.Context, tx pgx.Tx, inputs []api.Pa
 }
 
 func validatePayrollInputEmployments(ctx context.Context, tx pgx.Tx, employmentIDs []uuid.UUID) error {
-	rows, err := tx.Query(ctx, `SELECT id FROM employments WHERE id = ANY($1) AND deleted_at IS NULL`, employmentIDs)
+	rows, err := tx.Query(ctx, `SELECT id FROM employment_segments WHERE id = ANY($1) AND deleted_at IS NULL`, employmentIDs)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func ensurePayrollInputPeriodsUnlocked(ctx context.Context, tx pgx.Tx, employmen
 	var locked bool
 	err := tx.QueryRow(ctx, `SELECT EXISTS (
 		SELECT 1 FROM payroll_periods p
-		JOIN employments e ON e.employer_id = p.employer_id
+		JOIN employment_segments e ON e.employer_id = p.employer_id
 		WHERE e.id = ANY($1) AND p.period_year = $2 AND p.period_month = $3 AND p.status = 'locked'
 	)`, employmentIDs, year, month).Scan(&locked)
 	if err != nil {

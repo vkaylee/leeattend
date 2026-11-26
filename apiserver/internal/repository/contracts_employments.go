@@ -56,7 +56,7 @@ func (r ContractRepository) ListContracts(ctx context.Context) ([]api.EmployeeCo
 		c.created_at, c.updated_at,
 		e.full_name, COALESCE(t.employee_number, ''), e.id
 	FROM employee_contracts c
-	INNER JOIN employments em ON em.id = c.employment_id
+	INNER JOIN employment_segments em ON em.id = c.employment_id
 	INNER JOIN employees e ON e.id = em.employee_id
 	LEFT JOIN employment_relationships er ON er.id = em.relationship_id
 	LEFT JOIN employee_tenures t ON t.id = er.tenure_id
@@ -101,7 +101,7 @@ func (r ContractRepository) ListEmployeeContracts(ctx context.Context, employeeI
 		c.status::text, c.start_date::text, c.end_date::text, c.document_id, c.notes,
 		c.created_at, c.updated_at
 	FROM employee_contracts c
-	INNER JOIN employments em ON em.id = c.employment_id
+	INNER JOIN employment_segments em ON em.id = c.employment_id
 	WHERE em.employee_id = $1
 	  AND c.deleted_at IS NULL
 	  AND em.deleted_at IS NULL
@@ -460,7 +460,7 @@ func (r EmploymentRepository) CreateEmploymentRelationship(ctx context.Context, 
 		if err != nil {
 			return mapRelationshipConstraintError(err)
 		}
-		segment, err := scanEmployment(tx.QueryRow(ctx, `INSERT INTO employments (id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, end_date, job_title, employment_type, manager_employment_id, created_at, updated_at, termination_reason, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, $9::date, $10, $11, $12, NOW(), NOW(), $13, $14) RETURNING `+employmentColumns, segmentID, employeeID, req.EmployerID, relationshipID, req.PrimaryLocationID, req.DepartmentID, req.Status, req.StartDate, req.EndDate, req.JobTitle, req.EmploymentType, req.ManagerEmploymentID, req.TerminationReason, req.Notes))
+		segment, err := scanEmployment(tx.QueryRow(ctx, `INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, end_date, job_title, employment_type, manager_employment_id, created_at, updated_at, termination_reason, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, $9::date, $10, $11, $12, NOW(), NOW(), $13, $14) RETURNING `+employmentColumns, segmentID, employeeID, req.EmployerID, relationshipID, req.PrimaryLocationID, req.DepartmentID, req.Status, req.StartDate, req.EndDate, req.JobTitle, req.EmploymentType, req.ManagerEmploymentID, req.TerminationReason, req.Notes))
 		if err != nil {
 			return mapRelationshipConstraintError(err)
 		}
@@ -486,7 +486,7 @@ func (r EmploymentRepository) ListEmployments(ctx context.Context, employeeID uu
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT `+employmentColumns+` FROM employments
+	rows, err := db.Query(ctx, `SELECT `+employmentColumns+` FROM employment_segments
 		WHERE employee_id = $1 AND deleted_at IS NULL
 		ORDER BY start_date DESC`, employeeID)
 	if err != nil {
@@ -578,7 +578,7 @@ func (r EmploymentRepository) CreateEmployment(ctx context.Context, req api.Crea
 		}
 
 		empID := uuid.New()
-		created, err := scanEmployment(tx.QueryRow(ctx, `INSERT INTO employments
+		created, err := scanEmployment(tx.QueryRow(ctx, `INSERT INTO employment_segments
 			(id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, end_date, job_title, employment_type, manager_employment_id, created_at, updated_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, $9::date, $10, $11, $12, NOW(), NOW())
 			RETURNING `+employmentColumns,
@@ -600,7 +600,7 @@ func (r EmploymentRepository) GetEmployment(ctx context.Context, id uuid.UUID) (
 	if err != nil {
 		return api.Employment{}, err
 	}
-	item, err := scanEmployment(db.QueryRow(ctx, `SELECT `+employmentColumns+` FROM employments
+	item, err := scanEmployment(db.QueryRow(ctx, `SELECT `+employmentColumns+` FROM employment_segments
 		WHERE id = $1 AND deleted_at IS NULL`, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.Employment{}, api.ErrEmploymentNotFound
@@ -669,7 +669,7 @@ func (r EmploymentRepository) UpdateEmployment(ctx context.Context, id uuid.UUID
 		add("notes", *req.Notes)
 	}
 	args = append(args, id)
-	query := fmt.Sprintf(`UPDATE employments SET %s WHERE id = $%d AND deleted_at IS NULL RETURNING `+employmentColumns,
+	query := fmt.Sprintf(`UPDATE employment_segments SET %s WHERE id = $%d AND deleted_at IS NULL RETURNING `+employmentColumns,
 		strings.Join(sets, ", "), len(args))
 	item, err := scanEmployment(db.QueryRow(ctx, query, args...))
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -752,7 +752,7 @@ func lockTerminationSegment(ctx context.Context, tx pgx.Tx, employeeID, employme
 	var segStatus string
 	err := tx.QueryRow(ctx, `
 		SELECT employer_id, relationship_id, start_date, status
-		FROM employments
+		FROM employment_segments
 		WHERE id = $1 AND employee_id = $2 AND deleted_at IS NULL
 		FOR UPDATE
 	`, employmentID, employeeID).Scan(&target.employerID, &target.relationshipID, &segStart, &segStatus)
@@ -800,7 +800,7 @@ func loadTerminationParents(ctx context.Context, tx pgx.Tx, target lockedTermina
 
 func closeRelationshipAndSegments(ctx context.Context, tx pgx.Tx, employmentID, relationshipID uuid.UUID, req api.TerminateEmploymentRequest) (api.Employment, bool, error) {
 	if _, err := tx.Exec(ctx, `
-		UPDATE employments
+		UPDATE employment_segments
 		SET status = 'terminated',
 		    end_date = $1::date,
 		    termination_reason = COALESCE($2, termination_reason),
@@ -815,7 +815,7 @@ func closeRelationshipAndSegments(ctx context.Context, tx pgx.Tx, employmentID, 
 	}
 
 	updatedSeg, err := scanEmployment(tx.QueryRow(ctx, `
-		UPDATE employments
+		UPDATE employment_segments
 		SET status = 'terminated',
 		    end_date = $1::date,
 		    termination_reason = COALESCE($2, termination_reason),
@@ -898,6 +898,6 @@ func (r EmploymentRepository) SoftDeleteEmployment(ctx context.Context, id uuid.
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(ctx, `UPDATE employments SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1`, id)
+	_, err = db.Exec(ctx, `UPDATE employment_segments SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1`, id)
 	return err
 }

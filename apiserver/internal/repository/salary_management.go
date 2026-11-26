@@ -53,7 +53,7 @@ func (r PayrollRepository) ListSalaryManagementRows(ctx context.Context, query a
 
 	var total int64
 	countSQL := `SELECT count(*)
-FROM employments em
+FROM employment_segments em
 JOIN employees e ON e.id = em.employee_id
 JOIN employers er ON er.id = em.employer_id
 LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $1::date AND (t.end_date IS NULL OR t.end_date >= $1::date) ORDER BY t.start_date DESC, t.id DESC LIMIT 1) tenure ON TRUE
@@ -67,7 +67,7 @@ LEFT JOIN LATERAL (SELECT t.employee_number FROM employee_tenures t WHERE t.empl
 	em.employment_type, em.start_date::text, em.end_date::text,
 	configured_component.id, configured_component.component_definition_id,
 	scd.name, scd.code, configured_component.amount, configured_component.effective_date
-FROM employments em
+FROM employment_segments em
 JOIN employees e ON e.id = em.employee_id
 JOIN employers er ON er.id = em.employer_id
 LEFT JOIN departments d ON d.id = em.department_id

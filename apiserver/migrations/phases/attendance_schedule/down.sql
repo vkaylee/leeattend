@@ -13,8 +13,6 @@ DROP TABLE IF EXISTS public.work_segments CASCADE;
 
 DROP TABLE IF EXISTS public.time_entries CASCADE;
 
-DROP TABLE IF EXISTS public.shifts CASCADE;
-
 DROP TABLE IF EXISTS public.shift_versions CASCADE;
 
 DROP TABLE IF EXISTS public.shift_templates CASCADE;
@@ -101,7 +99,7 @@ DROP TABLE IF EXISTS public.attendance_adjustment_evidence CASCADE;
 DROP INDEX IF EXISTS public.attendance_adjustment_requests_type_idx;
 DROP TABLE IF EXISTS public.attendance_adjustment_requests CASCADE;
 
-DROP TABLE IF EXISTS public.assignment_rules CASCADE;
+DROP TABLE IF EXISTS public.working_pattern_assignment_rules CASCADE;
 
 DROP TABLE IF EXISTS public.schedule_day_overrides CASCADE;
 DROP TABLE IF EXISTS public.attendance_action_idempotency CASCADE;

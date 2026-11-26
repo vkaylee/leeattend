@@ -31,7 +31,7 @@ const employeeMatchCandidateColumnsSQL = `
 			  AND (t.end_date IS NULL OR t.end_date >= ` + orgTodaySQL + `)
 		) THEN 'active'
 		WHEN EXISTS (
-			SELECT 1 FROM employments emp
+			SELECT 1 FROM employment_segments emp
 			WHERE emp.employee_id = e.id
 			  AND emp.deleted_at IS NULL
 			  AND emp.status = 'active'

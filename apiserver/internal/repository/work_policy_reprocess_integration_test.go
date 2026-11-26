@@ -43,7 +43,7 @@ func TestIntegrationWorkPolicyRulesLateGraceOTAggregationAndBreaks(t *testing.T)
 		seedIntegrationEmployeeGraphWithRange(t, ctx, pool, empID, employerID, employmentID, label+"-"+empID.String()[:8], label, "2026-01-01", "2026-01-01", "2026-12-31")
 		if assignPolicy {
 			var relID uuid.UUID
-			if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
+			if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employment_segments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
 				t.Fatalf("lookup relationship_id: %v", err)
 			}
 			groupID, verGroupID := uuid.New(), uuid.New()

@@ -78,7 +78,7 @@ func validateSystemOfficePublicationAuthority(ctx context.Context, tx DBTX, even
 		SELECT 1
 		FROM schedule_office_policies p
 		JOIN approval_workflow_instances i ON i.id = p.approval_instance_id
-		JOIN employments e ON e.id = $2 AND e.employer_id = p.employer_id AND e.deleted_at IS NULL
+		JOIN employment_segments e ON e.id = $2 AND e.employer_id = p.employer_id AND e.deleted_at IS NULL
 		WHERE p.approval_instance_id = $1 AND p.employer_id = $3
 		  AND p.status = 'active' AND i.entity_type = 'schedule_policy' AND i.status = 'approved'
 		  AND p.effective_from <= $4::date AND (p.effective_to IS NULL OR p.effective_to >= $4::date)
@@ -253,12 +253,12 @@ func rejectConcreteScheduleOverlaps(ctx context.Context, tx DBTX, days []map[str
 			SELECT * FROM jsonb_to_recordset($1::jsonb) AS c(employment_id uuid, business_date date, start_at timestamptz, end_at timestamptz)
 		), candidate_people AS (
 			SELECT c.*, em.employee_id
-			FROM candidates c JOIN employments em ON em.id = c.employment_id
+			FROM candidates c JOIN employment_segments em ON em.id = c.employment_id
 		), existing AS (
 			SELECT r.business_date, ws.scheduled_start_at AS start_at, ws.scheduled_end_at AS end_at, em.employee_id, ws.employment_id
 			FROM work_segments ws
 			JOIN schedule_day_revisions r ON r.id = ws.schedule_revision_id AND r.state IN ('published', 'explicit_off')
-			JOIN employments em ON em.id = ws.employment_id
+			JOIN employment_segments em ON em.id = ws.employment_id
 		)
 		SELECT EXISTS (
 			SELECT 1 FROM candidate_people c JOIN existing e ON e.employee_id = c.employee_id
@@ -399,7 +399,7 @@ func insertPublishedDay(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, actor
 		return uuid.Nil, err
 	}
 	sourceSnapshot := jsonArg(map[string]any{"source": source, "resolver_version": lifecycleResolverVersion, "preview_result": day})
-	if _, err := tx.Exec(ctx, `INSERT INTO schedule_day_revisions (id, employment_id, employer_id, business_date, timezone, revision_number, state, publication_batch_id, source, source_snapshot, resolver_version, reason, published_by, published_actor_type, published_actor_name, published_at, previous_revision_id) SELECT $1, e.id, e.employer_id, $2::date, $3, $4, 'draft', $5, $6, $7, $8, $9, $10, $11, $12, NULL, $13 FROM employments e WHERE e.id = $14`, revisionID, businessDate, timezone, revisionNumber, batchID, source, sourceSnapshot, lifecycleResolverVersion, strings.TrimSpace(reason), actor.ID, actor.Type, actor.Name, previousRevisionID, employmentID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO schedule_day_revisions (id, employment_id, employer_id, business_date, timezone, revision_number, state, publication_batch_id, source, source_snapshot, resolver_version, reason, published_by, published_actor_type, published_actor_name, published_at, previous_revision_id) SELECT $1, e.id, e.employer_id, $2::date, $3, $4, 'draft', $5, $6, $7, $8, $9, $10, $11, $12, NULL, $13 FROM employment_segments e WHERE e.id = $14`, revisionID, businessDate, timezone, revisionNumber, batchID, source, sourceSnapshot, lifecycleResolverVersion, strings.TrimSpace(reason), actor.ID, actor.Type, actor.Name, previousRevisionID, employmentID); err != nil {
 		return uuid.Nil, err
 	}
 	if status == "work" {

@@ -146,7 +146,7 @@ func (r EmploymentPhaseRepository) assignPhaseTx(ctx context.Context, db DBTX, e
 	}
 	autoCloseDate := startT.AddDate(0, 0, -1).Format("2006-01-02")
 
-	_, err = db.Exec(ctx, fmt.Sprintf(`UPDATE employee_phases
+	_, err = db.Exec(ctx, fmt.Sprintf(`UPDATE employment_phases
 		SET status = 'completed',
 		    end_date = LEAST(end_date, GREATEST(start_date, '%s'::date)),
 		    completed_at = NOW(),
@@ -164,7 +164,7 @@ func (r EmploymentPhaseRepository) assignPhaseTx(ctx context.Context, db DBTX, e
 	}
 
 	phaseID := uuid.New()
-	return scanPhase(db.QueryRow(ctx, `INSERT INTO employee_phases (
+	return scanPhase(db.QueryRow(ctx, `INSERT INTO employment_phases (
 		id, employment_id, phase_definition_id,
 		start_date, end_date, status, override_config,
 		evaluation_notes, evaluated_by, completed_at,
@@ -185,7 +185,7 @@ func (r EmploymentPhaseRepository) UpdatePhaseStatus(ctx context.Context, employ
 	if err != nil {
 		return api.EmployeePhase{}, err
 	}
-	row := db.QueryRow(ctx, `UPDATE employee_phases
+	row := db.QueryRow(ctx, `UPDATE employment_phases
 		SET status = $1,
 		    evaluation_notes = $2,
 		    evaluated_by = $3,
@@ -212,8 +212,8 @@ func (r EmploymentPhaseRepository) ListOrganizationPhases(ctx context.Context, p
 	rows, err := db.Query(ctx, `SELECT ep.id, ep.employment_id, ep.phase_definition_id, ep.start_date::text, ep.end_date::text,
 		ep.status, ep.override_config, ep.evaluation_notes, ep.evaluated_by, ep.completed_at, ep.created_at, ep.updated_at,
 		e.id, e.full_name, COALESCE(t.employee_number, ''), d.name, pd.name, pd.phase_type
-		FROM employee_phases ep
-		JOIN employments em ON em.id = ep.employment_id AND em.deleted_at IS NULL
+		FROM employment_phases ep
+		JOIN employment_segments em ON em.id = ep.employment_id AND em.deleted_at IS NULL
 		JOIN employees e ON e.id = em.employee_id AND e.deleted_at IS NULL
 		LEFT JOIN departments d ON d.id = em.department_id
 		JOIN employment_phase_definitions pd ON pd.id = ep.phase_definition_id
@@ -246,7 +246,7 @@ func (r EmploymentPhaseRepository) ListOrganizationPhases(ctx context.Context, p
 	if err := rows.Err(); err != nil {
 		return api.EmploymentPhaseAssignmentListResponse{}, err
 	}
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM employee_phases ep JOIN employments em ON em.id = ep.employment_id AND em.deleted_at IS NULL JOIN employees e ON e.id = em.employee_id AND e.deleted_at IS NULL LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ep.start_date AND (t.end_date IS NULL OR t.end_date >= ep.start_date) JOIN employment_phase_definitions pd ON pd.id = ep.phase_definition_id WHERE ($1 = '%%' OR e.full_name ILIKE $1 OR COALESCE(t.employee_number, '') ILIKE $1 OR pd.name ILIKE $1) AND ($2 = '' OR ep.status = $2) AND ($3::uuid IS NULL OR e.id = $3::uuid)`, search, status, employeeID).Scan(&result.Total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employment_phases ep JOIN employment_segments em ON em.id = ep.employment_id AND em.deleted_at IS NULL JOIN employees e ON e.id = em.employee_id AND e.deleted_at IS NULL LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ep.start_date AND (t.end_date IS NULL OR t.end_date >= ep.start_date) JOIN employment_phase_definitions pd ON pd.id = ep.phase_definition_id WHERE ($1 = '%%' OR e.full_name ILIKE $1 OR COALESCE(t.employee_number, '') ILIKE $1 OR pd.name ILIKE $1) AND ($2 = '' OR ep.status = $2) AND ($3::uuid IS NULL OR e.id = $3::uuid)`, search, status, employeeID).Scan(&result.Total); err != nil {
 		return api.EmploymentPhaseAssignmentListResponse{}, err
 	}
 	return result, nil
@@ -260,7 +260,7 @@ func (r EmploymentPhaseRepository) ListPhases(ctx context.Context, employmentID 
 	rows, err := db.Query(ctx, `SELECT
 		id, employment_id, phase_definition_id, start_date::text, end_date::text,
 		status, override_config, evaluation_notes, evaluated_by, completed_at, created_at, updated_at
-	FROM employee_phases
+	FROM employment_phases
 	WHERE employment_id = $1
 	ORDER BY start_date ASC, created_at DESC`, employmentID)
 	if err != nil {
@@ -293,7 +293,7 @@ func (r EmploymentPhaseRepository) ResolveActiveEmployment(ctx context.Context, 
 	}
 
 	var employmentID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employments
+	err = db.QueryRow(ctx, `SELECT id FROM employment_segments
 		WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL
 		ORDER BY start_date DESC, id LIMIT 1`, employeeID).Scan(&employmentID)
 	if errors.Is(err, pgx.ErrNoRows) {

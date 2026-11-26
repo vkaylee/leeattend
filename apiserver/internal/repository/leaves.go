@@ -167,7 +167,7 @@ func (r LeaveRepository) SubmitLeaveRequest(ctx context.Context, requesterID uui
 	var record api.LeaveRequestRecord
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var exists bool
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employment_segments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
@@ -215,7 +215,7 @@ func (r LeaveRepository) ListOrganizationLeaveRequests(ctx context.Context, stat
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT lr.id, lr.employment_id, lr.leave_type_id, lr.start_date::text, lr.end_date::text, lr.reason, lr.status::text, lr.duration_type, lr.start_time::text, lr.end_time::text, lr.requested_by_user_id, lr.approved_by_user_id, lr.created_at, lr.updated_at, lr.attachment_file_ids FROM leave_requests lr JOIN employments e ON e.id = lr.employment_id WHERE e.deleted_at IS NULL AND ($1::text IS NULL OR lr.status::text = $1) ORDER BY lr.created_at DESC`, status)
+	rows, err := db.Query(ctx, `SELECT lr.id, lr.employment_id, lr.leave_type_id, lr.start_date::text, lr.end_date::text, lr.reason, lr.status::text, lr.duration_type, lr.start_time::text, lr.end_time::text, lr.requested_by_user_id, lr.approved_by_user_id, lr.created_at, lr.updated_at, lr.attachment_file_ids FROM leave_requests lr JOIN employment_segments e ON e.id = lr.employment_id WHERE e.deleted_at IS NULL AND ($1::text IS NULL OR lr.status::text = $1) ORDER BY lr.created_at DESC`, status)
 	if err != nil {
 		return nil, err
 	}
@@ -275,9 +275,9 @@ func (r LeaveRepository) GetEmployeeLeaveBalances(ctx context.Context, employeeI
 			 AND sdr.state = 'published')
 		), 0))::bigint
 		FROM leave_requests lr
-		JOIN employments e ON e.id = lr.employment_id
+		JOIN employment_segments e ON e.id = lr.employment_id
 		WHERE e.employee_id = $1 AND e.deleted_at IS NULL AND lr.leave_type_id = lt.id AND lr.status IN ('approved', 'pre_approved') AND EXTRACT(YEAR FROM lr.start_date) = $2
-	), 0) AS used_count FROM leave_types lt LEFT JOIN LATERAL (SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1) active_emp ON true LEFT JOIN leave_balances lb ON lb.leave_type_id = lt.id AND lb.employment_id = active_emp.id AND lb.year = $2 WHERE lt.deleted_at IS NULL ORDER BY lt.name ASC`, employeeID, year)
+	), 0) AS used_count FROM leave_types lt LEFT JOIN LATERAL (SELECT id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1) active_emp ON true LEFT JOIN leave_balances lb ON lb.leave_type_id = lt.id AND lb.employment_id = active_emp.id AND lb.year = $2 WHERE lt.deleted_at IS NULL ORDER BY lt.name ASC`, employeeID, year)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +318,7 @@ func (r LeaveRepository) ListEmployeeLeaveRequests(ctx context.Context, employee
 	rows, err := db.Query(ctx, `
 		SELECT lr.id, lr.employment_id, lr.leave_type_id, lr.start_date::text, lr.end_date::text, lr.reason, lr.status::text, lr.duration_type, lr.start_time::text, lr.end_time::text, lr.requested_by_user_id, lr.approved_by_user_id, lr.created_at, lr.updated_at, lr.attachment_file_ids
 		FROM leave_requests lr
-		JOIN employments e ON e.id = lr.employment_id
+		JOIN employment_segments e ON e.id = lr.employment_id
 		JOIN employment_relationships er ON er.id = e.relationship_id AND er.employee_id = e.employee_id
 		JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id
 		WHERE e.employee_id = $1 AND e.deleted_at IS NULL AND t.deleted_at IS NULL

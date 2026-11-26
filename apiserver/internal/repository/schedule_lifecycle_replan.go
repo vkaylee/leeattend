@@ -483,7 +483,7 @@ func markBreakWorkedTx(ctx context.Context, tx pgx.Tx, actorID, employmentID uui
 	var employerID uuid.UUID
 	var scheduledStart, scheduledEnd time.Time
 	var breaks []byte
-	if err := tx.QueryRow(ctx, `SELECT e.employer_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot FROM work_segments ws JOIN employments e ON e.id = ws.employment_id WHERE ws.id = $1::uuid AND ws.employment_id = $2::uuid AND ws.date = $3::date FOR UPDATE`, request.SegmentID, employmentID, businessDate).Scan(&employerID, &scheduledStart, &scheduledEnd, &breaks); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT e.employer_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot FROM work_segments ws JOIN employment_segments e ON e.id = ws.employment_id WHERE ws.id = $1::uuid AND ws.employment_id = $2::uuid AND ws.date = $3::date FOR UPDATE`, request.SegmentID, employmentID, businessDate).Scan(&employerID, &scheduledStart, &scheduledEnd, &breaks); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.MarkBreakWorkedResponse{}, api.ErrScheduleBreakOverrideInvalid
 		}

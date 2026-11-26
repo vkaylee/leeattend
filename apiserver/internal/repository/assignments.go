@@ -42,8 +42,8 @@ func (r EmployeeAssignmentRepository) ListAssignments(ctx context.Context) ([]ap
 	rows, err := db.Query(ctx, `SELECT `+employeeAssignmentColumns+`,
 		e.id, e.full_name, COALESCE(t.employee_number, ''),
 		COALESCE(hl.name, ''), COALESCE(hostl.name, '')
-		FROM employee_assignments ea
-		JOIN employments em ON em.id = ea.employment_id
+		FROM employment_location_assignments ea
+		JOIN employment_segments em ON em.id = ea.employment_id
 		JOIN employees e ON e.id = em.employee_id
 		LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id
 		LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ea.start_date AND (t.end_date IS NULL OR t.end_date >= ea.start_date)
@@ -82,8 +82,8 @@ func (r EmployeeAssignmentRepository) ListEmployeeAssignments(ctx context.Contex
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT `+employeeAssignmentColumns+` FROM employee_assignments ea
-		JOIN employments em ON em.id = ea.employment_id
+	rows, err := db.Query(ctx, `SELECT `+employeeAssignmentColumns+` FROM employment_location_assignments ea
+		JOIN employment_segments em ON em.id = ea.employment_id
 		WHERE em.employee_id = $1
 		ORDER BY em.start_date DESC, ea.start_date DESC`, employeeID)
 	if err != nil {
@@ -106,8 +106,8 @@ func (r EmployeeAssignmentRepository) GetEmployeeAssignment(ctx context.Context,
 	if err != nil {
 		return api.EmployeeAssignment{}, err
 	}
-	item, err := scanEmployeeAssignment(db.QueryRow(ctx, `SELECT `+employeeAssignmentColumns+` FROM employee_assignments ea
-		JOIN employments em ON em.id = ea.employment_id
+	item, err := scanEmployeeAssignment(db.QueryRow(ctx, `SELECT `+employeeAssignmentColumns+` FROM employment_location_assignments ea
+		JOIN employment_segments em ON em.id = ea.employment_id
 		WHERE ea.id = $1 AND em.employee_id = $2`, assignmentID, employeeID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.EmployeeAssignment{}, api.ErrEmployeeAssignmentNotFound
@@ -121,7 +121,7 @@ func (r EmployeeAssignmentRepository) GetActiveEmployment(ctx context.Context, e
 		return api.ActiveEmployment{}, err
 	}
 	var item api.ActiveEmployment
-	err = db.QueryRow(ctx, `SELECT id, primary_location_id FROM employments
+	err = db.QueryRow(ctx, `SELECT id, primary_location_id FROM employment_segments
 		WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL
 		AND start_date <= $2::date AND (end_date IS NULL OR end_date >= $2::date)
 		ORDER BY start_date DESC, id LIMIT 1`, employeeID, onDate).Scan(&item.ID, &item.PrimaryLocationID)
@@ -140,7 +140,7 @@ func (r EmployeeAssignmentRepository) CreateEmployeeAssignment(ctx context.Conte
 		return api.EmployeeAssignment{}, finishLifecycleMutationDB(ctx, db, err)
 	}
 	id := uuid.New()
-	item, err := scanEmployeeAssignment(db.QueryRow(ctx, `INSERT INTO employee_assignments
+	item, err := scanEmployeeAssignment(db.QueryRow(ctx, `INSERT INTO employment_location_assignments
 		(id, home_location_id, host_location_id, start_date, end_date, reason, status, created_at, updated_at, employment_id)
 		VALUES ($1, $2, $3, $4::date, $5::date, $6, 'active', NOW(), NOW(), $7)
 		RETURNING id, home_location_id, host_location_id, start_date::text, end_date::text, reason, status::text, created_at, updated_at, employment_id`, id, homeLocationID, req.HostLocationID, req.StartDate, nullableDate(req.EndDate), req.Reason, employmentID))
@@ -157,7 +157,7 @@ func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Conte
 	}
 	var assignmentEmploymentID uuid.UUID
 	var startDate, endDate string
-	if err := db.QueryRow(ctx, `SELECT employment_id, start_date::text, COALESCE(end_date, start_date)::text FROM employee_assignments WHERE id = $1`, assignmentID).Scan(&assignmentEmploymentID, &startDate, &endDate); err != nil {
+	if err := db.QueryRow(ctx, `SELECT employment_id, start_date::text, COALESCE(end_date, start_date)::text FROM employment_location_assignments WHERE id = $1`, assignmentID).Scan(&assignmentEmploymentID, &startDate, &endDate); err != nil {
 		return api.EmployeeAssignment{}, err
 	}
 	if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{assignmentEmploymentID}, startDate, endDate); err != nil {
@@ -187,8 +187,8 @@ func (r EmployeeAssignmentRepository) UpdateEmployeeAssignment(ctx context.Conte
 		}
 	}
 	args = append(args, assignmentID, employeeID)
-	query := fmt.Sprintf(`UPDATE employee_assignments ea SET %s
-		FROM employments em
+	query := fmt.Sprintf(`UPDATE employment_location_assignments ea SET %s
+		FROM employment_segments em
 		WHERE ea.employment_id = em.id AND ea.id = $%d
 		AND em.employee_id = $%d
 		RETURNING ea.id, ea.home_location_id, ea.host_location_id, ea.start_date::text, ea.end_date::text, ea.reason, ea.status::text, ea.created_at, ea.updated_at, ea.employment_id`, strings.Join(sets, ", "), len(args)-1, len(args))
@@ -206,13 +206,13 @@ func (r EmployeeAssignmentRepository) DeleteEmployeeAssignment(ctx context.Conte
 	}
 	var assignmentEmploymentID uuid.UUID
 	var startDate, endDate string
-	if err := db.QueryRow(ctx, `SELECT employment_id, start_date::text, COALESCE(end_date, start_date)::text FROM employee_assignments WHERE id = $1`, assignmentID).Scan(&assignmentEmploymentID, &startDate, &endDate); err != nil {
+	if err := db.QueryRow(ctx, `SELECT employment_id, start_date::text, COALESCE(end_date, start_date)::text FROM employment_location_assignments WHERE id = $1`, assignmentID).Scan(&assignmentEmploymentID, &startDate, &endDate); err != nil {
 		return err
 	}
 	if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{assignmentEmploymentID}, startDate, endDate); err != nil {
 		return finishLifecycleMutationDB(ctx, db, err)
 	}
-	result, err := db.Exec(ctx, `DELETE FROM employee_assignments ea USING employments em
+	result, err := db.Exec(ctx, `DELETE FROM employment_location_assignments ea USING employment_segments em
 		WHERE ea.employment_id = em.id AND ea.id = $1
 		AND em.employee_id = $2`, assignmentID, employeeID)
 	if err != nil {
@@ -255,7 +255,7 @@ func (r AssignmentRuleRepository) ListAssignmentRules(ctx context.Context) ([]ap
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT `+assignmentRuleColumns+` FROM assignment_rules
+	rows, err := db.Query(ctx, `SELECT `+assignmentRuleColumns+` FROM working_pattern_assignment_rules
 		ORDER BY priority DESC, created_at ASC`)
 	if err != nil {
 		return nil, err
@@ -289,7 +289,7 @@ func (r AssignmentRuleRepository) CreateAssignmentRule(ctx context.Context, req 
 		return api.AssignmentRule{}, err
 	}
 	id := uuid.New()
-	item, err := scanAssignmentRule(db.QueryRow(ctx, `INSERT INTO assignment_rules
+	item, err := scanAssignmentRule(db.QueryRow(ctx, `INSERT INTO working_pattern_assignment_rules
 		(id, pattern_id, name, priority, conditions, is_active, created_at, updated_at, start_date, end_date)
 		VALUES ($1, $2, $3, $4, $5::jsonb, TRUE, NOW(), NOW(), $6::date, $7::date)
 		RETURNING `+assignmentRuleColumns, id, req.PatternID, req.Name, req.Priority, conditions, nullableDate(req.StartDate), nullableDate(req.EndDate)))
@@ -347,7 +347,7 @@ func (r AssignmentRuleRepository) UpdateAssignmentRule(ctx context.Context, rule
 		}
 	}
 	args = append(args, ruleID)
-	query := fmt.Sprintf(`UPDATE assignment_rules SET %s WHERE id = $%d RETURNING `+assignmentRuleColumns, strings.Join(sets, ", "), len(args))
+	query := fmt.Sprintf(`UPDATE working_pattern_assignment_rules SET %s WHERE id = $%d RETURNING `+assignmentRuleColumns, strings.Join(sets, ", "), len(args))
 	item, err := scanAssignmentRule(db.QueryRow(ctx, query, args...))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.AssignmentRule{}, api.ErrAssignmentRuleNotFound
@@ -363,7 +363,7 @@ func (r AssignmentRuleRepository) DeleteAssignmentRule(ctx context.Context, rule
 	if err := guardLifecycleGlobalMutation(ctx, db); err != nil {
 		return finishLifecycleMutationDB(ctx, db, err)
 	}
-	_, err = db.Exec(ctx, `DELETE FROM assignment_rules WHERE id = $1`, ruleID)
+	_, err = db.Exec(ctx, `DELETE FROM working_pattern_assignment_rules WHERE id = $1`, ruleID)
 	return err
 }
 

@@ -305,7 +305,7 @@ BEGIN
 
 
 
-        IF NOT EXISTS (SELECT 1 FROM public.employments WHERE id = NEW.target_id) THEN
+        IF NOT EXISTS (SELECT 1 FROM public.employment_segments WHERE id = NEW.target_id) THEN
 
 
 
@@ -685,7 +685,7 @@ BEGIN
 
         SELECT 1
 
-        FROM public.employments segment
+        FROM public.employment_segments segment
 
         WHERE segment.id = NEW.employment_id
 
@@ -821,7 +821,7 @@ BEGIN
 
                SELECT 1
 
-               FROM public.employments segment
+               FROM public.employment_segments segment
 
                WHERE segment.relationship_id = NEW.id
 
@@ -1029,7 +1029,7 @@ BEGIN
 
             FROM schedule_day_revisions r
 
-            JOIN employments em ON em.id = r.employment_id AND em.deleted_at IS NULL
+            JOIN employment_segments em ON em.id = r.employment_id AND em.deleted_at IS NULL
 
             JOIN config_entries c
 
@@ -1071,7 +1071,7 @@ BEGIN
 
             JOIN schedule_day_revisions r ON r.employment_id = a.employment_id
 
-            JOIN employments em ON em.id = r.employment_id AND em.deleted_at IS NULL
+            JOIN employment_segments em ON em.id = r.employment_id AND em.deleted_at IS NULL
 
             JOIN config_entries c
 
@@ -1109,7 +1109,7 @@ BEGIN
 
             JOIN schedule_day_revisions r ON r.id = ws.schedule_revision_id
 
-            JOIN employments em ON em.id = r.employment_id AND em.deleted_at IS NULL
+            JOIN employment_segments em ON em.id = r.employment_id AND em.deleted_at IS NULL
 
             JOIN config_entries c
 
@@ -1143,7 +1143,7 @@ BEGIN
 
         ) INTO blocked;
 
-    ELSIF TG_TABLE_NAME IN ('assignment_rules', 'working_patterns') THEN
+    ELSIF TG_TABLE_NAME IN ('working_pattern_assignment_rules', 'working_patterns') THEN
 
         SELECT EXISTS (
 
@@ -1153,7 +1153,7 @@ BEGIN
 
             JOIN schedule_day_revisions r ON r.employment_id = ewp.employment_id
 
-            JOIN employments em ON em.id = ewp.employment_id AND em.deleted_at IS NULL
+            JOIN employment_segments em ON em.id = ewp.employment_id AND em.deleted_at IS NULL
 
             JOIN config_entries c
 
@@ -1177,7 +1177,7 @@ BEGIN
 
               AND ewp.pattern_id = (CASE
 
-                    WHEN TG_TABLE_NAME = 'assignment_rules' THEN COALESCE(new_data->>'pattern_id', old_data->>'pattern_id')
+                    WHEN TG_TABLE_NAME = 'working_pattern_assignment_rules' THEN COALESCE(new_data->>'pattern_id', old_data->>'pattern_id')
 
                     ELSE COALESCE(new_data->>'id', old_data->>'id')
 
@@ -1727,20 +1727,6 @@ CREATE TABLE public.audit_logs_y2026m12 (
     actor_email character varying(255)
 );
 
-CREATE TABLE public.authorized_agents (
-    id character varying(50) NOT NULL,
-    name character varying(100) NOT NULL,
-    token character varying(255) NOT NULL,
-    is_trusted boolean DEFAULT false,
-    last_ip character varying(45),
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    is_active boolean DEFAULT true NOT NULL,
-    last_seen_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    max_concurrent_workers integer DEFAULT 2 NOT NULL,
-    success_cooldown_secs integer DEFAULT 300 NOT NULL,
-    retention_days integer DEFAULT 365 NOT NULL
-);
-
 CREATE TABLE public.behalf_assignments (
     id uuid DEFAULT gen_random_uuid() CONSTRAINT ot_claim_behalf_assignments_id_not_null NOT NULL,
     target_employee_id uuid,
@@ -2074,19 +2060,6 @@ CREATE TABLE public.outbox_jobs (
     CONSTRAINT outbox_jobs_attempts_check CHECK ((attempts >= 0))
 );
 
-CREATE TABLE public.policy_templates (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    name text NOT NULL,
-    description text,
-    country_code character varying(3),
-    category text DEFAULT 'full'::text NOT NULL,
-    template_data jsonb DEFAULT '{}'::jsonb NOT NULL,
-    version integer DEFAULT 1 NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
 CREATE TABLE public.role_permissions (
     role_id uuid CONSTRAINT organization_role_permissions_role_id_not_null NOT NULL,
     permission_name text CONSTRAINT organization_role_permissions_permission_name_not_null NOT NULL
@@ -2141,36 +2114,6 @@ CREATE TABLE public.storage_configs (
     presigned_ttl_secs integer DEFAULT 900 NOT NULL,
     max_file_size bigint DEFAULT 10485760 NOT NULL,
     is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-CREATE TABLE public.system_audit_logs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    actor_id uuid,
-    action character varying(100) NOT NULL,
-    details jsonb,
-    ip_address inet,
-    user_agent text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-CREATE TABLE public.system_files (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    file_name character varying(255) NOT NULL,
-    storage_key character varying(500) NOT NULL,
-    file_size bigint NOT NULL,
-    mime_type character varying(100) NOT NULL,
-    content_hash character varying(64),
-    category character varying(50) NOT NULL,
-    owner_type character varying(50) NOT NULL,
-    owner_id uuid NOT NULL,
-    uploaded_by uuid,
-    is_active boolean DEFAULT true NOT NULL,
-    scan_status character varying(20) DEFAULT 'pending'::character varying NOT NULL,
-    version integer DEFAULT 1 NOT NULL,
-    parent_file_id uuid,
-    is_latest boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -2325,9 +2268,6 @@ ALTER TABLE ONLY public.audit_logs_y2026m11
 ALTER TABLE ONLY public.audit_logs_y2026m12
     ADD CONSTRAINT audit_logs_y2026m12_pkey PRIMARY KEY (id, created_at);
 
-ALTER TABLE ONLY public.authorized_agents
-    ADD CONSTRAINT authorized_agents_pkey PRIMARY KEY (id);
-
 ALTER TABLE ONLY public.behalf_assignments
     ADD CONSTRAINT ot_claim_behalf_assignments_pkey PRIMARY KEY (id);
 
@@ -2421,9 +2361,6 @@ ALTER TABLE ONLY public.organization_settings
 ALTER TABLE ONLY public.outbox_jobs
     ADD CONSTRAINT outbox_jobs_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.policy_templates
-    ADD CONSTRAINT policy_templates_pkey PRIMARY KEY (id);
-
 ALTER TABLE ONLY public.role_permissions
     ADD CONSTRAINT organization_role_permissions_pkey PRIMARY KEY (role_id, permission_name);
 
@@ -2444,15 +2381,6 @@ ALTER TABLE ONLY public.signature_requests
 
 ALTER TABLE ONLY public.storage_configs
     ADD CONSTRAINT storage_configs_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY public.system_audit_logs
-    ADD CONSTRAINT system_audit_logs_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY public.system_files
-    ADD CONSTRAINT system_files_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY public.system_files
-    ADD CONSTRAINT system_files_storage_key_key UNIQUE (storage_key);
 
 ALTER TABLE ONLY public.system_settings
     ADD CONSTRAINT system_settings_pkey PRIMARY KEY (key);
@@ -2658,25 +2586,15 @@ CREATE INDEX idx_outbox_jobs_created_at ON public.outbox_jobs USING btree (creat
 
 CREATE INDEX idx_outbox_jobs_organization_status ON public.outbox_jobs USING btree (status);
 
-CREATE INDEX idx_policy_templates_category ON public.policy_templates USING btree (category);
-
-CREATE INDEX idx_policy_templates_country ON public.policy_templates USING btree (country_code) WHERE (country_code IS NOT NULL);
-
 CREATE INDEX idx_roles_scope_type ON public.roles USING btree (scope_type);
 
 CREATE INDEX idx_sessions_token ON public.sessions USING btree (token);
 
 CREATE INDEX idx_sessions_user_id ON public.sessions USING btree (user_id);
 
-CREATE INDEX idx_sf_owner ON public.system_files USING btree (owner_type, owner_id) WHERE (is_active = true);
-
 CREATE INDEX idx_signature_requests_document ON public.signature_requests USING btree (document_id);
 
 CREATE INDEX idx_signature_requests_signer ON public.signature_requests USING btree (signer_id);
-
-CREATE INDEX idx_system_audit_logs_action ON public.system_audit_logs USING btree (action);
-
-CREATE INDEX idx_system_audit_logs_created_at ON public.system_audit_logs USING btree (created_at DESC);
 
 CREATE INDEX idx_user_extra_permissions_lookup ON public.user_extra_permissions USING btree (user_id, expires_at);
 
@@ -2705,8 +2623,6 @@ CREATE UNIQUE INDEX organization_settings_singleton_key ON public.organization_s
 CREATE UNIQUE INDEX outbox_jobs_dedupe_key_uq ON public.outbox_jobs USING btree (dedupe_key) WHERE (dedupe_key IS NOT NULL);
 
 CREATE INDEX outbox_jobs_type_status_available_idx ON public.outbox_jobs USING btree (job_type, status, available_at);
-
-CREATE UNIQUE INDEX policy_templates_name_version_key ON public.policy_templates USING btree (name, version);
 
 CREATE UNIQUE INDEX roles_name_key ON public.roles USING btree (name);
 
@@ -2830,8 +2746,6 @@ CREATE TRIGGER trg_monitor_alerts_updated_at BEFORE UPDATE ON public.monitor_ale
 
 CREATE TRIGGER trigger_outbox_jobs_updated_at BEFORE UPDATE ON public.outbox_jobs FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
-CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.policy_templates FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
-
 CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
 CREATE TRIGGER trg_updated_at_storage_configs BEFORE UPDATE ON public.storage_configs FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
@@ -2892,12 +2806,6 @@ ALTER TABLE ONLY public.sessions
 ALTER TABLE ONLY public.signature_requests
     ADD CONSTRAINT signature_requests_document_id_fkey FOREIGN KEY (document_id) REFERENCES public.files(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.system_audit_logs
-    ADD CONSTRAINT system_audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.system_files
-    ADD CONSTRAINT system_files_parent_file_id_fkey FOREIGN KEY (parent_file_id) REFERENCES public.system_files(id);
-
 ALTER TABLE ONLY public.user_extra_permissions
     ADD CONSTRAINT organization_member_extra_perms_user_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
@@ -2914,7 +2822,7 @@ ALTER TABLE ONLY public.user_roles
     ADD CONSTRAINT organization_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_avatar_file_id_fkey FOREIGN KEY (avatar_file_id) REFERENCES public.system_files(id);
+    ADD CONSTRAINT users_avatar_file_id_fkey FOREIGN KEY (avatar_file_id) REFERENCES public.files(id);
 
 ALTER TABLE ONLY public.working_conditions
     ADD CONSTRAINT working_conditions_condition_type_id_fkey FOREIGN KEY (condition_type_id) REFERENCES public.condition_type_definitions(id) ON DELETE SET NULL;

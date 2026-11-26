@@ -230,7 +230,7 @@ func checkBlockingRelationshipsOrEmployments(ctx context.Context, tx pgx.Tx, emp
 			  AND deleted_at IS NULL
 			  AND (end_date IS NULL OR end_date >= $2::date OR start_date >= $2::date)
 			UNION ALL
-			SELECT 1 FROM employments
+			SELECT 1 FROM employment_segments
 			WHERE employee_id = $1
 			  AND deleted_at IS NULL
 			  AND status = 'active'
@@ -308,7 +308,7 @@ func insertRehireTenureAndEmployment(
 
 	employmentID := uuid.New()
 	if err := tx.QueryRow(ctx, `
-		INSERT INTO employments (id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, employment_type, created_at, updated_at)
+		INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, employment_type, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, 'active', $7::date, 'full_time', NOW(), NOW())
 		RETURNING id
 	`, employmentID, employeeID, req.EmployerID, relationshipID, req.PrimaryLocationID, req.DepartmentID, req.StartDate).Scan(&employmentID); err != nil {
@@ -612,7 +612,7 @@ func closeOpenTenureChildren(ctx context.Context, tx pgx.Tx, openRelIDs []uuid.U
 	if err := tx.QueryRow(ctx, `
 		SELECT EXISTS (
 			SELECT 1
-			FROM employments
+			FROM employment_segments
 			WHERE relationship_id = ANY($1)
 			  AND deleted_at IS NULL
 			  AND (
@@ -628,7 +628,7 @@ func closeOpenTenureChildren(ctx context.Context, tx pgx.Tx, openRelIDs []uuid.U
 	}
 
 	segTag, err := tx.Exec(ctx, `
-		UPDATE employments
+		UPDATE employment_segments
 		SET status = 'terminated',
 		    end_date = $1::date,
 		    termination_reason = COALESCE($2, termination_reason),

@@ -22,6 +22,12 @@ The phased fresh-install schema in `apiserver/migrations/phases/` is the sole ac
 - Business objects: employees, departments, shifts, attendance, leave, payroll, contracts, workflows, files, reports, and outbox tables.
 - Partitioned objects: audit and staging-log parents plus their monthly/default partitions.
 
+`employment_relationships` represents the employee–employer relationship; `employment_segments` holds its time-bounded assignments. `employment_phases` and `employment_location_assignments` reference segments. `working_pattern_assignment_rules` applies to working patterns; its physical table name does not change the `assignment_rules:manage` permission or API contract.
+
+External attendance source tables and `payroll_incentive_assignments` are reserved for planned product capabilities; their presence does not imply those capabilities are complete.
+
+`files` is the sole shared file-metadata table (referenced by both `users.avatar_file_id` and `employee_profiles.avatar_file_id`); `employee_documents` remains separate for tenure-scoped legal retention. `audit_logs` is the sole compliance audit table. Retired legacy tables (`shifts`, `authorized_agents`, `policy_templates`, `system_audit_logs`, `system_files`) are excluded from fresh-install phases and guarded absent by `phased_schema_contract.sql`.
+
 Business tables carry no organization or tenant key: the one organization is implicit, so `organization_settings` is a singleton row and authorization is stored directly per user. `files`, `compliance_rules`, and `config_entries` are the organization-wide replacements for their former workspace-prefixed names.
 
 ## Connection architecture

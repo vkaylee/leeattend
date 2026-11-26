@@ -108,7 +108,7 @@ func TestGetScheduleActivationReadinessReportsIndependentBlockers(t *testing.T) 
 				*(dest[0].(*int64)) = 3
 			case strings.Contains(query, "generate_series") && strings.Contains(query, "schedule_office_policies"):
 				*(dest[0].(*int64)) = 5
-			case strings.Contains(query, "generate_series") && strings.Contains(query, "employments e"):
+			case strings.Contains(query, "generate_series") && strings.Contains(query, "employment_segments e"):
 				*(dest[0].(*int64)) = 5
 			case strings.Contains(query, "count(DISTINCT"):
 				*(dest[0].(*int64)) = 5

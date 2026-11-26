@@ -107,7 +107,7 @@ func (r ScheduleRepository) resolveUnscheduledTx(
 	var employerID uuid.UUID
 	var primaryLocationID *uuid.UUID
 	err := tx.QueryRow(ctx, `SELECT employer_id, primary_location_id
-		FROM employments
+		FROM employment_segments
 		WHERE id = $1 AND deleted_at IS NULL
 		  AND start_date <= $2::date
 		  AND (end_date IS NULL OR end_date >= $2::date)`, employmentID, businessDate).Scan(&employerID, &primaryLocationID)

@@ -115,7 +115,7 @@ func insertNewEmployeeGraph(ctx context.Context, tx pgx.Tx, req api.CreateEmploy
 			return api.EmployeeRecord{}, mapEmployeeWriteError(err)
 		}
 		employmentID := uuid.New()
-		if _, err := tx.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, employment_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, 'active', $7::date, 'full_time', NOW(), NOW())`, employmentID, record.ID, *req.EmployerID, relationshipID, req.PrimaryLocationID, req.DepartmentID, req.HireDate); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, primary_location_id, department_id, status, start_date, employment_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, 'active', $7::date, 'full_time', NOW(), NOW())`, employmentID, record.ID, *req.EmployerID, relationshipID, req.PrimaryLocationID, req.DepartmentID, req.HireDate); err != nil {
 			return api.EmployeeRecord{}, mapEmployeeWriteError(err)
 		}
 		record.ActiveEmploymentID = &employmentID
@@ -147,7 +147,7 @@ const sqlEmployeeDisplaySelect = `
 	` + sqlDisplayTenureLateral + `
 	LEFT JOIN LATERAL (
 		SELECT em.id, em.employer_id, em.department_id, em.primary_location_id
-		FROM employments em
+		FROM employment_segments em
 		JOIN employment_relationships rel ON rel.id = em.relationship_id AND rel.deleted_at IS NULL
 		WHERE em.employee_id = e.id
 		  AND em.deleted_at IS NULL

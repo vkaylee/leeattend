@@ -226,7 +226,7 @@ func (r WorkSegmentRepository) getSegmentTx(ctx context.Context, db DBTX, segmen
 func validateSegmentReferences(ctx context.Context, db DBTX, employmentID, templateID uuid.UUID) error {
 	if employmentID != uuid.Nil {
 		var exists bool
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, employmentID).Scan(&exists); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employment_segments WHERE id = $1 AND deleted_at IS NULL)`, employmentID).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {

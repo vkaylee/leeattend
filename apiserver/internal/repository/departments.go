@@ -21,7 +21,7 @@ const departmentColumns = `
 	d.created_at, d.updated_at,
 	(
 		SELECT count(DISTINCT em.employee_id)
-		FROM employments em
+		FROM employment_segments em
 		WHERE em.department_id = d.id
 		  AND em.status = 'active'
 		  AND em.deleted_at IS NULL

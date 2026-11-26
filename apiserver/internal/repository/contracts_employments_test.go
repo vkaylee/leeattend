@@ -172,7 +172,7 @@ func newEmploymentRelationshipCreateTx(employeeID, employerID, relationshipID, s
 				*(dest[10].(*time.Time)) = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 				return nil
 			}}
-		case strings.Contains(query, "INSERT INTO employments"):
+		case strings.Contains(query, "INSERT INTO employment_segments"):
 			return fakeRow{scanFn: func(dest ...any) error {
 				if segmentErr != nil {
 					return segmentErr

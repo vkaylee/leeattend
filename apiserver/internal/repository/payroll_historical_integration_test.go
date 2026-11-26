@@ -233,7 +233,7 @@ func TestIntegrationConcurrentPolicyMembershipInsertHasSingleWinner(t *testing.T
 		{`INSERT INTO employees (id, full_name) VALUES ($1, 'concurrent-membership-employee')`, []any{employeeID}},
 		{`INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date) VALUES ($1, $2, $3, 'initial', DATE '2026-01-01')`, []any{tenureID, employeeID, employeeID.String()}},
 		{`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{relID, employeeID, employerID, tenureID}},
-		{`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID, relID}},
+		{`INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID, relID}},
 		{`INSERT INTO work_policy_groups (id, code, name, created_by) VALUES ($1, $2, 'concurrent-membership-group', $3)`, []any{groupID, "CONC-" + groupID.String()[:8], userID}},
 	} {
 		if _, err := setup.Exec(ctx, query.sql, query.args...); err != nil {
@@ -285,7 +285,7 @@ func TestIntegrationConcurrentPolicyMembershipInsertHasSingleWinner(t *testing.T
 func attachDefaultMonthlyWorkPolicy(t *testing.T, pool *pgxpool.Pool, ctx context.Context, employmentID uuid.UUID, label string) {
 	t.Helper()
 	var relID uuid.UUID
-	if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employment_segments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
 		t.Fatalf("lookup relationship_id (%s): %v", label, err)
 	}
 	actorID := uuid.New()
@@ -500,7 +500,7 @@ func TestIntegrationResolveWorkPolicyUsesExclusiveMembershipAndVersionBoundaries
 	}
 	seedIntegrationEmployeeGraphWithRange(t, ctx, tx, employeeID, employerID, employmentID, employeeID.String(), "resolver-test-employee", "2026-01-01", "2026-01-01", "")
 	var relID uuid.UUID
-	if err := tx.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT relationship_id FROM employment_segments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
 		t.Fatalf("lookup relationship_id: %v", err)
 	}
 	if _, err = tx.Exec(ctx, `INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'resolver-test-overtime')`, otPolicyID); err != nil {
@@ -571,7 +571,7 @@ func TestIntegrationPayrollCreditsUseExactMinutesPerEffectivePolicySegment(t *te
 		{`INSERT INTO employees (id, full_name) VALUES ($1, 'credit-parity-employee')`, []any{employeeID}},
 		{`INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date) VALUES ($1, $2, $3, 'initial', DATE '2026-01-01')`, []any{tenureID, employeeID, employeeID.String()}},
 		{`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{relID, employeeID, employerID, tenureID}},
-		{`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID, relID}},
+		{`INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, []any{employmentID, employeeID, employerID, relID}},
 		{`INSERT INTO salary_component_definitions (id, name, code, component_type) VALUES ($1, 'Credit parity base salary', $2, 'base_salary')`, []any{componentDefinitionID, "CREDIT_PARITY_BASE_" + componentDefinitionID.String()[:8]}},
 		{`INSERT INTO employee_salary_components (id, component_definition_id, amount, effective_date, employment_id) VALUES ($1, $2, 2600, DATE '2026-01-01', $3)`, []any{componentID, componentDefinitionID, employmentID}},
 		{`INSERT INTO overtime_policy_definitions (id, name) VALUES ($1, 'credit-parity-overtime')`, []any{otPolicyID}},

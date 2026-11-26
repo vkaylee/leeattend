@@ -20,7 +20,7 @@ const executiveOverviewSQL = `WITH periods AS (
 active_days AS (
     SELECT p.period, COUNT(*)::bigint AS eligible_employee_days
     FROM periods p
-    JOIN employments emp
+    JOIN employment_segments emp
       ON emp.deleted_at IS NULL
      AND emp.status = 'active'
      AND emp.start_date <= p.end_date
@@ -39,7 +39,7 @@ headcounts AS (
            COUNT(DISTINCT emp.employee_id) FILTER (WHERE emp.start_date <= p.end_date AND (emp.end_date IS NULL OR emp.end_date >= p.end_date))::bigint AS headcount_end,
            COUNT(DISTINCT emp.employee_id) FILTER (WHERE emp.start_date <= p.start_date AND (emp.end_date IS NULL OR emp.end_date >= p.start_date))::bigint AS headcount_start
     FROM periods p
-    LEFT JOIN employments emp
+    LEFT JOIN employment_segments emp
       ON emp.deleted_at IS NULL
      AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
      AND ($6::uuid[] IS NULL OR emp.primary_location_id = ANY($6))
@@ -53,7 +53,7 @@ attendance_days AS (
     FROM periods p
     LEFT JOIN attendance_daily_summaries ads
       ON ads.date BETWEEN p.start_date AND p.end_date
-    LEFT JOIN employments emp ON emp.id = ads.employment_id
+    LEFT JOIN employment_segments emp ON emp.id = ads.employment_id
       AND emp.deleted_at IS NULL
       AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
       AND ($6::uuid[] IS NULL OR emp.primary_location_id = ANY($6))
@@ -73,7 +73,7 @@ overtime AS (
     FROM periods p
     LEFT JOIN attendance_daily_summaries ads
       ON ads.date BETWEEN p.start_date AND p.end_date
-    LEFT JOIN employments emp ON emp.id = ads.employment_id
+    LEFT JOIN employment_segments emp ON emp.id = ads.employment_id
       AND emp.deleted_at IS NULL
       AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))
       AND ($6::uuid[] IS NULL OR emp.primary_location_id = ANY($6))
@@ -90,7 +90,7 @@ terminations AS (
 ),
 actions AS (
     SELECT p.period,
-      COALESCE((SELECT COUNT(*) FROM leave_requests lr JOIN employments emp ON emp.id = lr.employment_id
+      COALESCE((SELECT COUNT(*) FROM leave_requests lr JOIN employment_segments emp ON emp.id = lr.employment_id
        WHERE lr.status = 'pending' AND emp.deleted_at IS NULL
          AND lr.created_at::date BETWEEN p.start_date AND p.end_date
          AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))), 0)
@@ -113,7 +113,7 @@ payroll_cost AS (
     LEFT JOIN payslips ps
      ON ps.status IN ('paid', 'finalized')
      AND ps.period_start <= p.end_date AND ps.period_end >= p.start_date
-    LEFT JOIN employments emp
+    LEFT JOIN employment_segments emp
       ON emp.id = ps.employment_id
      AND emp.deleted_at IS NULL
      AND ($5::uuid[] IS NULL OR emp.department_id = ANY($5))

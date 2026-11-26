@@ -83,7 +83,7 @@ func TestEmployeeImportRepository_TerminationUpdatesRelationship(t *testing.T) {
 	tx := &fakeTx{}
 	tx.fakeDBTX.queryRowFn = func(_ context.Context, query string, _ ...any) pgx.Row {
 		switch {
-		case strings.Contains(query, "FROM employments"):
+		case strings.Contains(query, "FROM employment_segments"):
 			return fakeRow{scanFn: func(dest ...any) error {
 				*(dest[0].(*uuid.UUID)) = employeeID
 				*(dest[1].(*uuid.UUID)) = employerID
@@ -135,7 +135,7 @@ func TestEmployeeImportRepository_TerminationUpdatesRelationship(t *testing.T) {
 	}
 	tx.fakeDBTX.execFn = func(_ context.Context, query string, _ ...any) (pgconn.CommandTag, error) {
 		switch {
-		case strings.Contains(query, "UPDATE employments"):
+		case strings.Contains(query, "UPDATE employment_segments"):
 			segmentUpdated = true
 		case strings.Contains(query, "UPDATE employment_relationships"):
 			relationshipUpdated = true
@@ -169,7 +169,7 @@ func TestEmployeeImportRepository_TerminationAcceptsStartDate(t *testing.T) {
 	tx := &fakeTx{}
 	tx.fakeDBTX.queryRowFn = func(_ context.Context, query string, _ ...any) pgx.Row {
 		switch {
-		case strings.Contains(query, "FROM employments"):
+		case strings.Contains(query, "FROM employment_segments"):
 			return fakeRow{scanFn: func(dest ...any) error {
 				*(dest[0].(*uuid.UUID)) = employeeID
 				*(dest[1].(*uuid.UUID)) = employerID
@@ -219,7 +219,7 @@ func TestEmployeeImportRepository_TerminationRejectsDateBeforeStart(t *testing.T
 	tx := &fakeTx{}
 	segmentUpdated := false
 	tx.fakeDBTX.queryRowFn = func(_ context.Context, query string, _ ...any) pgx.Row {
-		if !strings.Contains(query, "FROM employments") {
+		if !strings.Contains(query, "FROM employment_segments") {
 			t.Fatalf("unexpected query after invalid date: %s", query)
 		}
 		return fakeRow{scanFn: func(dest ...any) error {
@@ -232,7 +232,7 @@ func TestEmployeeImportRepository_TerminationRejectsDateBeforeStart(t *testing.T
 		}}
 	}
 	tx.fakeDBTX.execFn = func(_ context.Context, query string, _ ...any) (pgconn.CommandTag, error) {
-		if strings.Contains(query, "UPDATE employments") {
+		if strings.Contains(query, "UPDATE employment_segments") {
 			segmentUpdated = true
 		}
 		return pgconn.NewCommandTag("UPDATE 1"), nil
@@ -262,7 +262,7 @@ func TestEmployeeImportRepository_TerminationRollsBackWhenRelationshipUpdateFail
 	tx := &fakeTx{}
 	tx.fakeDBTX.queryRowFn = func(_ context.Context, query string, _ ...any) pgx.Row {
 		switch {
-		case strings.Contains(query, "FROM employments"):
+		case strings.Contains(query, "FROM employment_segments"):
 			return fakeRow{scanFn: func(dest ...any) error {
 				*(dest[0].(*uuid.UUID)) = employeeID
 				*(dest[1].(*uuid.UUID)) = employerID

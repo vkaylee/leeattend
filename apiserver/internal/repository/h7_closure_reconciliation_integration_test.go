@@ -71,7 +71,7 @@ func TestIntegrationClosureC2MissingCoverageAndC3OpenPunch(t *testing.T) {
 
 		fixture := createAttendanceClosureFixture(t, ctx, tx, false)
 		// Extend employment to 2026-11-02 while only 2026-11-01 has an official revision.
-		if _, err := tx.Exec(ctx, `UPDATE employments SET end_date = DATE '2026-11-02' WHERE id = $1`, fixture.employmentID); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE employment_segments SET end_date = DATE '2026-11-02' WHERE id = $1`, fixture.employmentID); err != nil {
 			t.Fatalf("extend employment: %v", err)
 		}
 

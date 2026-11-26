@@ -116,7 +116,7 @@ func TestEmployeeConditionRepository_ListAndCreate(t *testing.T) {
 					return nil
 				}}
 			}
-			if strings.Contains(sql, "FROM employments") {
+			if strings.Contains(sql, "FROM employment_segments") {
 				return fakeRow{scanFn: func(dest ...any) error {
 					*(dest[0].(*uuid.UUID)) = employmentID
 					return nil
@@ -194,7 +194,7 @@ func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
 				}}
 			},
 			queryFn: func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
-				if strings.Contains(sql, "FROM employments") {
+				if strings.Contains(sql, "FROM employment_segments") {
 					end1 := "2026-06-30"
 					return &rowsStub{
 						data: [][]any{
@@ -209,10 +209,10 @@ func TestEmployeeDepartmentRepository_TransferSplit(t *testing.T) {
 				if strings.Contains(sql, "SET end_date = $1::date") {
 					updatedEndDate = args[0].(string)
 				}
-				if strings.Contains(sql, "INSERT INTO employments") {
+				if strings.Contains(sql, "INSERT INTO employment_segments") {
 					insertedNewDept = args[5].(uuid.UUID)
 				}
-				if strings.Contains(sql, "UPDATE employments SET department_id = $1") {
+				if strings.Contains(sql, "UPDATE employment_segments SET department_id = $1") {
 					cascadedDeptID = args[0].(uuid.UUID)
 				}
 				return pgconn.NewCommandTag("UPDATE 1"), nil
@@ -257,7 +257,7 @@ func TestCompensationHistoryRepository_Timeline(t *testing.T) {
 
 	db := &fakeDBTX{
 		queryFn: func(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
-			if strings.Contains(sql, "FROM employments") {
+			if strings.Contains(sql, "FROM employment_segments") {
 				return &rowsStub{
 					data: [][]any{
 						{emp1ID, employerID, deptID, nil, "2026-01-01"},

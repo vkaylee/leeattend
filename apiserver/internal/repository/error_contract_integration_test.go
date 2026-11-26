@@ -41,7 +41,7 @@ func TestIntegrationReferenceAndValidationErrorContract(t *testing.T) {
 	}
 	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, employeeID, employerID, employmentID, "EC-"+employeeID.String()[:8], "Error Contract Employee", "2026-06-01", "2026-06-01", "")
 	t.Cleanup(func() {
-		_, _ = pool.Exec(ctx, `DELETE FROM employments WHERE id = $1`, employmentID)
+		_, _ = pool.Exec(ctx, `DELETE FROM employment_segments WHERE id = $1`, employmentID)
 		_, _ = pool.Exec(ctx, `DELETE FROM employment_relationships WHERE employee_id = $1`, employeeID)
 		_, _ = pool.Exec(ctx, `DELETE FROM employee_tenures WHERE employee_id = $1`, employeeID)
 		_, _ = pool.Exec(ctx, `DELETE FROM employees WHERE id = $1`, employeeID)
@@ -140,7 +140,7 @@ func TestIntegrationLifecycleGuardRollbackAndIndependentEvidence(t *testing.T) {
 		_, _ = pool.Exec(ctx, `DELETE FROM shift_rosters WHERE employment_id = $1`, employmentID)
 		_, _ = pool.Exec(ctx, `DELETE FROM schedule_day_revisions WHERE id = $1`, revisionID)
 		_, _ = pool.Exec(ctx, `DELETE FROM schedule_publication_batches WHERE id = $1`, batchID)
-		_, _ = pool.Exec(ctx, `DELETE FROM employments WHERE id = $1`, employmentID)
+		_, _ = pool.Exec(ctx, `DELETE FROM employment_segments WHERE id = $1`, employmentID)
 		_, _ = pool.Exec(ctx, `DELETE FROM employment_relationships WHERE employee_id = $1`, employeeID)
 		_, _ = pool.Exec(ctx, `DELETE FROM employee_tenures WHERE employee_id = $1`, employeeID)
 		_, _ = pool.Exec(ctx, `DELETE FROM employees WHERE id = $1`, employeeID)

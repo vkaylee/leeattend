@@ -39,7 +39,7 @@ func (r CompensationHistoryRepository) GetEmployeeCompensationHistory(ctx contex
 		return api.CompensationHistoryResponse{}, err
 	}
 
-	rows, err := db.Query(ctx, `SELECT em.id, em.employer_id, em.department_id, em.job_title, em.start_date::text FROM employments em JOIN employees e ON e.id = em.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL ORDER BY em.start_date ASC`, employeeID)
+	rows, err := db.Query(ctx, `SELECT em.id, em.employer_id, em.department_id, em.job_title, em.start_date::text FROM employment_segments em JOIN employees e ON e.id = em.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL ORDER BY em.start_date ASC`, employeeID)
 	if err != nil {
 		return api.CompensationHistoryResponse{}, err
 	}

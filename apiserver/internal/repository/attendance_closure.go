@@ -23,7 +23,7 @@ WITH days AS (
 ), current_days AS (
 	SELECT em.id AS employment_id, d.business_date, r.id AS revision_id,
 		r.revision_number, r.state, r.source, r.timezone, r.source_snapshot
-	FROM employments em
+	FROM employment_segments em
 	CROSS JOIN days d
 	JOIN schedule_day_revisions r
 	  ON r.employment_id = em.id
@@ -199,7 +199,7 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 		SELECT e.id
 		FROM employees e
 		WHERE EXISTS (
-			SELECT 1 FROM employments em
+			SELECT 1 FROM employment_segments em
 			WHERE em.employee_id = e.id AND em.employer_id = $1 AND em.deleted_at IS NULL
 		)
 		ORDER BY e.id
@@ -240,7 +240,7 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 	}
 	if err := lockClosureRows(ctx, tx, `
 		SELECT em.id
-		FROM employments em
+		FROM employment_segments em
 		WHERE em.employer_id = $1 AND em.deleted_at IS NULL
 		ORDER BY em.id
 		FOR UPDATE`, employerID); err != nil {
@@ -249,7 +249,7 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 	if err := lockClosureRows(ctx, tx, `
 		SELECT r.id
 		FROM schedule_day_revisions r
-		JOIN employments em ON em.id = r.employment_id
+		JOIN employment_segments em ON em.id = r.employment_id
 		WHERE em.employer_id = $1
 		  AND r.business_date BETWEEN $2::date AND $3::date
 		  AND r.state IN ('published', 'explicit_off')
@@ -260,7 +260,7 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 	if err := lockClosureRows(ctx, tx, `
 		SELECT te.id
 		FROM time_entries te
-		JOIN employments em ON em.id = te.employment_id
+		JOIN employment_segments em ON em.id = te.employment_id
 		WHERE em.employer_id = $1
 		  AND te.punch_in_time::date BETWEEN $2::date AND $3::date
 		ORDER BY te.employment_id, te.punch_in_time, te.id
@@ -270,7 +270,7 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 	if err := lockClosureRows(ctx, tx, `
 		SELECT s.id
 		FROM attendance_daily_summaries s
-		JOIN employments em ON em.id = s.employment_id
+		JOIN employment_segments em ON em.id = s.employment_id
 		WHERE em.employer_id = $1 AND s.date BETWEEN $2::date AND $3::date
 		ORDER BY s.employment_id, s.date, s.id
 		FOR UPDATE`, employerID, start, end); err != nil {
@@ -279,7 +279,7 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 	if err := lockClosureRows(ctx, tx, `
 		SELECT ral.id
 		FROM raw_attendance_logs ral
-		JOIN employments em ON em.id = ral.employment_id
+		JOIN employment_segments em ON em.id = ral.employment_id
 		WHERE em.employer_id = $1
 		  AND ral.punch_time::date BETWEEN $2::date AND $3::date
 		ORDER BY ral.employment_id, ral.punch_time, ral.id
@@ -292,7 +292,7 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 		WITH days AS (SELECT generate_series($2::date, $3::date, interval '1 day')::date AS business_date),
 		employment_days AS (
 			SELECT em.id AS employment_id, d.business_date
-			FROM employments em CROSS JOIN days d
+			FROM employment_segments em CROSS JOIN days d
 			WHERE em.employer_id = $1 AND em.deleted_at IS NULL
 			  AND em.start_date <= d.business_date
 			  AND (em.end_date IS NULL OR em.end_date >= d.business_date)
@@ -310,7 +310,7 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 
 	var openPunch bool
 	if err := tx.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM time_entries te JOIN employments em ON em.id = te.employment_id
+		SELECT 1 FROM time_entries te JOIN employment_segments em ON em.id = te.employment_id
 		WHERE em.employer_id = $1 AND em.deleted_at IS NULL AND te.punch_out_time IS NULL
 		  AND te.punch_in_time::date BETWEEN $2::date AND $3::date
 	)`, employerID, start, end).Scan(&openPunch); err != nil {
@@ -322,11 +322,11 @@ func (r AttendanceRepository) closeAttendancePeriodTx(ctx context.Context, tx pg
 
 	var unresolvedApproval bool
 	if err := tx.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM attendance_adjustment_requests ar JOIN employments em ON em.id = ar.employment_id
+		SELECT 1 FROM attendance_adjustment_requests ar JOIN employment_segments em ON em.id = ar.employment_id
 		WHERE em.employer_id = $1 AND ar.status = 'pending'
 		  AND ar.requested_punch_time::date BETWEEN $2::date AND $3::date
 		UNION ALL
-		SELECT 1 FROM attendance_daily_summaries ads JOIN employments em ON em.id = ads.employment_id
+		SELECT 1 FROM attendance_daily_summaries ads JOIN employment_segments em ON em.id = ads.employment_id
 		WHERE em.employer_id = $1 AND ads.ot_status IN ('pending_employee', 'pending_manager')
 		  AND ads.date BETWEEN $2::date AND $3::date
 	)`, employerID, start, end).Scan(&unresolvedApproval); err != nil {
@@ -465,7 +465,7 @@ func enqueueClosedPeriodLatePunchReconciliation(ctx context.Context, db DBTX, em
 	var closureID *uuid.UUID
 	err := db.QueryRow(ctx, `
 		SELECT em.employer_id, ap.id, ap.current_closure_id
-		FROM employments em
+		FROM employment_segments em
 		JOIN attendance_periods ap
 		  ON ap.employer_id = em.employer_id
 		 AND ap.period_year = $2

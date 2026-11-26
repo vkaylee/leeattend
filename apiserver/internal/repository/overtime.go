@@ -458,7 +458,7 @@ func (r OvertimeRepository) CreateOvertimeRequest(ctx context.Context, user uuid
 		}
 		for _, employeeID := range req.Employees {
 			var employmentID uuid.UUID
-			if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL AND start_date <= $2 AND (end_date IS NULL OR end_date >= $2) ORDER BY start_date DESC LIMIT 1`, employeeID, planned).Scan(&employmentID); err != nil {
+			if err := db.QueryRow(ctx, `SELECT id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL AND start_date <= $2 AND (end_date IS NULL OR end_date >= $2) ORDER BY start_date DESC LIMIT 1`, employeeID, planned).Scan(&employmentID); err != nil {
 				return err
 			}
 			if _, err := db.Exec(ctx, `INSERT INTO overtime_request_employees (id, overtime_request_id, employment_id, consent_status, created_at) VALUES ($1, $2, $3, 'pending', NOW())`, uuid.New(), id, employmentID); err != nil {
@@ -585,7 +585,7 @@ func (r OvertimeRepository) ConsentOvertimeRequest(ctx context.Context, requestI
 	if err != nil {
 		return err
 	}
-	tag, err := db.Exec(ctx, `UPDATE overtime_request_employees ore SET consent_status = $1, consent_at = NOW(), decline_reason = $2 WHERE ore.overtime_request_id = $3 AND ore.employment_id = (SELECT id FROM employments WHERE employee_id = $4 ORDER BY start_date DESC LIMIT 1)`, req.Status, req.DeclineReason, requestID, employeeID)
+	tag, err := db.Exec(ctx, `UPDATE overtime_request_employees ore SET consent_status = $1, consent_at = NOW(), decline_reason = $2 WHERE ore.overtime_request_id = $3 AND ore.employment_id = (SELECT id FROM employment_segments WHERE employee_id = $4 ORDER BY start_date DESC LIMIT 1)`, req.Status, req.DeclineReason, requestID, employeeID)
 	if err != nil {
 		return err
 	}
@@ -602,7 +602,7 @@ func (r OvertimeRepository) GetEmployee(ctx context.Context, id uuid.UUID) (api.
 	}
 	var record api.EmployeeRecord
 	var createdAt, updatedAt time.Time
-	err = db.QueryRow(ctx, `SELECT e.id, tenure.user_id, e.full_name, COALESCE(tenure.employee_number, ''), e.tags, e.created_at, e.updated_at, NULL::text, (SELECT em.id FROM employments em WHERE em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL ORDER BY em.start_date DESC LIMIT 1), NULL::uuid, NULL::uuid FROM employees e `+sqlEffectiveTenureLateral+` WHERE e.id = $1 AND e.deleted_at IS NULL`, id).
+	err = db.QueryRow(ctx, `SELECT e.id, tenure.user_id, e.full_name, COALESCE(tenure.employee_number, ''), e.tags, e.created_at, e.updated_at, NULL::text, (SELECT em.id FROM employment_segments em WHERE em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL ORDER BY em.start_date DESC LIMIT 1), NULL::uuid, NULL::uuid FROM employees e `+sqlEffectiveTenureLateral+` WHERE e.id = $1 AND e.deleted_at IS NULL`, id).
 		Scan(&record.ID, &record.UserID, &record.FullName, &record.EmployeeIDNumber, &record.Tags, &createdAt, &updatedAt, &record.DepartmentName, &record.ActiveEmploymentID, &record.EmployerID, &record.PrimaryLocationID)
 	if err != nil {
 		return api.EmployeeRecord{}, err
@@ -619,7 +619,7 @@ func (r OvertimeRepository) EmployeeDepartmentID(ctx context.Context, employeeID
 		return nil, err
 	}
 	var id *uuid.UUID
-	err = db.QueryRow(ctx, `SELECT department_id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&id)
+	err = db.QueryRow(ctx, `SELECT department_id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&id)
 	return id, err
 }
 
@@ -634,7 +634,7 @@ func (r OvertimeRepository) ClaimOvertime(ctx context.Context, employeeID uuid.U
 			return err
 		}
 		var employmentID uuid.UUID
-		if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
+		if err := db.QueryRow(ctx, `SELECT id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
 			return err
 		}
 		var detectedMinutes int
@@ -667,7 +667,7 @@ func (r OvertimeRepository) ApproveOvertime(ctx context.Context, employeeID uuid
 		return err
 	}
 	var employmentID uuid.UUID
-	if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
+	if err := db.QueryRow(ctx, `SELECT id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
 		return err
 	}
 	approvedMinutes := req.ApprovedMinutes

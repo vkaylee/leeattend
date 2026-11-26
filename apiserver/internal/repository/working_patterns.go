@@ -202,7 +202,7 @@ func (r WorkingPatternRepository) AssignPattern(ctx context.Context, employmentI
 		if err := guardLifecycleDateRange(ctx, db, []uuid.UUID{employmentID}, req.StartDate, patternEndDate(req.StartDate, req.EndDate)); err != nil {
 			return err
 		}
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, employmentID).Scan(&exists); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employment_segments WHERE id = $1 AND deleted_at IS NULL)`, employmentID).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
@@ -250,7 +250,7 @@ func (r WorkingPatternRepository) BulkAssignPattern(ctx context.Context, req api
 			return err
 		}
 		var validCount int64
-		if err := db.QueryRow(ctx, `SELECT count(*) FROM employments WHERE id = ANY($1) AND deleted_at IS NULL`, req.EmploymentIDs).Scan(&validCount); err != nil {
+		if err := db.QueryRow(ctx, `SELECT count(*) FROM employment_segments WHERE id = ANY($1) AND deleted_at IS NULL`, req.EmploymentIDs).Scan(&validCount); err != nil {
 			return err
 		}
 		if validCount != int64(len(req.EmploymentIDs)) {

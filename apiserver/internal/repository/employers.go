@@ -156,7 +156,7 @@ func (r EmployerRepository) DeleteEmployer(ctx context.Context, id uuid.UUID) er
 		return err
 	}
 	var count int64
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM employments WHERE employer_id = $1 AND status = 'active' AND deleted_at IS NULL`, id).Scan(&count); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employment_segments WHERE employer_id = $1 AND status = 'active' AND deleted_at IS NULL`, id).Scan(&count); err != nil {
 		return err
 	}
 	if count > 0 {

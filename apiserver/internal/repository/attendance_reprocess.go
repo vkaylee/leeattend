@@ -32,10 +32,10 @@ func ensureReprocessPeriodsOpen(ctx context.Context, db DBTX, startDate, endDate
 	if _, err := db.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended(id::text, 0)) FROM unnest($1::uuid[]) AS id ORDER BY id`, empIDs); err != nil {
 		return err
 	}
-	if _, err := db.Exec(ctx, `SELECT e.id FROM employees e JOIN employments em ON em.employee_id = e.id WHERE em.id = ANY($1) ORDER BY e.id FOR UPDATE`, empIDs); err != nil {
+	if _, err := db.Exec(ctx, `SELECT e.id FROM employees e JOIN employment_segments em ON em.employee_id = e.id WHERE em.id = ANY($1) ORDER BY e.id FOR UPDATE`, empIDs); err != nil {
 		return err
 	}
-	if _, err := db.Exec(ctx, `SELECT id FROM employments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, empIDs); err != nil {
+	if _, err := db.Exec(ctx, `SELECT id FROM employment_segments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, empIDs); err != nil {
 		return err
 	}
 	schema, err := lifecycleSchemaState(ctx, db)
@@ -54,7 +54,7 @@ func ensureReprocessPeriodsOpen(ctx context.Context, db DBTX, startDate, endDate
 
 func loadReprocessTargetEmployments(ctx context.Context, db DBTX, startDate, endDate string, employeeID *uuid.UUID) ([]uuid.UUID, error) {
 	if employeeID != nil {
-		rows, err := db.Query(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND deleted_at IS NULL`, *employeeID)
+		rows, err := db.Query(ctx, `SELECT id FROM employment_segments WHERE employee_id = $1 AND deleted_at IS NULL`, *employeeID)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +133,7 @@ func loadOfficialSegmentsForPairing(ctx context.Context, db DBTX, startDate, end
 	rows, err := db.Query(ctx, `SELECT ws.employment_id, ws.date::text, ws.id, ws.template_id, ws.selected_shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot
 		FROM work_segments ws
 		JOIN schedule_day_revisions sdr ON sdr.id = ws.schedule_revision_id
-		JOIN employments e ON e.id = ws.employment_id
+		JOIN employment_segments e ON e.id = ws.employment_id
 		WHERE `+where+`
 		ORDER BY ws.employment_id, ws.scheduled_start_at, ws.sort_order`, args...)
 	if err != nil {
@@ -164,7 +164,7 @@ func loadRawLogsForPairing(ctx context.Context, db DBTX, startDate, endDate stri
 	}
 	rows, err := db.Query(ctx, `SELECT ral.id, ral.employment_id, ral.punch_time
 		FROM raw_attendance_logs ral
-		JOIN employments e ON e.id = ral.employment_id
+		JOIN employment_segments e ON e.id = ral.employment_id
 		WHERE `+where+`
 		ORDER BY ral.employment_id, ral.punch_time, ral.id`, args...)
 	if err != nil {

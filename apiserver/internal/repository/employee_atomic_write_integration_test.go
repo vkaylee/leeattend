@@ -137,7 +137,7 @@ func assertNewEmployeeGraphExists(t *testing.T, ctx context.Context, db DBTX, em
 			(SELECT count(*) FROM employee_profiles WHERE employee_id = $1),
 			(SELECT count(*) FROM employee_tenures WHERE employee_id = $1 AND deleted_at IS NULL),
 			(SELECT count(*) FROM employment_relationships WHERE employee_id = $1 AND deleted_at IS NULL),
-			(SELECT count(*) FROM employments WHERE employee_id = $1 AND deleted_at IS NULL)
+			(SELECT count(*) FROM employment_segments WHERE employee_id = $1 AND deleted_at IS NULL)
 	`, empID).Scan(&profiles, &tenures, &rels, &emps); err != nil {
 		t.Fatalf("query created graph: %v", err)
 	}
@@ -250,7 +250,7 @@ func seedTerminatedEmployeeForReuse(
 		t.Fatalf("insert terminated relationship: %v", err)
 	}
 	if _, err := db.Exec(ctx, `
-		INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date, end_date)
+		INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date, end_date)
 		VALUES ($1, $2, $3, $4, 'terminated', $5::date, $6::date)
 	`, uuid.New(), empID, employerID, relID, startDate, endDate); err != nil {
 		t.Fatalf("insert terminated employment: %v", err)
@@ -354,7 +354,7 @@ func TestIntegrationEmployeeConcurrentCreateAndReuseRaces(t *testing.T) {
 	}
 	scope := seedAtomicWriteScope(t, ctx, pool)
 	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM employments WHERE employer_id IN ($1, $2)`, scope.employerA, scope.employerB)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM employment_segments WHERE employer_id IN ($1, $2)`, scope.employerA, scope.employerB)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM employment_relationships WHERE employer_id IN ($1, $2)`, scope.employerA, scope.employerB)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM employers WHERE id IN ($1, $2)`, scope.employerA, scope.employerB)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM departments WHERE id = $1`, scope.department)
@@ -414,7 +414,7 @@ func runConcurrentReuseTenureRace(t *testing.T, ctx context.Context, pool *pgxpo
 	t.Helper()
 	empID, _ := seedTerminatedEmployeeForReuse(t, ctx, pool, scope.employerA, "RACE-REUSE-"+uuid.NewString()[:8], "2025-01-01", "2025-06-30")
 	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM employments WHERE employee_id = $1`, empID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM employment_segments WHERE employee_id = $1`, empID)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM employment_relationships WHERE employee_id = $1`, empID)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM employee_tenures WHERE employee_id = $1`, empID)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM employee_profiles WHERE employee_id = $1`, empID)

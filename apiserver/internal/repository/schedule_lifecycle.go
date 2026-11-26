@@ -209,7 +209,7 @@ func ensureMutationPeriodOpen(ctx context.Context, tx DBTX, employerID uuid.UUID
 
 func ensureMutationPeriodOpenForRange(ctx context.Context, tx DBTX, employmentIDs []uuid.UUID, startDate, endDate string) error {
 	var blocked bool
-	err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_periods pp JOIN employments e ON e.employer_id = pp.employer_id WHERE e.id = ANY($1) AND pp.status = 'locked' AND make_date(pp.period_year, pp.period_month, 1) <= $3::date AND (make_date(pp.period_year, pp.period_month, 1) + interval '1 month - 1 day') >= $2::date) OR EXISTS (SELECT 1 FROM attendance_periods ap JOIN employments e ON e.employer_id = ap.employer_id WHERE e.id = ANY($1) AND ap.status = 'closed' AND make_date(ap.period_year, ap.period_month, 1) <= $3::date AND (make_date(ap.period_year, ap.period_month, 1) + interval '1 month - 1 day') >= $2::date)`, employmentIDs, startDate, endDate).Scan(&blocked)
+	err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_periods pp JOIN employment_segments e ON e.employer_id = pp.employer_id WHERE e.id = ANY($1) AND pp.status = 'locked' AND make_date(pp.period_year, pp.period_month, 1) <= $3::date AND (make_date(pp.period_year, pp.period_month, 1) + interval '1 month - 1 day') >= $2::date) OR EXISTS (SELECT 1 FROM attendance_periods ap JOIN employment_segments e ON e.employer_id = ap.employer_id WHERE e.id = ANY($1) AND ap.status = 'closed' AND make_date(ap.period_year, ap.period_month, 1) <= $3::date AND (make_date(ap.period_year, ap.period_month, 1) + interval '1 month - 1 day') >= $2::date)`, employmentIDs, startDate, endDate).Scan(&blocked)
 	if err != nil {
 		return err
 	}
@@ -274,10 +274,10 @@ func lockScheduleRevisionTargets(ctx context.Context, tx DBTX, keys []scheduleRe
 	}
 	sort.Strings(dates)
 	sort.Slice(employmentIDs, func(i, j int) bool { return employmentIDs[i].String() < employmentIDs[j].String() })
-	if _, err := tx.Exec(ctx, `SELECT e.id FROM employees e JOIN employments em ON em.employee_id = e.id WHERE em.id = ANY($1) ORDER BY e.id FOR UPDATE`, employmentIDs); err != nil {
+	if _, err := tx.Exec(ctx, `SELECT e.id FROM employees e JOIN employment_segments em ON em.employee_id = e.id WHERE em.id = ANY($1) ORDER BY e.id FOR UPDATE`, employmentIDs); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(ctx, `SELECT id FROM employments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, employmentIDs); err != nil {
+	if _, err := tx.Exec(ctx, `SELECT id FROM employment_segments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, employmentIDs); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `SELECT id FROM schedule_day_revisions WHERE employment_id = ANY($1) AND business_date BETWEEN $2::date AND $3::date ORDER BY id FOR UPDATE`, employmentIDs, dates[0], dates[len(dates)-1]); err != nil {

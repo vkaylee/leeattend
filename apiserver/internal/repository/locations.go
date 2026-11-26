@@ -142,7 +142,7 @@ func (r LocationRepository) DeleteLocation(ctx context.Context, id uuid.UUID) er
 		return err
 	}
 	var inUseCount int64
-	err = db.QueryRow(ctx, `SELECT count(*) FROM employments em JOIN employees e ON e.id = em.employee_id WHERE em.primary_location_id = $1 AND em.status = 'active' AND em.deleted_at IS NULL AND e.deleted_at IS NULL`, id).Scan(&inUseCount)
+	err = db.QueryRow(ctx, `SELECT count(*) FROM employment_segments em JOIN employees e ON e.id = em.employee_id WHERE em.primary_location_id = $1 AND em.status = 'active' AND em.deleted_at IS NULL AND e.deleted_at IS NULL`, id).Scan(&inUseCount)
 	if err != nil {
 		return err
 	}

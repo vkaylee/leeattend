@@ -29,6 +29,46 @@ BEGIN
         RAISE EXCEPTION 'phased schema check failed: workspace objects remain: %', legacy_count;
     END IF;
 
+    IF EXISTS (
+        SELECT 1
+        FROM (VALUES
+            ('employment_segments'), ('employment_phases'),
+            ('employment_location_assignments'), ('working_pattern_assignment_rules'),
+            ('attendance_sources'), ('attendance_source_pull_states'),
+            ('external_attendance_events'), ('payroll_incentive_assignments')
+        ) AS required(name)
+        WHERE NOT EXISTS (
+            SELECT 1 FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND c.relname = required.name AND c.relkind IN ('r', 'p')
+        )
+    ) THEN
+        RAISE EXCEPTION 'phased schema check failed: renamed or roadmap table missing';
+    END IF;
+
+    IF to_regclass('public.employments') IS NOT NULL
+       OR to_regclass('public.employee_phases') IS NOT NULL
+       OR to_regclass('public.employee_assignments') IS NOT NULL
+       OR to_regclass('public.assignment_rules') IS NOT NULL
+       OR to_regclass('public.shifts') IS NOT NULL
+       OR to_regclass('public.authorized_agents') IS NOT NULL
+       OR to_regclass('public.policy_templates') IS NOT NULL
+       OR to_regclass('public.system_audit_logs') IS NOT NULL
+       OR to_regclass('public.system_files') IS NOT NULL THEN
+        RAISE EXCEPTION 'phased schema check failed: retired or old table name remains';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'public.users'::regclass
+          AND confrelid = 'public.files'::regclass
+          AND conname = 'users_avatar_file_id_fkey'
+          AND contype = 'f'
+    ) THEN
+        RAISE EXCEPTION 'phased schema check failed: users_avatar_file_id_fkey must reference public.files';
+    END IF;
+
     IF to_regnamespace('salary_base_retirement_backup') IS NOT NULL THEN
         RAISE EXCEPTION 'phased schema check failed: upgrade-only retirement schema remains';
     END IF;
@@ -111,12 +151,12 @@ BEGIN
        OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employee_tenures' AND column_name = 'prior_service_credit_days' AND is_nullable = 'NO')
        OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employee_tenures' AND column_name = 'rehire_eligible' AND is_nullable = 'NO')
        OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employment_relationships' AND column_name = 'tenure_id' AND is_nullable = 'NO')
-       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employments' AND column_name = 'relationship_id' AND is_nullable = 'NO')
+       OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employment_segments' AND column_name = 'relationship_id' AND is_nullable = 'NO')
        OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employee_documents' AND column_name = 'tenure_id')
        OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'file_acknowledgements' AND column_name = 'tenure_id')
        OR NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.employee_tenures'::regclass AND conname = 'employee_tenures_permanent_code_owner' AND contype = 'x')
        OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.employment_relationships'::regclass AND tgname = 'trg_validate_relationship_tenure_bounds' AND NOT tgisinternal)
-       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.employments'::regclass AND tgname = 'trg_validate_segment_relationship_bounds' AND NOT tgisinternal)
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.employment_segments'::regclass AND tgname = 'trg_validate_segment_relationship_bounds' AND NOT tgisinternal)
        OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.employee_tenures'::regclass AND tgname = 'trg_validate_tenure_bounds_guard' AND NOT tgisinternal) THEN
         RAISE EXCEPTION 'phased schema check failed: employee tenures v2 columns, constraints, or containment triggers missing';
     END IF;

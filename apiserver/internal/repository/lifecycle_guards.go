@@ -281,7 +281,7 @@ func hasActivatedLifecycleScope(ctx context.Context, db DBTX, employmentIDs []uu
 	err := db.QueryRow(ctx, `SELECT EXISTS (
 		SELECT 1
 		FROM feature_flags ff
-		JOIN employments e ON e.id = ANY($1) AND e.deleted_at IS NULL
+		JOIN employment_segments e ON e.id = ANY($1) AND e.deleted_at IS NULL
 		JOIN config_entries c
 		  ON c.scope_type = 'employer'
 		 AND c.scope_id = e.employer_id
@@ -318,12 +318,12 @@ func hasClosedPeriod(ctx context.Context, db DBTX, schema lifecycleSchema, emplo
 	}
 	var attendanceClosed, payrollLocked bool
 	if schema.attendancePeriods {
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM attendance_periods p JOIN employments e ON e.employer_id = p.employer_id WHERE e.id = ANY($1) AND p.status = 'closed' AND make_date(p.period_year, p.period_month, 1) <= $3::date AND (make_date(p.period_year, p.period_month, 1) + interval '1 month - 1 day') >= $2::date)`, employmentIDs, startDate, endDate).Scan(&attendanceClosed); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM attendance_periods p JOIN employment_segments e ON e.employer_id = p.employer_id WHERE e.id = ANY($1) AND p.status = 'closed' AND make_date(p.period_year, p.period_month, 1) <= $3::date AND (make_date(p.period_year, p.period_month, 1) + interval '1 month - 1 day') >= $2::date)`, employmentIDs, startDate, endDate).Scan(&attendanceClosed); err != nil {
 			return false, err
 		}
 	}
 	if schema.payrollPeriods {
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_periods p JOIN employments e ON e.employer_id = p.employer_id WHERE e.id = ANY($1) AND p.status = 'locked' AND make_date(p.period_year, p.period_month, 1) <= $3::date AND (make_date(p.period_year, p.period_month, 1) + interval '1 month - 1 day') >= $2::date)`, employmentIDs, startDate, endDate).Scan(&payrollLocked); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payroll_periods p JOIN employment_segments e ON e.employer_id = p.employer_id WHERE e.id = ANY($1) AND p.status = 'locked' AND make_date(p.period_year, p.period_month, 1) <= $3::date AND (make_date(p.period_year, p.period_month, 1) + interval '1 month - 1 day') >= $2::date)`, employmentIDs, startDate, endDate).Scan(&payrollLocked); err != nil {
 			return false, err
 		}
 	}

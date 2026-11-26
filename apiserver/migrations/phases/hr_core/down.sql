@@ -30,7 +30,7 @@ DROP TABLE IF EXISTS public.leave_balances CASCADE;
 
 DROP TABLE IF EXISTS public.leave_accrual_logs CASCADE;
 
-DROP TABLE IF EXISTS public.employments CASCADE;
+DROP TABLE IF EXISTS public.employment_segments CASCADE;
 
 DROP TABLE IF EXISTS public.employment_relationships CASCADE;
 
@@ -50,7 +50,7 @@ DROP TABLE IF EXISTS public.employee_salary_components CASCADE;
 
 DROP TABLE IF EXISTS public.employee_profiles CASCADE;
 
-DROP TABLE IF EXISTS public.employee_phases CASCADE;
+DROP TABLE IF EXISTS public.employment_phases CASCADE;
 
 DROP TABLE IF EXISTS public.employee_emergency_contacts CASCADE;
 
@@ -58,7 +58,7 @@ DROP TABLE IF EXISTS public.employee_documents CASCADE;
 
 DROP TABLE IF EXISTS public.employee_contracts CASCADE;
 
-DROP TABLE IF EXISTS public.employee_assignments CASCADE;
+DROP TABLE IF EXISTS public.employment_location_assignments CASCADE;
 
 DROP TABLE IF EXISTS public.econtract_envelopes CASCADE;
 

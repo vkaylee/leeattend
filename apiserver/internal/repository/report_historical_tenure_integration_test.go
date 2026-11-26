@@ -28,7 +28,7 @@ func TestIntegrationAttendanceReportKeepsHistoricalTenureNumber(t *testing.T) {
 		t.Fatalf("insert relationships: %v", err)
 	}
 	newEmploymentID := uuid.New()
-	if _, err := pool.Exec(ctx, `INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date, end_date) VALUES ($1, $2, $3, $4, 'terminated', DATE '2026-01-01', DATE '2026-06-30'), ($5, $2, $3, $6, 'active', DATE '2026-07-01', NULL)`, employmentID, employeeID, employerID, relationshipID, newEmploymentID, newRelationshipID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date, end_date) VALUES ($1, $2, $3, $4, 'terminated', DATE '2026-01-01', DATE '2026-06-30'), ($5, $2, $3, $6, 'active', DATE '2026-07-01', NULL)`, employmentID, employeeID, employerID, relationshipID, newEmploymentID, newRelationshipID); err != nil {
 		t.Fatalf("insert employments: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO attendance_daily_summaries (id, employment_id, date, actual_work_minutes, standard_minutes) VALUES ($1, $2, DATE '2026-06-15', 480, 480), ($3, $4, DATE '2026-07-15', 480, 480)`, uuid.New(), employmentID, uuid.New(), newEmploymentID); err != nil {

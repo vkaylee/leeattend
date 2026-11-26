@@ -21,7 +21,7 @@ type employmentComplianceBounds struct {
 
 func loadEmploymentComplianceBounds(ctx context.Context, db DBTX, employmentID uuid.UUID) (employmentComplianceBounds, error) {
 	var bounds employmentComplianceBounds
-	err := db.QueryRow(ctx, `SELECT employee_id, start_date, end_date FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).
+	err := db.QueryRow(ctx, `SELECT employee_id, start_date, end_date FROM employment_segments WHERE id = $1 AND deleted_at IS NULL`, employmentID).
 		Scan(&bounds.employeeID, &bounds.startDate, &bounds.endDate)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return employmentComplianceBounds{}, api.ErrEmploymentNotFound
@@ -139,7 +139,7 @@ type officialComplianceKey struct {
 func loadPersonEmploymentsForCompliance(ctx context.Context, db DBTX, employeeID uuid.UUID, startStr, endStr string) ([]compliancePersonEmployment, []uuid.UUID, error) {
 	empRows, err := db.Query(ctx, `
 		SELECT emp.id, emp.employee_id, COALESCE(t.employee_number, ''), emp.primary_location_id, emp.start_date, emp.end_date, COALESCE(e.tags, '{}')
-		FROM employments emp
+		FROM employment_segments emp
 		JOIN employees e ON e.id = emp.employee_id
 		JOIN employment_relationships er ON er.id = emp.relationship_id AND er.deleted_at IS NULL
 		JOIN employee_tenures t ON t.id = er.tenure_id AND t.deleted_at IS NULL

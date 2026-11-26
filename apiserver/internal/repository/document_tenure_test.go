@@ -74,7 +74,7 @@ func TestSignedDocumentCannotReceiveNewVersion(t *testing.T) {
 func TestDocumentTemplateVariablesResolveNumberThroughEmploymentTenure(t *testing.T) {
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
-			if strings.Contains(query, "FROM employments") {
+			if strings.Contains(query, "FROM employment_segments") {
 				if !strings.Contains(query, "employee_tenures") || !strings.Contains(query, "em.start_date") {
 					t.Fatalf("document variables must resolve tenure number by employment date: %s", query)
 				}

@@ -29,7 +29,7 @@ func queryTurnoverCountMap[T any](ctx context.Context, db DBTX, sql string, star
 func queryTurnoverBySource(ctx context.Context, db DBTX, startStr, endStr string) []api.TurnoverBySource {
 	rows, _ := db.Query(ctx, `SELECT COALESCE(rs.source_type::text, 'direct'), COALESCE(rs.name, 'Direct Hire'), COUNT(*)::bigint
 		FROM employees e
-		JOIN employments emp ON e.id = emp.employee_id
+		JOIN employment_segments emp ON e.id = emp.employee_id
 		LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
 		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
 		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
@@ -56,7 +56,7 @@ func queryTurnoverClassification(ctx context.Context, db DBTX, startStr, endStr 
 		END AS classification,
 		COUNT(DISTINCT emp.employee_id)::bigint AS count
 		FROM employees e
-		JOIN employments emp ON e.id = emp.employee_id
+		JOIN employment_segments emp ON e.id = emp.employee_id
 		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
 		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
 		GROUP BY classification`, startStr, endStr, func(label string, count int64) api.TurnoverClassification {
@@ -93,7 +93,7 @@ leavers AS (
         date_trunc('month', emp.end_date)::date AS m,
         COUNT(DISTINCT emp.employee_id)::bigint AS leavers
     FROM employees e
-    JOIN employments emp ON e.id = emp.employee_id
+    JOIN employment_segments emp ON e.id = emp.employee_id
     WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
       AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
     GROUP BY 1
@@ -103,7 +103,7 @@ headcounts AS (
         m.m AS m,
         COUNT(DISTINCT emp.employee_id)::bigint AS headcount
     FROM months m
-    LEFT JOIN employments emp
+    LEFT JOIN employment_segments emp
       ON emp.deleted_at IS NULL
      AND emp.start_date <= m.m AND (emp.end_date IS NULL OR emp.end_date >= m.m)
     GROUP BY m.m
@@ -136,7 +136,7 @@ func queryTurnoverCohortRetention(ctx context.Context, db DBTX, startStr, endStr
         date_trunc('month', emp.start_date)::date AS cohort_month,
         COUNT(DISTINCT emp.employee_id)::bigint AS cohort_size
     FROM employees e
-    JOIN employments emp ON e.id = emp.employee_id
+    JOIN employment_segments emp ON e.id = emp.employee_id
     WHERE emp.deleted_at IS NULL
       AND emp.start_date >= date_trunc('month', $1::date)::date
       AND emp.start_date <= $2::date
@@ -156,7 +156,7 @@ CROSS JOIN offsets o
 LEFT JOIN LATERAL (
     SELECT COUNT(DISTINCT emp.employee_id)::bigint AS active_count
     FROM employees e
-    JOIN employments emp ON e.id = emp.employee_id
+    JOIN employment_segments emp ON e.id = emp.employee_id
     WHERE emp.deleted_at IS NULL
       AND date_trunc('month', emp.start_date)::date = c.cohort_month
       AND emp.start_date <= date_trunc('month', (c.cohort_month + make_interval(months => o.months_since_hire)))::date + interval '1 month' - interval '1 day'
@@ -182,7 +182,7 @@ ORDER BY c.cohort_month ASC, o.months_since_hire ASC`, startStr, endStr, 3, 6)
 }
 
 const (
-	turnoverTotalTerminatedSQL = `SELECT COUNT(DISTINCT emp.employee_id)::bigint FROM employments emp
+	turnoverTotalTerminatedSQL = `SELECT COUNT(DISTINCT emp.employee_id)::bigint FROM employment_segments emp
 		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
 		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date`
 
@@ -196,7 +196,7 @@ const (
 			ELSE '> 5 years'
 		END AS bucket
 		FROM employees e
-		JOIN employments emp ON e.id = emp.employee_id
+		JOIN employment_segments emp ON e.id = emp.employee_id
 		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
 		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
 	) sub
@@ -213,7 +213,7 @@ const (
 
 	turnoverByDeptSQL = `SELECT COALESCE(d.name, 'Unassigned'), COUNT(*)::bigint
 		FROM employees e
-		JOIN employments emp ON e.id = emp.employee_id
+		JOIN employment_segments emp ON e.id = emp.employee_id
 		LEFT JOIN departments d ON d.id = emp.department_id
 		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
 		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
@@ -222,7 +222,7 @@ const (
 	turnoverReasonsSQL = `SELECT COALESCE(emp.termination_reason, 'unknown')::text AS reason,
 		COUNT(DISTINCT emp.employee_id)::bigint AS count
 		FROM employees e
-		JOIN employments emp ON e.id = emp.employee_id
+		JOIN employment_segments emp ON e.id = emp.employee_id
 		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
 		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
 		GROUP BY emp.termination_reason ORDER BY count DESC`
@@ -230,7 +230,7 @@ const (
 	turnoverByEmpTypeSQL = `SELECT COALESCE(emp.employment_type, 'unknown')::text AS employment_type,
 		COUNT(DISTINCT emp.employee_id)::bigint AS count
 		FROM employees e
-		JOIN employments emp ON e.id = emp.employee_id
+		JOIN employment_segments emp ON e.id = emp.employee_id
 		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
 		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
 		GROUP BY emp.employment_type ORDER BY count DESC`
@@ -238,7 +238,7 @@ const (
 	turnoverByLocSQL = `SELECT COALESCE(l.name, 'Unassigned')::text AS location_name,
 		COUNT(DISTINCT emp.employee_id)::bigint AS count
 		FROM employees e
-		JOIN employments emp ON e.id = emp.employee_id
+		JOIN employment_segments emp ON e.id = emp.employee_id
 		LEFT JOIN work_locations l ON l.id = emp.primary_location_id
 		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
 		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
@@ -247,8 +247,8 @@ const (
 	turnoverByMgrSQL = `SELECT COALESCE(mgr_e.full_name, 'Unassigned')::text AS manager_name,
 		COUNT(DISTINCT emp.employee_id)::bigint AS count
 		FROM employees e
-		JOIN employments emp ON e.id = emp.employee_id
-		LEFT JOIN employments mgr_emp ON mgr_emp.id = emp.manager_employment_id
+		JOIN employment_segments emp ON e.id = emp.employee_id
+		LEFT JOIN employment_segments mgr_emp ON mgr_emp.id = emp.manager_employment_id
 		LEFT JOIN employees mgr_e ON mgr_e.id = mgr_emp.employee_id
 		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
 		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
@@ -264,14 +264,14 @@ const (
 SELECT
     COALESCE(AVG(hc), 0)::bigint AS average_headcount,
     COALESCE((SELECT COUNT(DISTINCT emp.employee_id)
-              FROM employments emp
+              FROM employment_segments emp
               WHERE emp.deleted_at IS NULL
                 AND emp.start_date <= $1::date
                 AND (emp.end_date IS NULL OR emp.end_date >= $1::date)), 0)::bigint AS headcount_start
 FROM months
 LEFT JOIN LATERAL (
     SELECT COUNT(DISTINCT emp.employee_id) AS hc
-    FROM employments emp
+    FROM employment_segments emp
     WHERE emp.deleted_at IS NULL
       AND emp.start_date <= m
       AND (emp.end_date IS NULL OR emp.end_date >= m)
@@ -279,7 +279,7 @@ LEFT JOIN LATERAL (
 
 	turnoverEarlyAttritionSQL = `SELECT COUNT(DISTINCT emp.employee_id)::bigint AS count
 		FROM employees e
-		JOIN employments emp ON e.id = emp.employee_id
+		JOIN employment_segments emp ON e.id = emp.employee_id
 		WHERE emp.deleted_at IS NULL AND emp.status = 'terminated'
 		  AND emp.end_date IS NOT NULL AND emp.end_date >= $1::date AND emp.end_date <= $2::date
 		  AND (emp.end_date - emp.start_date) < 90`
@@ -408,7 +408,7 @@ FROM employee_tenures t
 JOIN employees e ON e.id = t.employee_id
 LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
 JOIN employment_relationships er ON er.tenure_id = t.id AND er.deleted_at IS NULL
-JOIN employments emp
+JOIN employment_segments emp
   ON emp.relationship_id = er.id
  AND emp.deleted_at IS NULL
  AND emp.start_date = t.start_date
@@ -432,7 +432,7 @@ FROM employee_tenures t
 JOIN employees e ON e.id = t.employee_id
 LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
 JOIN employment_relationships er ON er.tenure_id = t.id AND er.deleted_at IS NULL
-JOIN employments emp
+JOIN employment_segments emp
   ON emp.relationship_id = er.id
  AND emp.deleted_at IS NULL
  AND emp.start_date = t.start_date
@@ -452,7 +452,7 @@ GROUP BY rs.id, rs.source_type, rs.name`
     COALESCE(rs.source_type::text, 'unknown') AS source_type,
     COALESCE(rs.name, 'Unknown source') AS source_name,
     COUNT(DISTINCT emp.employee_id)::bigint AS count
-FROM employments emp
+FROM employment_segments emp
 JOIN employees e ON e.id = emp.employee_id
 LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
 WHERE emp.deleted_at IS NULL
@@ -569,7 +569,7 @@ hires AS (
     JOIN employees e ON e.id = t.employee_id
     LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
     JOIN employment_relationships er ON er.tenure_id = t.id AND er.deleted_at IS NULL
-    JOIN employments emp
+    JOIN employment_segments emp
       ON emp.relationship_id = er.id
      AND emp.deleted_at IS NULL
      AND emp.start_date = t.start_date

@@ -28,7 +28,7 @@ func TestGetOfficialSchedulesQueryUsesCurrentRevisionAndOfficialSegments(t *test
 	if len(queries) != 2 || !strings.Contains(queries[1], "schedule_day_revisions") || !strings.Contains(queries[1], "state IN ('published', 'explicit_off')") || !strings.Contains(queries[1], "ws.schedule_revision_id = r.id") || !strings.Contains(queries[1], "sv.id = ws.selected_shift_version_id") {
 		t.Fatalf("official query missing current revision joins: %v", queries)
 	}
-	if strings.Contains(queries[1], "shift_rosters") || strings.Contains(queries[1], "assignment_rules") {
+	if strings.Contains(queries[1], "shift_rosters") || strings.Contains(queries[1], "working_pattern_assignment_rules") {
 		t.Fatalf("official query must not resolve legacy sources: %s", queries[1])
 	}
 }
@@ -54,7 +54,7 @@ func TestLoadDeptHistory_UsesEmploymentSegments(t *testing.T) {
 	if strings.Contains(query, "employee_department_history") {
 		t.Fatalf("stale department history table query: %s", query)
 	}
-	if !strings.Contains(query, "FROM employments") || !strings.Contains(query, "deleted_at IS NULL") {
+	if !strings.Contains(query, "FROM employment_segments") || !strings.Contains(query, "deleted_at IS NULL") {
 		t.Fatalf("expected active employment segments query, got %s", query)
 	}
 	entries := history[employeeID]

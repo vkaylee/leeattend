@@ -27,7 +27,7 @@ func TestIntegrationCrossEmploymentOverlapIsRejected(t *testing.T) {
 	mustExec(`INSERT INTO employees (id, full_name) VALUES ($1, 'overlap-employee')`, employeeID)
 	mustExec(`INSERT INTO employee_tenures (id, employee_id, employee_number, hire_type, start_date) VALUES ($1, $2, $3, 'initial', DATE '2026-01-01')`, tenureID, employeeID, employeeID.String())
 	mustExec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01'), ($5, $2, $6, $4, 'active', DATE '2026-01-01')`, relA, employeeID, employerA, tenureID, relB, employerB)
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $3, $2, $4, 'active', DATE '2026-01-01'), ($5, $3, $6, $7, 'active', DATE '2026-01-01')`, employmentA, employerA, employeeID, relA, employmentB, employerB, relB)
+	mustExec(`INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $3, $2, $4, 'active', DATE '2026-01-01'), ($5, $3, $6, $7, 'active', DATE '2026-01-01')`, employmentA, employerA, employeeID, relA, employmentB, employerB, relB)
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'overlap-template')`, templateID)
 	mustExec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, 'overlap-version', DATE '2026-01-01', 'create', $3)`, versionID, templateID, actorID)

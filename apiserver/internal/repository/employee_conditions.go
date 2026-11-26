@@ -29,7 +29,7 @@ func activeEmployment(ctx context.Context, db DBTX, employeeID uuid.UUID) (uuid.
 		return uuid.Nil, err
 	}
 	var employmentID uuid.UUID
-	if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
+	if err := db.QueryRow(ctx, `SELECT id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&employmentID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return uuid.Nil, api.ErrNoActiveEmployment
 		}
@@ -59,7 +59,7 @@ func (r EmployeeConditionRepository) ListOrganizationConditions(ctx context.Cont
 		wc.start_date::text, wc.end_date::text,
 		e.id, e.full_name, COALESCE(t.employee_number, '')
 		FROM working_conditions wc
-		JOIN employments em ON em.id = wc.employment_id
+		JOIN employment_segments em ON em.id = wc.employment_id
 		JOIN employees e ON e.id = em.employee_id
 		LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id
 		LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= wc.start_date AND (t.end_date IS NULL OR t.end_date >= wc.start_date)
@@ -136,7 +136,7 @@ func (r EmployeeConditionRepository) CreateEmployeeCondition(ctx context.Context
 	if req.EndDate != nil {
 		endDateInput = *req.EndDate
 	}
-	err = db.QueryRow(ctx, `INSERT INTO working_conditions (id, employment_id, type, condition_type_id, minute_allowance, is_paid, start_date, end_date) SELECT $1, id, $2, $3, $4, $5, $6::date, NULLIF($7, '')::date FROM employments WHERE id = $8 AND deleted_at IS NULL RETURNING start_date::text, end_date::text`, conditionID, req.Type, req.ConditionTypeID, req.MinuteAllowance, req.IsPaid, req.StartDate, endDateInput, employmentID).Scan(&startDate, &endDate)
+	err = db.QueryRow(ctx, `INSERT INTO working_conditions (id, employment_id, type, condition_type_id, minute_allowance, is_paid, start_date, end_date) SELECT $1, id, $2, $3, $4, $5, $6::date, NULLIF($7, '')::date FROM employment_segments WHERE id = $8 AND deleted_at IS NULL RETURNING start_date::text, end_date::text`, conditionID, req.Type, req.ConditionTypeID, req.MinuteAllowance, req.IsPaid, req.StartDate, endDateInput, employmentID).Scan(&startDate, &endDate)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.EmployeeCondition{}, api.ErrEmploymentNotFound
@@ -178,7 +178,7 @@ func (r EmployeeConditionRepository) CurrentEmployeeDepartment(ctx context.Conte
 		return nil, err
 	}
 	var departmentID *uuid.UUID
-	err = db.QueryRow(ctx, `SELECT department_id FROM employments WHERE employee_id = $1 AND deleted_at IS NULL AND start_date <= CURRENT_DATE AND (end_date IS NULL OR end_date >= CURRENT_DATE) ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&departmentID)
+	err = db.QueryRow(ctx, `SELECT department_id FROM employment_segments WHERE employee_id = $1 AND deleted_at IS NULL AND start_date <= CURRENT_DATE AND (end_date IS NULL OR end_date >= CURRENT_DATE) ORDER BY start_date DESC, id DESC LIMIT 1`, employeeID).Scan(&departmentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

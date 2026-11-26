@@ -74,7 +74,7 @@ func (r DashboardAnalyticsRepository) GetPeakTimes(ctx context.Context, today ti
 	query := `WITH today_entries AS (
     SELECT te.punch_in_time, te.punch_out_time
     FROM time_entries te
-    JOIN employments emp ON te.employment_id = emp.id AND emp.deleted_at IS NULL
+    JOIN employment_segments emp ON te.employment_id = emp.id AND emp.deleted_at IS NULL
     WHERE te.punch_in_time >= $1
       AND te.punch_in_time < $2
       AND emp.status = 'active'
@@ -144,7 +144,7 @@ func (r DashboardAnalyticsRepository) GetLeaveTypesBreakdown(ctx context.Context
        COUNT(*)::bigint AS count
 FROM leave_requests lr
 LEFT JOIN leave_types lt ON lt.id = lr.leave_type_id
-JOIN employments emp ON lr.employment_id = emp.id
+JOIN employment_segments emp ON lr.employment_id = emp.id
 WHERE lr.status IN ('approved', 'pre_approved')
   AND lr.start_date <= $2::date
   AND lr.end_date >= $1::date
@@ -195,7 +195,7 @@ hours AS (
            COALESCE(SUM(ads.system_detected_ot_minutes), 0)::bigint AS system_ot_minutes,
            COALESCE(SUM(ads.approved_ot_minutes), 0)::bigint         AS approved_ot_minutes
     FROM attendance_daily_summaries ads
-    JOIN employments emp ON emp.id = ads.employment_id
+    JOIN employment_segments emp ON emp.id = ads.employment_id
       AND emp.deleted_at IS NULL
       AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
     WHERE ads.date BETWEEN $1::date AND $2::date
@@ -206,7 +206,7 @@ cost AS (
            CASE WHEN $4::boolean THEN COALESCE(SUM(ps.overtime_pay_amount), 0) END AS overtime_cost,
            CASE WHEN $4::boolean THEN COUNT(ps.id) END                              AS payslip_count
     FROM payslips ps
-    JOIN employments emp ON emp.id = ps.employment_id
+    JOIN employment_segments emp ON emp.id = ps.employment_id
       AND emp.deleted_at IS NULL
       AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
     WHERE ps.status IN ('paid', 'finalized')
@@ -314,14 +314,14 @@ func (r DashboardAnalyticsRepository) GetDashboardStats(ctx context.Context, tzN
 	}
 
 	var totalEmp int64
-	_ = db.QueryRow(ctx, `SELECT COUNT(DISTINCT employee_id)::bigint FROM employments
+	_ = db.QueryRow(ctx, `SELECT COUNT(DISTINCT employee_id)::bigint FROM employment_segments
 		WHERE status = 'active' AND deleted_at IS NULL
 		  AND start_date <= $1::date AND (end_date IS NULL OR end_date >= $1::date)
 		  AND ($2::uuid[] IS NULL OR department_id = ANY($2))`, todayStr, deptFilter).Scan(&totalEmp)
 
 	var presentToday int64
 	_ = db.QueryRow(ctx, `SELECT COUNT(DISTINCT emp.employee_id)::bigint FROM time_entries te
-		JOIN employments emp ON emp.id = te.employment_id
+		JOIN employment_segments emp ON emp.id = te.employment_id
 		JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
 		WHERE te.punch_in_time >= $1 AND te.punch_in_time < $2
 		  AND emp.status = 'active' AND emp.deleted_at IS NULL
@@ -330,7 +330,7 @@ func (r DashboardAnalyticsRepository) GetDashboardStats(ctx context.Context, tzN
 
 	var pendingLeave int64
 	_ = db.QueryRow(ctx, `SELECT COUNT(*)::bigint FROM leave_requests lr
-		JOIN employments emp ON emp.id = lr.employment_id
+		JOIN employment_segments emp ON emp.id = lr.employment_id
 		JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
 		WHERE lr.status = 'pending' AND emp.status = 'active'
 		  AND emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
@@ -338,7 +338,7 @@ func (r DashboardAnalyticsRepository) GetDashboardStats(ctx context.Context, tzN
 
 	var onLeaveToday int64
 	_ = db.QueryRow(ctx, `SELECT COUNT(DISTINCT emp.employee_id)::bigint FROM leave_requests lr
-		JOIN employments emp ON emp.id = lr.employment_id
+		JOIN employment_segments emp ON emp.id = lr.employment_id
 		JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
 		WHERE lr.status IN ('approved', 'pre_approved') AND lr.start_date <= $1::date AND lr.end_date >= $1::date
 		  AND emp.status = 'active' AND emp.deleted_at IS NULL
@@ -352,7 +352,7 @@ func (r DashboardAnalyticsRepository) GetDashboardStats(ctx context.Context, tzN
                PARTITION BY emp.employee_id
                ORDER BY emp.start_date DESC, emp.id DESC
            ) AS employment_rank
-    FROM employments emp
+    FROM employment_segments emp
     JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
     WHERE emp.status = 'active' AND emp.deleted_at IS NULL
       AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
@@ -371,7 +371,7 @@ SELECT COALESCE(SUM(amount), 0)::numeric FROM latest_components WHERE component_
 
 	var avgWorkMinutes float64
 	_ = db.QueryRow(ctx, `SELECT COALESCE(AVG(te.duration_minutes), 0)::float8 FROM time_entries te
-		JOIN employments emp ON emp.id = te.employment_id
+		JOIN employment_segments emp ON emp.id = te.employment_id
 		JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
 		WHERE te.punch_in_time >= $1 AND te.punch_in_time < $2
 		  AND te.punch_out_time IS NOT NULL AND te.duration_minutes > 0
@@ -384,7 +384,7 @@ SELECT COALESCE(SUM(amount), 0)::numeric FROM latest_components WHERE component_
 		COALESCE(SUM(CASE WHEN ads.late_minutes > 0 THEN 1 ELSE 0 END), 0)::bigint,
 		COALESCE(SUM(CASE WHEN ads.early_departure_minutes > 0 THEN 1 ELSE 0 END), 0)::bigint
 	FROM attendance_daily_summaries ads
-	JOIN employments emp ON emp.id = ads.employment_id AND emp.deleted_at IS NULL
+	JOIN employment_segments emp ON emp.id = ads.employment_id AND emp.deleted_at IS NULL
 	  AND ($2::uuid[] IS NULL OR emp.department_id = ANY($2))
 	WHERE ads.date = $1::date`, todayStr, deptFilter).Scan(&lateToday, &earlyDepToday)
 
@@ -429,7 +429,7 @@ daily_active AS (
     SELECT d.date,
            COUNT(DISTINCT emp.employee_id)::bigint AS active_employees
     FROM days d
-    JOIN employments emp
+    JOIN employment_segments emp
       ON emp.status = 'active'
      AND emp.deleted_at IS NULL
      AND emp.start_date <= d.date
@@ -448,7 +448,7 @@ daily_present AS (
       ON te.punch_in_time >= $4
      AND te.punch_in_time < $5
      AND (te.punch_in_time AT TIME ZONE $6)::date = d.date
-    JOIN employments emp
+    JOIN employment_segments emp
       ON emp.id = te.employment_id
      AND emp.status = 'active'
      AND emp.deleted_at IS NULL
@@ -468,7 +468,7 @@ daily_leave AS (
       ON lr.status IN ('approved', 'pre_approved')
      AND lr.start_date <= d.date
      AND lr.end_date >= d.date
-    JOIN employments emp
+    JOIN employment_segments emp
       ON emp.id = lr.employment_id
      AND emp.status = 'active'
      AND emp.deleted_at IS NULL
@@ -484,7 +484,7 @@ daily_late AS (
     SELECT ads.date,
            COUNT(DISTINCT emp.employee_id)::bigint AS late
     FROM attendance_daily_summaries ads
-    JOIN employments emp ON emp.id = ads.employment_id
+    JOIN employment_segments emp ON emp.id = ads.employment_id
       AND emp.deleted_at IS NULL
       AND ($6::uuid[] IS NULL OR emp.department_id = ANY($6))
     WHERE ads.date BETWEEN $1::date AND $2::date
@@ -551,7 +551,7 @@ func (r DashboardAnalyticsRepository) GetDepartmentAttendance(ctx context.Contex
            d.name::text AS department_name,
            COUNT(DISTINCT emp.employee_id)::bigint AS total_employees
     FROM departments d
-    JOIN employments emp ON emp.department_id = d.id AND emp.deleted_at IS NULL
+    JOIN employment_segments emp ON emp.department_id = d.id AND emp.deleted_at IS NULL
       AND emp.status = 'active' AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)
       AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
     JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
@@ -562,7 +562,7 @@ present AS (
     SELECT emp.department_id,
            COUNT(DISTINCT emp.employee_id)::bigint AS present_count
     FROM time_entries te
-    JOIN employments emp ON emp.id = te.employment_id AND emp.deleted_at IS NULL
+    JOIN employment_segments emp ON emp.id = te.employment_id AND emp.deleted_at IS NULL
       AND emp.status = 'active' AND emp.department_id IS NOT NULL
       AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
     WHERE te.punch_in_time >= $1 AND te.punch_in_time < $3
@@ -572,7 +572,7 @@ leaves AS (
     SELECT emp.department_id,
            COUNT(DISTINCT emp.employee_id)::bigint AS leave_count
     FROM leave_requests lr
-    JOIN employments emp ON emp.id = lr.employment_id AND emp.deleted_at IS NULL
+    JOIN employment_segments emp ON emp.id = lr.employment_id AND emp.deleted_at IS NULL
       AND emp.status = 'active' AND emp.department_id IS NOT NULL
       AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
     WHERE lr.status IN ('approved', 'pre_approved')
@@ -583,7 +583,7 @@ lates AS (
     SELECT emp.department_id,
            COUNT(DISTINCT emp.employee_id)::bigint AS late_count
     FROM attendance_daily_summaries ads
-    JOIN employments emp ON emp.id = ads.employment_id AND emp.deleted_at IS NULL
+    JOIN employment_segments emp ON emp.id = ads.employment_id AND emp.deleted_at IS NULL
       AND emp.status = 'active' AND emp.department_id IS NOT NULL
       AND ($4::uuid[] IS NULL OR emp.department_id = ANY($4))
     WHERE ads.date BETWEEN $5::date AND $2::date AND ads.late_minutes > 0
@@ -649,7 +649,7 @@ func (r DashboardAnalyticsRepository) GetUnexcusedAbsences(ctx context.Context, 
            emp.department_id,
            d.name::text AS department_name,
            e.full_name::text AS employee_name
-    FROM employments emp
+    FROM employment_segments emp
     JOIN employees e ON e.id = emp.employee_id AND e.deleted_at IS NULL
     LEFT JOIN departments d ON d.id = emp.department_id
     WHERE emp.status = 'active' AND emp.deleted_at IS NULL
@@ -765,7 +765,7 @@ func (r DashboardAnalyticsRepository) GetLatenessByDay(ctx context.Context, star
 		COUNT(*)::bigint AS late_count,
 		COALESCE(AVG(ads.late_minutes), 0)::float8 AS avg_late_minutes
 	FROM attendance_daily_summaries ads
-	JOIN employments emp ON emp.id = ads.employment_id AND emp.deleted_at IS NULL
+	JOIN employment_segments emp ON emp.id = ads.employment_id AND emp.deleted_at IS NULL
 	  AND ($3::uuid[] IS NULL OR emp.department_id = ANY($3))
 	WHERE ads.date BETWEEN $1::date AND $2::date
 	  AND ads.late_minutes > 0

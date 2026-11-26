@@ -103,7 +103,7 @@ func (r PayrollRepository) AssignEmploymentSalaryComponent(ctx context.Context, 
 	}
 
 	var empExists bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, uuid.UUID(employmentID)).Scan(&empExists)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employment_segments WHERE id = $1 AND deleted_at IS NULL)`, uuid.UUID(employmentID)).Scan(&empExists)
 	if err != nil {
 		return api.EmployeeSalaryComponent{}, err
 	}

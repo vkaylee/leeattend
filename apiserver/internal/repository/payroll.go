@@ -67,7 +67,7 @@ func (r PayrollRepository) ListEmployeePayslips(ctx context.Context, empID ids.E
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT p.id,p.employment_id,p.period_start::text,p.period_end::text,p.base_pay_amount::text,p.overtime_pay_amount::text,p.deductions_amount::text,p.net_pay_amount::text,p.status,p.created_at,p.updated_at,p.standard_units,p.overtime_units,p.holiday_work_premium_amount::text FROM payslips p JOIN employments e ON e.id=p.employment_id JOIN employment_relationships er ON er.id=e.relationship_id AND er.employee_id=e.employee_id JOIN employee_tenures t ON t.id=er.tenure_id AND t.employee_id=er.employee_id WHERE e.employee_id=$1 AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY p.period_start DESC,p.id DESC`, uuid.UUID(empID))
+	rows, err := db.Query(ctx, `SELECT p.id,p.employment_id,p.period_start::text,p.period_end::text,p.base_pay_amount::text,p.overtime_pay_amount::text,p.deductions_amount::text,p.net_pay_amount::text,p.status,p.created_at,p.updated_at,p.standard_units,p.overtime_units,p.holiday_work_premium_amount::text FROM payslips p JOIN employment_segments e ON e.id=p.employment_id JOIN employment_relationships er ON er.id=e.relationship_id AND er.employee_id=e.employee_id JOIN employee_tenures t ON t.id=er.tenure_id AND t.employee_id=er.employee_id WHERE e.employee_id=$1 AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY p.period_start DESC,p.id DESC`, uuid.UUID(empID))
 	if err != nil {
 		return nil, err
 	}

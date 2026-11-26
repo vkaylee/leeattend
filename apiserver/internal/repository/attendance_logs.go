@@ -158,7 +158,7 @@ func resolveImportedEmployment(ctx context.Context, db DBTX, code string, punchT
 	)
 	err := db.QueryRow(ctx, `WITH candidates AS (
 		SELECT em.id
-		FROM employments em
+		FROM employment_segments em
 		JOIN employment_relationships er
 		  ON er.id = em.relationship_id
 		 AND er.employee_id = em.employee_id
@@ -296,7 +296,7 @@ func (r AttendanceRepository) GetAttendanceLogErrorFile(ctx context.Context, id 
 
 func employmentForEmployee(ctx context.Context, db DBTX, employee uuid.UUID) (uuid.UUID, error) {
 	var id uuid.UUID
-	err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employee).Scan(&id)
+	err := db.QueryRow(ctx, `SELECT id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id DESC LIMIT 1`, employee).Scan(&id)
 	return id, err
 }
 
@@ -361,7 +361,7 @@ func (r AttendanceRepository) ListAttendanceLogs(ctx context.Context, employee *
 	n := len(args) + 1
 	query := `SELECT t.id, t.employment_id, t.punch_in_time, t.punch_out_time, t.duration_minutes, t.entry_type, t.note, t.generation_metadata, t.created_at, t.updated_at, e.full_name, COALESCE(tenure.employee_number, '')
 		FROM time_entries t
-		JOIN employments em ON em.id = t.employment_id
+		JOIN employment_segments em ON em.id = t.employment_id
 		JOIN employees e ON e.id = em.employee_id
 		LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id
 		LEFT JOIN employee_tenures tenure ON tenure.id = er.tenure_id AND tenure.employee_id = e.id AND tenure.deleted_at IS NULL AND tenure.start_date <= t.punch_in_time::date AND (tenure.end_date IS NULL OR tenure.end_date >= t.punch_in_time::date)` + where + ` ORDER BY t.punch_in_time DESC LIMIT $` + itoa(n) + ` OFFSET $` + itoa(n+1)
@@ -399,7 +399,7 @@ func (r AttendanceRepository) ListRawAttendanceLogs(ctx context.Context, employe
 		return nil, 0, err
 	}
 	n := len(args) + 1
-	query := `SELECT l.id, l.employment_id, l.punch_time, l.source::text, l.raw_data, l.punch, l.status, l.created_at, e.full_name, COALESCE(tenure.employee_number, '') FROM raw_attendance_logs l JOIN employments em ON em.id = l.employment_id JOIN employees e ON e.id = em.employee_id LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id LEFT JOIN employee_tenures tenure ON tenure.id = er.tenure_id AND tenure.employee_id = e.id AND tenure.deleted_at IS NULL AND tenure.start_date <= l.punch_time::date AND (tenure.end_date IS NULL OR tenure.end_date >= l.punch_time::date)` + where + ` ORDER BY l.punch_time DESC LIMIT $` + itoa(n) + ` OFFSET $` + itoa(n+1)
+	query := `SELECT l.id, l.employment_id, l.punch_time, l.source::text, l.raw_data, l.punch, l.status, l.created_at, e.full_name, COALESCE(tenure.employee_number, '') FROM raw_attendance_logs l JOIN employment_segments em ON em.id = l.employment_id JOIN employees e ON e.id = em.employee_id LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id LEFT JOIN employee_tenures tenure ON tenure.id = er.tenure_id AND tenure.employee_id = e.id AND tenure.deleted_at IS NULL AND tenure.start_date <= l.punch_time::date AND (tenure.end_date IS NULL OR tenure.end_date >= l.punch_time::date)` + where + ` ORDER BY l.punch_time DESC LIMIT $` + itoa(n) + ` OFFSET $` + itoa(n+1)
 	args = append(args, limit, (page-1)*limit)
 	rows, err := db.Query(ctx, query, args...)
 	if err != nil {
@@ -462,7 +462,7 @@ func (r AttendanceRepository) ResolveStagingLog(ctx context.Context, id, employe
 		employmentID := employment
 		if employmentID == nil {
 			var resolved uuid.UUID
-			if err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND deleted_at IS NULL
+			if err := db.QueryRow(ctx, `SELECT id FROM employment_segments WHERE employee_id = $1 AND deleted_at IS NULL
 				AND start_date <= $2::date AND (end_date IS NULL OR end_date >= $2::date)
 				ORDER BY start_date DESC, id DESC LIMIT 1`, employee, punchTime).Scan(&resolved); err != nil {
 				return err
@@ -470,7 +470,7 @@ func (r AttendanceRepository) ResolveStagingLog(ctx context.Context, id, employe
 			employmentID = &resolved
 		}
 		var valid bool
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND employee_id = $2 AND deleted_at IS NULL
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employment_segments WHERE id = $1 AND employee_id = $2 AND deleted_at IS NULL
 			AND start_date <= $3::date AND (end_date IS NULL OR end_date >= $3::date))`, *employmentID, employee, punchTime).Scan(&valid); err != nil {
 			return err
 		}

@@ -18,10 +18,6 @@ DROP TABLE IF EXISTS public.user_extra_permissions CASCADE;
 
 DROP TABLE IF EXISTS public.system_settings CASCADE;
 
-DROP TABLE IF EXISTS public.system_files CASCADE;
-
-DROP TABLE IF EXISTS public.system_audit_logs CASCADE;
-
 DROP TABLE IF EXISTS public.storage_configs CASCADE;
 
 DROP TABLE IF EXISTS public.signature_requests CASCADE;
@@ -33,8 +29,6 @@ DROP TABLE IF EXISTS public.schema_migrations CASCADE;
 DROP TABLE IF EXISTS public.roles CASCADE;
 
 DROP TABLE IF EXISTS public.role_permissions CASCADE;
-
-DROP TABLE IF EXISTS public.policy_templates CASCADE;
 
 DROP TABLE IF EXISTS public.outbox_jobs CASCADE;
 
@@ -79,8 +73,6 @@ DROP TABLE IF EXISTS public.condition_type_definitions CASCADE;
 DROP TABLE IF EXISTS public.compliance_rules CASCADE;
 
 DROP TABLE IF EXISTS public.behalf_assignments CASCADE;
-
-DROP TABLE IF EXISTS public.authorized_agents CASCADE;
 
 DROP TABLE IF EXISTS public.audit_logs_y2026m12 CASCADE;
 

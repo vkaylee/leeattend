@@ -71,7 +71,7 @@ func (r ESSRepository) GetMyProfile(ctx context.Context, employeeID uuid.UUID) (
 		`+sqlEffectiveTenureLateral+`
 		LEFT JOIN LATERAL (
 			SELECT em.id, em.employer_id, em.department_id, em.primary_location_id
-			FROM employments em
+			FROM employment_segments em
 			JOIN employment_relationships rel ON rel.id = em.relationship_id AND rel.deleted_at IS NULL
 			WHERE em.employee_id = e.id
 			  AND em.deleted_at IS NULL

@@ -134,7 +134,7 @@ func (r ScheduleRepository) runScheduleShadowBatch(ctx context.Context, db DBTX,
 }
 
 func loadShadowEmploymentIDs(ctx context.Context, db DBTX, employerID uuid.UUID, startDate, endDate string) ([]uuid.UUID, error) {
-	rows, err := db.Query(ctx, `SELECT id FROM employments WHERE employer_id = $1 AND deleted_at IS NULL AND start_date <= $2::date AND (end_date IS NULL OR end_date >= $3::date) ORDER BY id`, employerID, endDate, startDate)
+	rows, err := db.Query(ctx, `SELECT id FROM employment_segments WHERE employer_id = $1 AND deleted_at IS NULL AND start_date <= $2::date AND (end_date IS NULL OR end_date >= $3::date) ORDER BY id`, employerID, endDate, startDate)
 	if err != nil {
 		return nil, err
 	}

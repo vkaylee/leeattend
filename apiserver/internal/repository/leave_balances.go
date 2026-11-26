@@ -441,7 +441,7 @@ const orgLeaveBalancesCountSQL = `
 	SELECT COUNT(*)
 	FROM employees e
 	CROSS JOIN leave_types lt
-	LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
+	LEFT JOIN employment_segments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
 	WHERE e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.deleted_at IS NULL
 	  AND ($1 = '' OR e.full_name ILIKE '%' || $1 || '%' OR EXISTS (SELECT 1 FROM employee_tenures search_t WHERE search_t.employee_id = e.id AND search_t.deleted_at IS NULL AND search_t.employee_number ILIKE '%' || $1 || '%') OR lt.name ILIKE '%' || $1 || '%' OR lt.code ILIKE '%' || $1 || '%')
 `
@@ -467,7 +467,7 @@ var orgLeaveBalancesDataSQL = `
 				 AND sdr.state = 'published')
 			)), 0)::INT as used_days
 		FROM leave_requests lr
-		JOIN employments emp_usage ON lr.employment_id = emp_usage.id
+		JOIN employment_segments emp_usage ON lr.employment_id = emp_usage.id
 		WHERE lr.status IN ('approved', 'pre_approved')
 		  AND EXTRACT(YEAR FROM lr.start_date)::INT = $1
 		GROUP BY emp_usage.employee_id, lr.leave_type_id
@@ -493,7 +493,7 @@ var orgLeaveBalancesDataSQL = `
 			)) OR
 			(a.assignee_type = 'employee' AND a.assignee_id = e_inner.id) OR
 			(a.assignee_type = 'department' AND a.assignee_id = (
-				SELECT department_id FROM employments
+				SELECT department_id FROM employment_segments
 				WHERE employee_id = e_inner.id AND deleted_at IS NULL
 				ORDER BY start_date DESC, id DESC LIMIT 1
 			)) OR
@@ -526,7 +526,7 @@ var orgLeaveBalancesDataSQL = `
 		bp.assignment_type
 	FROM employees e
 	CROSS JOIN leave_types lt
-	LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
+	LEFT JOIN employment_segments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
 	LEFT JOIN leave_balances lb ON emp.id = lb.employment_id AND lt.id = lb.leave_type_id AND lb.year = $1
 	LEFT JOIN leave_usage lu ON e.id = lu.employee_id AND lt.id = lu.leave_type_id
 	LEFT JOIN best_policy bp ON e.id = bp.emp_id AND lt.id = bp.lt_id
@@ -579,7 +579,7 @@ func loadEmployeeLeaveAccrualHistory(ctx context.Context, db DBTX, employeeID uu
 	logRows, err := db.Query(ctx, `
 		SELECT lal.id, lal.accrual_date::text, lal.amount::text, lal.notes, lal.policy_assignment_id, lal.created_at
 		FROM leave_accrual_logs lal
-		JOIN employments emp ON lal.employment_id = emp.id
+		JOIN employment_segments emp ON lal.employment_id = emp.id
 		WHERE emp.employee_id = $1 AND emp.deleted_at IS NULL
 		  AND EXTRACT(YEAR FROM lal.accrual_date)::INT = $2
 		  AND ($3::uuid IS NULL OR lal.leave_type_id = $3)
@@ -628,7 +628,7 @@ func queryEmployeeApprovedLeaveRequests(ctx context.Context, db DBTX, employeeID
 	reqRows, err := db.Query(ctx, `
 		SELECT lr.id, lr.employment_id, lr.start_date::text, lr.end_date::text, lr.duration_type, lr.start_time::text, lr.end_time::text, lr.reason, lr.created_at
 		FROM leave_requests lr
-		JOIN employments emp ON lr.employment_id = emp.id
+		JOIN employment_segments emp ON lr.employment_id = emp.id
 		WHERE emp.employee_id = $1 AND emp.deleted_at IS NULL
 		  AND lr.status IN ('approved', 'pre_approved')
 		  AND EXTRACT(YEAR FROM lr.start_date)::INT = $2
@@ -716,7 +716,7 @@ func (r LeaveRepository) AdjustLeaveBalance(ctx context.Context, employeeID uuid
 	return service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		var employmentID uuid.UUID
 		err := db.QueryRow(ctx, `
-			SELECT id FROM employments
+			SELECT id FROM employment_segments
 			WHERE employee_id = $1 AND deleted_at IS NULL
 			ORDER BY start_date DESC LIMIT 1
 		`, employeeID).Scan(&employmentID)

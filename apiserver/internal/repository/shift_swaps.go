@@ -271,7 +271,7 @@ func (r ShiftSwapRepository) ListEmployeeSwaps(ctx context.Context, employeeID u
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT s.id, s.requester_id, s.target_id, s.swap_date::text, s.requester_revision_id, s.requester_revision_number, s.target_revision_id, s.target_revision_number, s.requester_template_id, s.target_template_id, s.status, s.reason, s.requested_by_user_id, s.approved_by_user_id, s.created_at, s.updated_at FROM shift_swap_requests s WHERE (s.requester_id = $1 OR s.target_id = $1) AND EXISTS (SELECT 1 FROM employments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND t.deleted_at IS NULL AND t.start_date <= `+orgTodaySQL+` AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`) AND s.swap_date >= t.start_date AND (t.end_date IS NULL OR s.swap_date <= t.end_date)) ORDER BY created_at DESC LIMIT 50`, employeeID)
+	rows, err := db.Query(ctx, `SELECT s.id, s.requester_id, s.target_id, s.swap_date::text, s.requester_revision_id, s.requester_revision_number, s.target_revision_id, s.target_revision_number, s.requester_template_id, s.target_template_id, s.status, s.reason, s.requested_by_user_id, s.approved_by_user_id, s.created_at, s.updated_at FROM shift_swap_requests s WHERE (s.requester_id = $1 OR s.target_id = $1) AND EXISTS (SELECT 1 FROM employment_segments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND t.deleted_at IS NULL AND t.start_date <= `+orgTodaySQL+` AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`) AND s.swap_date >= t.start_date AND (t.end_date IS NULL OR s.swap_date <= t.end_date)) ORDER BY created_at DESC LIMIT 50`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -478,7 +478,7 @@ func approveOfficialSwap(ctx context.Context, db pgx.Tx, requestID, approverID, 
 	}
 	employments := []uuid.UUID{requesterEmploymentID, targetEmploymentID}
 	sort.Slice(employments, func(i, j int) bool { return employments[i].String() < employments[j].String() })
-	if _, err := db.Exec(ctx, `SELECT id FROM employments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, employments); err != nil {
+	if _, err := db.Exec(ctx, `SELECT id FROM employment_segments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, employments); err != nil {
 		return false, err
 	}
 	requester, err := loadCurrentRevision(ctx, db, requesterEmploymentID, date, true)
@@ -576,7 +576,7 @@ func currentOfficialRevision(ctx context.Context, db DBTX, employmentID uuid.UUI
 
 func resolveEmploymentOnDate(ctx context.Context, db DBTX, employeeID uuid.UUID, date string) (uuid.UUID, error) {
 	var employmentID uuid.UUID
-	err := db.QueryRow(ctx, `SELECT em.id FROM employments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND em.start_date <= $2::date AND (em.end_date IS NULL OR em.end_date >= $2::date) AND er.start_date <= $2::date AND (er.end_date IS NULL OR er.end_date >= $2::date) AND t.deleted_at IS NULL AND t.start_date <= $2::date AND (t.end_date IS NULL OR t.end_date >= $2::date) ORDER BY (em.status = 'active') DESC, em.start_date DESC, em.id DESC LIMIT 1`, employeeID, date).Scan(&employmentID)
+	err := db.QueryRow(ctx, `SELECT em.id FROM employment_segments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND em.start_date <= $2::date AND (em.end_date IS NULL OR em.end_date >= $2::date) AND er.start_date <= $2::date AND (er.end_date IS NULL OR er.end_date >= $2::date) AND t.deleted_at IS NULL AND t.start_date <= $2::date AND (t.end_date IS NULL OR t.end_date >= $2::date) ORDER BY (em.status = 'active') DESC, em.start_date DESC, em.id DESC LIMIT 1`, employeeID, date).Scan(&employmentID)
 	if err != nil {
 		return uuid.Nil, api.ErrNoActiveEmployment
 	}

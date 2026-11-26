@@ -82,7 +82,7 @@ BEGIN
     -- 3. Fixed shift assignment for all active employments across 2026-11 so Preview/Publish resolves shifts
     FOR v_emp IN
         SELECT id
-        FROM employments
+        FROM employment_segments
         WHERE employer_id = v_employer_id
           AND deleted_at IS NULL
           AND start_date <= v_month_end
@@ -133,7 +133,7 @@ BEGIN
 
     FOR v_emp IN
         SELECT id, start_date, end_date
-        FROM employments
+        FROM employment_segments
         WHERE employer_id = v_employer_id
           AND deleted_at IS NULL
           AND start_date <= v_month_end

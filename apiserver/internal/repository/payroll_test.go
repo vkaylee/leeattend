@@ -186,7 +186,7 @@ func TestPayrollRepository_SimulateEmployeePayroll_PerformsZeroDBWrites(t *testi
 	execCalls := 0
 	db := &fakeDBTX{
 		queryRowFn: func(_ context.Context, sql string, _ ...any) pgx.Row {
-			if strings.Contains(sql, "FROM employments") {
+			if strings.Contains(sql, "FROM employment_segments") {
 				return fakeRow{scanFn: func(dest ...any) error {
 					*(dest[0].(*uuid.UUID)) = employmentID
 					return nil
@@ -198,7 +198,7 @@ func TestPayrollRepository_SimulateEmployeePayroll_PerformsZeroDBWrites(t *testi
 			if strings.Contains(sql, "SELECT id, relationship_id, employee_id, employer_id, department_id") {
 				return &rowsStub{data: [][]any{{employmentID, relID, empID, employerID, &deptID}}}, nil
 			}
-			if strings.Contains(sql, "FROM employments e") && strings.Contains(sql, "work_policy_memberships") {
+			if strings.Contains(sql, "FROM employment_segments e") && strings.Contains(sql, "work_policy_memberships") {
 				return &resolvedPolicyTestRows{empID: employmentID, relID: relID}, nil
 			}
 			return &fakeRows{}, nil
@@ -251,7 +251,7 @@ func payrollCalculationFixture(employeeID, employmentID, employerID uuid.UUID, p
 		if strings.Contains(sql, "SELECT id, relationship_id, employee_id, employer_id, department_id") {
 			return &rowsStub{data: [][]any{{employmentID, relID, employeeID, employerID, &departmentID}}}, nil
 		}
-		if strings.Contains(sql, "FROM employments e") && strings.Contains(sql, "work_policy_memberships") {
+		if strings.Contains(sql, "FROM employment_segments e") && strings.Contains(sql, "work_policy_memberships") {
 			return &resolvedPolicyTestRows{empID: employmentID, relID: relID}, nil
 		}
 		return &fakeRows{}, nil

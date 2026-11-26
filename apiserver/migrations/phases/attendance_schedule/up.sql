@@ -12,7 +12,7 @@ SET xmloption = content;
 SET client_min_messages = warning;
 
 -- Fresh install phase: attendance_schedule
-CREATE TABLE public.assignment_rules (
+CREATE TABLE public.working_pattern_assignment_rules (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     pattern_id uuid NOT NULL,
     name character varying(255) NOT NULL,
@@ -624,18 +624,6 @@ CREATE TABLE public.shift_versions (
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE public.shifts (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    name character varying(100) NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    is_active boolean DEFAULT true NOT NULL,
-    parent_shift_id uuid,
-    report_symbol character varying(10),
-    location_id uuid,
-    employer_id uuid
-);
-
 CREATE TABLE public.time_entries (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     punch_in_time timestamp with time zone NOT NULL,
@@ -744,8 +732,8 @@ ALTER TABLE ONLY public.attendance_staging_logs ATTACH PARTITION public.attendan
 
 ALTER TABLE ONLY public.attendance_staging_logs ATTACH PARTITION public.attendance_staging_logs_y2026m12 FOR VALUES FROM ('2026-12-01 07:00:00+07') TO ('2027-01-01 07:00:00+07');
 
-ALTER TABLE ONLY public.assignment_rules
-    ADD CONSTRAINT assignment_rules_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.working_pattern_assignment_rules
+    ADD CONSTRAINT working_pattern_assignment_rules_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.attendance_adjustment_requests
     ADD CONSTRAINT attendance_adjustment_requests_pkey PRIMARY KEY (id);
@@ -921,9 +909,6 @@ ALTER TABLE ONLY public.shift_templates
 ALTER TABLE ONLY public.shift_versions
     ADD CONSTRAINT shift_versions_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.shifts
-    ADD CONSTRAINT shifts_pkey PRIMARY KEY (id);
-
 ALTER TABLE ONLY public.time_entries
     ADD CONSTRAINT time_entries_pkey PRIMARY KEY (id);
 
@@ -996,9 +981,9 @@ CREATE INDEX attendance_staging_logs_y2026m12_fingerprint_idx ON public.attendan
 
 CREATE INDEX attendance_staging_logs_y2026m12_status_idx ON public.attendance_staging_logs_y2026m12 USING btree (status);
 
-CREATE INDEX idx_assignment_rules_pattern_id ON public.assignment_rules USING btree (pattern_id);
+CREATE INDEX idx_working_pattern_assignment_rules_pattern_id ON public.working_pattern_assignment_rules USING btree (pattern_id);
 
-CREATE INDEX idx_assignment_rules_priority ON public.assignment_rules USING btree (priority DESC);
+CREATE INDEX idx_working_pattern_assignment_rules_priority ON public.working_pattern_assignment_rules USING btree (priority DESC);
 
 CREATE INDEX idx_attendance_adj_time_entry_id ON public.attendance_adjustment_requests USING btree (time_entry_id);
 
@@ -1059,14 +1044,6 @@ CREATE INDEX idx_shift_swap_ws_target ON public.shift_swap_requests USING btree 
 CREATE INDEX idx_shift_versions_template ON public.shift_versions USING btree (template_id);
 
 CREATE INDEX idx_shift_versions_template_effective ON public.shift_versions USING btree (template_id, effective_from DESC, effective_to);
-
-CREATE INDEX idx_shifts_active ON public.shifts USING btree (is_active);
-
-CREATE INDEX idx_shifts_employer_id ON public.shifts USING btree (employer_id);
-
-CREATE INDEX idx_shifts_location_id ON public.shifts USING btree (location_id);
-
-CREATE INDEX idx_shifts_parent_id ON public.shifts USING btree (parent_shift_id);
 
 CREATE INDEX idx_staging_logs_fingerprint ON ONLY public.attendance_staging_logs USING btree (fingerprint);
 
@@ -1208,11 +1185,11 @@ ALTER INDEX public.attendance_staging_logs_pkey1 ATTACH PARTITION public.attenda
 
 ALTER INDEX public.idx_staging_logs_organization_status ATTACH PARTITION public.attendance_staging_logs_y2026m12_status_idx;
 
-CREATE TRIGGER trg_guard_legacy_assignment_rules BEFORE INSERT OR DELETE OR UPDATE ON public.assignment_rules FOR EACH ROW EXECUTE FUNCTION public.guard_legacy_schedule_mutation();
+CREATE TRIGGER trg_guard_legacy_working_pattern_assignment_rules BEFORE INSERT OR DELETE OR UPDATE ON public.working_pattern_assignment_rules FOR EACH ROW EXECUTE FUNCTION public.guard_legacy_schedule_mutation();
 
-CREATE TRIGGER trg_roster_cache_invalidation_assignment_rules AFTER INSERT OR DELETE OR UPDATE ON public.assignment_rules FOR EACH ROW EXECUTE FUNCTION public.enqueue_roster_cache_invalidation('direct');
+CREATE TRIGGER trg_roster_cache_invalidation_working_pattern_rules AFTER INSERT OR DELETE OR UPDATE ON public.working_pattern_assignment_rules FOR EACH ROW EXECUTE FUNCTION public.enqueue_roster_cache_invalidation('direct');
 
-CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.assignment_rules FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
+CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.working_pattern_assignment_rules FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
 CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.attendance_adjustment_requests FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
@@ -1264,8 +1241,6 @@ CREATE TRIGGER trg_guard_legacy_shift_versions BEFORE INSERT OR DELETE OR UPDATE
 
 CREATE TRIGGER trg_roster_cache_invalidation_shift_versions AFTER INSERT OR DELETE OR UPDATE ON public.shift_versions FOR EACH ROW EXECUTE FUNCTION public.enqueue_roster_cache_invalidation('direct');
 
-CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.shifts FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
-
 CREATE TRIGGER trg_roster_cache_invalidation_work_segments AFTER INSERT OR DELETE OR UPDATE ON public.work_segments FOR EACH ROW EXECUTE FUNCTION public.enqueue_roster_cache_invalidation('direct');
 
 CREATE TRIGGER trg_schedule_work_segment_guard BEFORE INSERT OR DELETE OR UPDATE ON public.work_segments FOR EACH ROW EXECUTE FUNCTION public.guard_schedule_work_segment();
@@ -1282,11 +1257,11 @@ CREATE TRIGGER trg_roster_cache_invalidation_working_patterns AFTER INSERT OR DE
 
 CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.working_patterns FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
-ALTER TABLE ONLY public.assignment_rules
-    ADD CONSTRAINT assignment_rules_pattern_id_fkey FOREIGN KEY (pattern_id) REFERENCES public.working_patterns(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.working_pattern_assignment_rules
+    ADD CONSTRAINT working_pattern_assignment_rules_pattern_id_fkey FOREIGN KEY (pattern_id) REFERENCES public.working_patterns(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.attendance_adjustment_requests
-    ADD CONSTRAINT attendance_adjustment_requests_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT attendance_adjustment_requests_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.attendance_adjustment_requests
     ADD CONSTRAINT attendance_adjustment_requests_time_entry_id_fkey FOREIGN KEY (time_entry_id) REFERENCES public.time_entries(id) ON DELETE SET NULL;
@@ -1298,7 +1273,7 @@ ALTER TABLE ONLY public.attendance_closure_days
     ADD CONSTRAINT attendance_closure_days_employer_fkey FOREIGN KEY (employer_id) REFERENCES public.employers(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.attendance_closure_days
-    ADD CONSTRAINT attendance_closure_days_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT attendance_closure_days_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.attendance_closure_days
     ADD CONSTRAINT attendance_closure_days_period_fkey FOREIGN KEY (period_id) REFERENCES public.attendance_periods(id) ON DELETE RESTRICT;
@@ -1316,7 +1291,7 @@ ALTER TABLE ONLY public.attendance_closures
     ADD CONSTRAINT attendance_closures_period_fkey FOREIGN KEY (period_id) REFERENCES public.attendance_periods(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.attendance_daily_summaries
-    ADD CONSTRAINT attendance_daily_summaries_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT attendance_daily_summaries_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.attendance_daily_summaries
     ADD CONSTRAINT attendance_daily_summaries_shift_version_id_fkey FOREIGN KEY (shift_version_id) REFERENCES public.shift_versions(id);
@@ -1331,13 +1306,13 @@ ALTER TABLE ONLY public.departments
     ADD CONSTRAINT departments_default_working_pattern_id_fkey FOREIGN KEY (default_working_pattern_id) REFERENCES public.working_patterns(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.employee_shifts
-    ADD CONSTRAINT employee_shifts_new_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE CASCADE;
+    ADD CONSTRAINT employee_shifts_new_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_shifts
     ADD CONSTRAINT employee_shifts_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.shift_templates(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_working_patterns
-    ADD CONSTRAINT employee_working_patterns_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE CASCADE;
+    ADD CONSTRAINT employee_working_patterns_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_working_patterns
     ADD CONSTRAINT employee_working_patterns_pattern_id_fkey FOREIGN KEY (pattern_id) REFERENCES public.working_patterns(id) ON DELETE CASCADE;
@@ -1361,7 +1336,7 @@ ALTER TABLE ONLY public.payroll_periods
     ADD CONSTRAINT payroll_periods_reopened_by_fkey FOREIGN KEY (reopened_by) REFERENCES public.users(id);
 
 ALTER TABLE ONLY public.raw_attendance_logs
-    ADD CONSTRAINT raw_attendance_logs_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT raw_attendance_logs_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.schedule_day_revisions
     ADD CONSTRAINT schedule_day_revisions_batch_fkey FOREIGN KEY (publication_batch_id) REFERENCES public.schedule_publication_batches(id) ON DELETE RESTRICT;
@@ -1370,7 +1345,7 @@ ALTER TABLE ONLY public.schedule_day_revisions
     ADD CONSTRAINT schedule_day_revisions_employer_fkey FOREIGN KEY (employer_id) REFERENCES public.employers(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.schedule_day_revisions
-    ADD CONSTRAINT schedule_day_revisions_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT schedule_day_revisions_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.schedule_day_revisions
     ADD CONSTRAINT schedule_day_revisions_previous_fkey FOREIGN KEY (previous_revision_id) REFERENCES public.schedule_day_revisions(id) ON DELETE RESTRICT;
@@ -1379,7 +1354,7 @@ ALTER TABLE ONLY public.schedule_day_revisions
     ADD CONSTRAINT schedule_day_revisions_published_by_fkey FOREIGN KEY (published_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.schedule_legacy_mutation_evidence
-    ADD CONSTRAINT schedule_legacy_mutation_evidence_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT schedule_legacy_mutation_evidence_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.schedule_office_policies
     ADD CONSTRAINT schedule_office_policies_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
@@ -1397,13 +1372,13 @@ ALTER TABLE ONLY public.schedule_shadow_mismatches
     ADD CONSTRAINT schedule_shadow_mismatches_employer_id_fkey FOREIGN KEY (employer_id) REFERENCES public.employers(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.schedule_shadow_mismatches
-    ADD CONSTRAINT schedule_shadow_mismatches_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT schedule_shadow_mismatches_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.shift_default_intervals
     ADD CONSTRAINT shift_default_intervals_version_id_fkey FOREIGN KEY (version_id) REFERENCES public.shift_versions(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.shift_rosters
-    ADD CONSTRAINT shift_rosters_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT shift_rosters_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.shift_rosters
     ADD CONSTRAINT shift_rosters_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.shift_templates(id) ON DELETE SET NULL;
@@ -1436,7 +1411,7 @@ ALTER TABLE ONLY public.shift_versions
     ADD CONSTRAINT shift_versions_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.shift_templates(id);
 
 ALTER TABLE ONLY public.time_entries
-    ADD CONSTRAINT time_entries_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT time_entries_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.time_entries
     ADD CONSTRAINT time_entries_segment_id_fkey FOREIGN KEY (segment_id) REFERENCES public.work_segments(id) ON DELETE SET NULL;
@@ -1448,7 +1423,7 @@ ALTER TABLE ONLY public.time_entries
     ADD CONSTRAINT time_entries_shift_version_id_fkey FOREIGN KEY (shift_version_id) REFERENCES public.shift_versions(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.work_segments
-    ADD CONSTRAINT work_segments_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE CASCADE;
+    ADD CONSTRAINT work_segments_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.work_segments
     ADD CONSTRAINT work_segments_interval_id_fkey FOREIGN KEY (interval_id) REFERENCES public.shift_default_intervals(id) ON DELETE SET NULL;
@@ -1544,7 +1519,7 @@ CREATE TABLE public.attendance_action_idempotency (
     response_snapshot jsonb NOT NULL,
     created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT attendance_action_idempotency_pkey PRIMARY KEY (id),
-    CONSTRAINT attendance_action_idempotency_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT,
+    CONSTRAINT attendance_action_idempotency_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT,
     CONSTRAINT attendance_action_idempotency_key_key UNIQUE (employment_id, idempotency_key),
     CONSTRAINT attendance_action_idempotency_action_check CHECK (action IN ('work_in', 'work_out', 'break_start', 'break_end')),
     CONSTRAINT attendance_action_idempotency_hash_check CHECK (request_hash::text ~ '^[0-9a-f]{64}$'),
@@ -1567,7 +1542,7 @@ CREATE TABLE public.schedule_day_overrides (
     created_by uuid NOT NULL,
     created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT schedule_day_overrides_pkey PRIMARY KEY (id),
-    CONSTRAINT schedule_day_overrides_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT,
+    CONSTRAINT schedule_day_overrides_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT,
     CONSTRAINT schedule_day_overrides_segment_fkey FOREIGN KEY (work_segment_id) REFERENCES public.work_segments(id) ON DELETE RESTRICT,
     CONSTRAINT schedule_day_overrides_creator_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE RESTRICT,
     CONSTRAINT schedule_day_overrides_type_check CHECK (override_type = 'break_worked'),
@@ -1592,7 +1567,7 @@ CREATE TABLE public.attendance_adjustment_evidence (
     created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT attendance_adjustment_evidence_pkey PRIMARY KEY (id),
     CONSTRAINT attendance_adjustment_evidence_request_fkey FOREIGN KEY (adjustment_request_id) REFERENCES public.attendance_adjustment_requests(id) ON DELETE RESTRICT,
-    CONSTRAINT attendance_adjustment_evidence_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT,
+    CONSTRAINT attendance_adjustment_evidence_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT,
     CONSTRAINT attendance_adjustment_evidence_period_fkey FOREIGN KEY (attendance_period_id) REFERENCES public.attendance_periods(id) ON DELETE RESTRICT,
     CONSTRAINT attendance_adjustment_evidence_closure_fkey FOREIGN KEY (closure_id) REFERENCES public.attendance_closures(id) ON DELETE RESTRICT,
     CONSTRAINT attendance_adjustment_evidence_creator_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE RESTRICT,
@@ -1615,7 +1590,7 @@ CREATE TABLE public.attendance_punch_events (
     source text NOT NULL DEFAULT 'ess',
     created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT attendance_punch_events_pkey PRIMARY KEY (id),
-    CONSTRAINT attendance_punch_events_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT,
+    CONSTRAINT attendance_punch_events_employment_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT,
     CONSTRAINT attendance_punch_events_time_entry_fkey FOREIGN KEY (time_entry_id) REFERENCES public.time_entries(id) ON DELETE RESTRICT,
     CONSTRAINT attendance_punch_events_type_check CHECK (event_type IN ('work_in', 'break_start', 'break_end', 'work_out')),
     CONSTRAINT attendance_punch_events_source_check CHECK (source IN ('ess', 'manual')),

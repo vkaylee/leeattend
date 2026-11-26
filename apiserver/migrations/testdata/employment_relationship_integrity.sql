@@ -103,14 +103,14 @@ BEGIN
         RAISE EXCEPTION 'same employee/employer overlap was accepted';
     END IF;
 
-    INSERT INTO public.employments (
+    INSERT INTO public.employment_segments (
         id, employee_id, employer_id, relationship_id, status, start_date, end_date
     ) VALUES (
         v_segment_a_id, v_employee_id, v_employer_a_id, v_relationship_a_id,
         'terminated', DATE '2026-01-01', DATE '2026-01-31'
     );
 
-    INSERT INTO public.employments (
+    INSERT INTO public.employment_segments (
         id, employee_id, employer_id, relationship_id, status, start_date, end_date
     ) VALUES (
         v_segment_b_id, v_employee_id, v_employer_b_id, v_relationship_b_id,
@@ -120,7 +120,7 @@ BEGIN
     -- Segment outside relationship bounds must be rejected.
     v_rejected := false;
     BEGIN
-        INSERT INTO public.employments (
+        INSERT INTO public.employment_segments (
             id, employee_id, employer_id, relationship_id, status, start_date, end_date
         ) VALUES (
             gen_random_uuid(), v_employee_id, v_employer_a_id, v_relationship_a_id,
@@ -136,7 +136,7 @@ BEGIN
     -- Segment relationship identity mismatch must be rejected.
     v_rejected := false;
     BEGIN
-        INSERT INTO public.employments (
+        INSERT INTO public.employment_segments (
             id, employee_id, employer_id, relationship_id, status, start_date, end_date
         ) VALUES (
             gen_random_uuid(), v_employee_id, v_employer_b_id, v_relationship_a_id,

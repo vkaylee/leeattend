@@ -31,7 +31,7 @@ const assignmentHistoryQuery = `
 			es.created_at
 		FROM employee_shifts es
 		JOIN shift_templates st ON st.id = es.template_id
-		JOIN employments emp ON emp.id = es.employment_id
+		JOIN employment_segments emp ON emp.id = es.employment_id
 		UNION ALL
 		SELECT ewp.id, emp.employee_id,
 			COALESCE((SELECT full_name FROM employees WHERE id = emp.employee_id), '') AS employee_name,
@@ -40,7 +40,7 @@ const assignmentHistoryQuery = `
 			ewp.created_at
 		FROM employee_working_patterns ewp
 		JOIN working_patterns wp ON wp.id = ewp.pattern_id
-		JOIN employments emp ON emp.id = ewp.employment_id
+		JOIN employment_segments emp ON emp.id = ewp.employment_id
 		UNION ALL
 		SELECT sr.id, emp.employee_id,
 			COALESCE((SELECT full_name FROM employees WHERE id = emp.employee_id), '') AS employee_name,
@@ -50,7 +50,7 @@ const assignmentHistoryQuery = `
 			sr.created_at
 		FROM shift_rosters sr
 		LEFT JOIN shift_templates st ON st.id = sr.template_id
-		JOIN employments emp ON emp.id = sr.employment_id
+		JOIN employment_segments emp ON emp.id = sr.employment_id
 	) history
 `
 

@@ -196,7 +196,7 @@ func (r WorkPolicyResolver) ResolveForEmploymentAt(ctx context.Context, db DBTX,
 		return workpolicy.ResolvedPolicy{}, errors.New("work policy resolver: database is not configured")
 	}
 	var relationshipID uuid.UUID
-	err := db.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&relationshipID)
+	err := db.QueryRow(ctx, `SELECT relationship_id FROM employment_segments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&relationshipID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return workpolicy.ResolvedPolicy{}, api.ErrWorkPolicyResolutionNotFound
 	}
@@ -216,7 +216,7 @@ func (WorkPolicyResolver) ResolveRangeForEmployments(ctx context.Context, db DBT
 	}
 	rows, err := db.Query(ctx, `
 		SELECT e.id, `+resolvedPolicySelectColumns+`
-		FROM employments e
+		FROM employment_segments e
 		JOIN employment_relationships er ON er.id = e.relationship_id AND er.deleted_at IS NULL
 		JOIN work_policy_memberships m ON m.employment_relationship_id = e.relationship_id
 		JOIN work_policy_groups g ON g.id = m.group_id

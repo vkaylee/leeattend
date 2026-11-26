@@ -38,7 +38,7 @@ func TestIntegrationRawLogsToSessionsSummariesAndClosureGuard(t *testing.T) {
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, empID, employerID, employmentID, "H6-"+empID.String()[:8], "H6 Worker", "2026-01-01", "2026-01-01", "2026-12-31")
 	var relID uuid.UUID
-	if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT relationship_id FROM employment_segments WHERE id = $1`, employmentID).Scan(&relID); err != nil {
 		t.Fatalf("lookup h6 relationship_id: %v", err)
 	}
 

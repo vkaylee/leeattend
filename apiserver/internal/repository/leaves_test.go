@@ -281,7 +281,7 @@ func TestLeaveRepository_SubmitLeaveRequest(t *testing.T) {
 			if strings.Contains(strings.ToLower(sql), "workspace_id") {
 				t.Fatalf("unexpected workspace_id in submit leave: %s", sql)
 			}
-			if strings.Contains(sql, "FROM employments") || strings.Contains(sql, "FROM leave_types") {
+			if strings.Contains(sql, "FROM employment_segments") || strings.Contains(sql, "FROM leave_types") {
 				return fakeRow{scanFn: func(dest ...any) error {
 					*(dest[0].(*bool)) = true
 					return nil

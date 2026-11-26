@@ -39,7 +39,7 @@ func (r RosterRepository) ResolveActiveEmployment(ctx context.Context, employeeI
 		return uuid.Nil, err
 	}
 	var employmentID uuid.UUID
-	err = db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id LIMIT 1`, employeeID).Scan(&employmentID)
+	err = db.QueryRow(ctx, `SELECT id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND deleted_at IS NULL ORDER BY start_date DESC, id LIMIT 1`, employeeID).Scan(&employmentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, api.ErrEmploymentNotFound
 	}
@@ -238,7 +238,7 @@ func resolveRosterShiftVersion(ctx context.Context, db DBTX, templateID, request
 
 func validateRosterEmployment(ctx context.Context, db DBTX, employmentID uuid.UUID) error {
 	var exists bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, employmentID).Scan(&exists); err != nil {
+	if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employment_segments WHERE id = $1 AND deleted_at IS NULL)`, employmentID).Scan(&exists); err != nil {
 		return err
 	}
 	if !exists {

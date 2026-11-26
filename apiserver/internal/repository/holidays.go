@@ -248,7 +248,7 @@ func (r HolidayRepository) ProcessHolidayLeave(ctx context.Context, holidayID uu
 				return err
 			}
 			var employmentID uuid.UUID
-			err := db.QueryRow(ctx, `SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' AND start_date <= $2::date AND (end_date IS NULL OR end_date >= $2::date) AND deleted_at IS NULL ORDER BY start_date DESC, id LIMIT 1`, employeeID, holidayDate).Scan(&employmentID)
+			err := db.QueryRow(ctx, `SELECT id FROM employment_segments WHERE employee_id = $1 AND status = 'active' AND start_date <= $2::date AND (end_date IS NULL OR end_date >= $2::date) AND deleted_at IS NULL ORDER BY start_date DESC, id LIMIT 1`, employeeID, holidayDate).Scan(&employmentID)
 			if errors.Is(err, pgx.ErrNoRows) {
 				results = append(results, api.HolidayLeaveResult{Type: "Unpaid", EmployeeID: &employeeID})
 				continue

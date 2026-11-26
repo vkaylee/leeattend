@@ -119,7 +119,7 @@ BEGIN
         ('d1000000-0000-0000-0000-000000000008', 'f0000000-0000-0000-0000-000000000008', v_employer_id, 'c0000000-0000-0000-0000-000000000008', 'active', (CURRENT_DATE - INTERVAL '120 days')::date)
     ON CONFLICT (id) DO NOTHING;
 
-    INSERT INTO employments (id, employee_id, employer_id, relationship_id, department_id, status, start_date, job_title, employment_type)
+    INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, department_id, status, start_date, job_title, employment_type)
     VALUES
         ('b0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', v_employer_id, 'd1000000-0000-0000-0000-000000000001', v_dept_exec, 'active', (CURRENT_DATE - INTERVAL '365 days')::date, 'Chief Executive Officer', 'full_time'),
         ('b0000000-0000-0000-0000-000000000005', 'f0000000-0000-0000-0000-000000000005', v_employer_id, 'd1000000-0000-0000-0000-000000000005', v_dept_hr, 'active', (CURRENT_DATE - INTERVAL '200 days')::date, 'HR Director', 'full_time'),
@@ -265,7 +265,7 @@ BEGIN
             ELSE 'none'::public.ot_status_type
         END AS ot_status,
         '63000000-0000-0000-0000-000000000001'::uuid AS work_policy_version_id
-    FROM employments emp
+    FROM employment_segments emp
     CROSS JOIN generate_series(CURRENT_DATE - INTERVAL '60 days', CURRENT_DATE, INTERVAL '1 day') AS d(dt)
     ON CONFLICT (employment_id, date) DO UPDATE SET
         actual_work_minutes = EXCLUDED.actual_work_minutes,

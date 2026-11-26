@@ -133,7 +133,7 @@ func validateHumanOfficeApproval(ctx context.Context, db DBTX, request api.Sched
 	err := db.QueryRow(ctx, `
 		WITH target_employments AS (
 			SELECT e.id, e.employer_id, e.start_date, e.end_date
-			FROM employments e
+			FROM employment_segments e
 			WHERE e.id = ANY($1::uuid[]) AND e.deleted_at IS NULL
 		), uncovered_days AS (
 			SELECT e.id

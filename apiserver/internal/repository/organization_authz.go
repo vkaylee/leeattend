@@ -50,7 +50,7 @@ func (a OrganizationAuthorizer) HasScopedPermission(ctx context.Context, userID 
 		FROM employee_tenures t
 		JOIN employees e ON e.id = t.employee_id
 		JOIN employment_relationships er ON er.tenure_id = t.id AND er.employee_id = t.employee_id AND er.deleted_at IS NULL
-		JOIN employments em ON em.relationship_id = er.id AND em.deleted_at IS NULL
+		JOIN employment_segments em ON em.relationship_id = er.id AND em.deleted_at IS NULL
 		WHERE t.user_id = $1
 		  AND t.deleted_at IS NULL
 		  AND e.deleted_at IS NULL
@@ -87,7 +87,7 @@ func (a OrganizationAuthorizer) GetManagedDepartmentIDs(ctx context.Context, use
 		FROM employee_tenures t
 		JOIN employees e ON e.id = t.employee_id
 		JOIN employment_relationships er ON er.tenure_id = t.id AND er.employee_id = t.employee_id AND er.deleted_at IS NULL
-		JOIN employments em ON em.relationship_id = er.id AND em.deleted_at IS NULL
+		JOIN employment_segments em ON em.relationship_id = er.id AND em.deleted_at IS NULL
 		WHERE t.user_id = $1
 		  AND t.deleted_at IS NULL
 		  AND e.deleted_at IS NULL

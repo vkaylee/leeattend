@@ -51,7 +51,7 @@ func (PayrollBatchLoader) LoadForEmployments(ctx context.Context, db DBTX, emplo
 }
 
 func loadEmploymentMetadata(ctx context.Context, db DBTX, employmentIDs []uuid.UUID, year, month int) (map[uuid.UUID]LoadedPeriodBundle, []uuid.UUID, []uuid.UUID, error) {
-	rows, err := db.Query(ctx, `SELECT id, relationship_id, employee_id, employer_id, department_id FROM employments WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL`, employmentIDs)
+	rows, err := db.Query(ctx, `SELECT id, relationship_id, employee_id, employer_id, department_id FROM employment_segments WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL`, employmentIDs)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -131,7 +131,7 @@ func loadBatchSalaryComponents(ctx context.Context, db DBTX, result map[uuid.UUI
 func loadBatchDepartmentChanges(ctx context.Context, db DBTX, result map[uuid.UUID]LoadedPeriodBundle, employeeIDs []uuid.UUID, endStr string) error {
 	rows, err := db.Query(ctx, `
 		SELECT employee_id, department_id, start_date
-		FROM employments
+		FROM employment_segments
 		WHERE employee_id = ANY($1::uuid[]) AND deleted_at IS NULL AND department_id IS NOT NULL AND start_date <= $2::date
 		ORDER BY employee_id, start_date ASC, id ASC`, employeeIDs, endStr)
 	if err != nil {
@@ -341,7 +341,7 @@ func (PayrollBatchLoader) ResolveEmploymentIDsForRelationships(ctx context.Conte
 	}
 	rows, err := db.Query(ctx, `
 		SELECT DISTINCT ON (relationship_id) relationship_id, id
-		FROM employments
+		FROM employment_segments
 		WHERE relationship_id = ANY($1::uuid[]) AND deleted_at IS NULL
 		  AND start_date <= $3::date AND (end_date IS NULL OR end_date >= $2::date)
 		ORDER BY relationship_id, start_date DESC, id DESC`,

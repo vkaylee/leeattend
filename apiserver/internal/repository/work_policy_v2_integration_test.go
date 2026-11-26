@@ -33,8 +33,8 @@ func TestIntegrationWorkPolicyV2_LifecycleAtomicTransferAndBatchSimulation(t *te
 	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, emp1ID, employerID, employment1ID, "WPV2-1-"+emp1ID.String()[:6], "Worker One", "2026-01-01", "2026-01-01", "")
 	seedIntegrationEmployeeGraphWithRange(t, ctx, pool, emp2ID, employerID, employment2ID, "WPV2-2-"+emp2ID.String()[:6], "Worker Two", "2026-01-01", "2026-01-01", "")
 	var rel1ID, rel2ID uuid.UUID
-	_ = pool.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employment1ID).Scan(&rel1ID)
-	_ = pool.QueryRow(ctx, `SELECT relationship_id FROM employments WHERE id = $1`, employment2ID).Scan(&rel2ID)
+	_ = pool.QueryRow(ctx, `SELECT relationship_id FROM employment_segments WHERE id = $1`, employment1ID).Scan(&rel1ID)
+	_ = pool.QueryRow(ctx, `SELECT relationship_id FROM employment_segments WHERE id = $1`, employment2ID).Scan(&rel2ID)
 
 	mustExec(`INSERT INTO salary_component_definitions (id, name, code, component_type) VALUES ($1, 'Base', $2, 'base_salary')`, compDefID, "WPV2_BASE_"+compDefID.String()[:8])
 	mustExec(`INSERT INTO employee_salary_components (id, component_definition_id, amount, effective_date, employment_id) VALUES (gen_random_uuid(), $1, 22000000, DATE '2026-01-01', $2)`, compDefID, employment1ID)

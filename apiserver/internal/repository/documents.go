@@ -162,7 +162,7 @@ func (r DocumentRepository) GetTemplateVariables(ctx context.Context, employeeID
 	var startDate time.Time
 	var empNum string
 	if err := db.QueryRow(ctx, `SELECT em.id, em.job_title, em.start_date, COALESCE(t.employee_number, '')
-		FROM employments em
+		FROM employment_segments em
 		JOIN employees e ON e.id = em.employee_id AND e.deleted_at IS NULL
 		LEFT JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id
 		LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL

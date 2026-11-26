@@ -195,14 +195,14 @@ func (r ScheduleRepository) GetOfficialSchedules(ctx context.Context, startDate,
 	page, limit = normalizedPage(page), normalizedLimit(limit)
 	start, end := startDate.Format("2006-01-02"), endDate.Format("2006-01-02")
 	var total int64
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date) AND (COALESCE(cardinality($3::uuid[]), 0) = 0 OR emp.id = ANY($3::uuid[]))`, start, end, employmentIDs).Scan(&total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employment_segments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.start_date <= $2::date AND (emp.end_date IS NULL OR emp.end_date >= $1::date) AND (COALESCE(cardinality($3::uuid[]), 0) = 0 OR emp.id = ANY($3::uuid[]))`, start, end, employmentIDs).Scan(&total); err != nil {
 		return api.PaginatedEmployeeSchedules{}, err
 	}
 	rows, err := db.Query(ctx, `WITH eligible_employments AS (
 		SELECT emp.id AS employment_id, e.id AS employee_id, e.full_name,
 			COALESCE(t.employee_number, '') AS employee_id_number,
 			emp.start_date, emp.end_date
-		FROM employments emp
+		FROM employment_segments emp
 		JOIN employees e ON e.id = emp.employee_id
 		LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id
 		LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL
@@ -317,7 +317,7 @@ func (r ScheduleRepository) GetOfficialSchedulesWithCoverage(ctx context.Context
 	rows, err := db.Query(ctx, `
 		WITH eligible AS (
 			SELECT emp.id AS employment_id, emp.start_date, emp.end_date
-			FROM employments emp
+			FROM employment_segments emp
 			WHERE emp.deleted_at IS NULL
 			  AND emp.start_date <= $2::date
 			  AND (emp.end_date IS NULL OR emp.end_date >= $1::date)
@@ -385,10 +385,10 @@ func resolveScheduleData(ctx context.Context, db DBTX, startDate, endDate time.T
 	var total int64
 	var empRows []employeeRow
 	if len(employmentIDs) > 0 {
-		if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.id = ANY($1)`, employmentIDs).Scan(&total); err != nil {
+		if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employment_segments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.id = ANY($1)`, employmentIDs).Scan(&total); err != nil {
 			return scheduleResolution{}, 0, err
 		}
-		rows, err := db.Query(ctx, `SELECT emp.id, e.full_name, COALESCE(t.employee_number, ''), e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text FROM employees e JOIN employments emp ON emp.employee_id = e.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= emp.start_date AND (t.end_date IS NULL OR t.end_date >= emp.start_date) WHERE emp.deleted_at IS NULL AND emp.id = ANY($1) ORDER BY emp.start_date DESC, emp.id ASC LIMIT $2 OFFSET $3`, employmentIDs, limit, offset)
+		rows, err := db.Query(ctx, `SELECT emp.id, e.full_name, COALESCE(t.employee_number, ''), e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text FROM employees e JOIN employment_segments emp ON emp.employee_id = e.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= emp.start_date AND (t.end_date IS NULL OR t.end_date >= emp.start_date) WHERE emp.deleted_at IS NULL AND emp.id = ANY($1) ORDER BY emp.start_date DESC, emp.id ASC LIMIT $2 OFFSET $3`, employmentIDs, limit, offset)
 		if err != nil {
 			return scheduleResolution{}, 0, err
 		}
@@ -398,10 +398,10 @@ func resolveScheduleData(ctx context.Context, db DBTX, startDate, endDate time.T
 			return scheduleResolution{}, 0, err
 		}
 	} else {
-		if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)`, endStr, startStr).Scan(&total); err != nil {
+		if err := db.QueryRow(ctx, `SELECT count(*) FROM employees e JOIN employment_segments emp ON emp.employee_id = e.id WHERE emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date)`, endStr, startStr).Scan(&total); err != nil {
 			return scheduleResolution{}, 0, err
 		}
-		rows, err := db.Query(ctx, `SELECT emp.id, e.full_name, COALESCE(t.employee_number, ''), e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text FROM employees e JOIN employments emp ON emp.employee_id = e.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $1::date AND (t.end_date IS NULL OR t.end_date >= $2::date) WHERE emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date) ORDER BY emp.start_date DESC, emp.id ASC LIMIT $3 OFFSET $4`, endStr, startStr, limit, offset)
+		rows, err := db.Query(ctx, `SELECT emp.id, e.full_name, COALESCE(t.employee_number, ''), e.tags, emp.primary_location_id, e.id, emp.start_date::text, emp.end_date::text FROM employees e JOIN employment_segments emp ON emp.employee_id = e.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $1::date AND (t.end_date IS NULL OR t.end_date >= $2::date) WHERE emp.deleted_at IS NULL AND emp.start_date <= $1::date AND (emp.end_date IS NULL OR emp.end_date >= $2::date) ORDER BY emp.start_date DESC, emp.id ASC LIMIT $3 OFFSET $4`, endStr, startStr, limit, offset)
 		if err != nil {
 			return scheduleResolution{}, 0, err
 		}
@@ -790,7 +790,7 @@ func scanEmployeeRows(rows interface {
 func loadContracts(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr, endStr string) (map[uuid.UUID][]contractEntry, error) {
 	rows, err := db.Query(ctx, `SELECT ec.employment_id, emp.employer_id, ec.start_date::text, ec.end_date::text
 		FROM employee_contracts ec
-		JOIN employments emp ON emp.id = ec.employment_id
+		JOIN employment_segments emp ON emp.id = ec.employment_id
 		WHERE ec.employment_id = ANY($1) AND ec.status = 'active' AND ec.deleted_at IS NULL
 		AND ec.start_date <= $2::date AND (ec.end_date IS NULL OR ec.end_date >= $3::date)
 		ORDER BY ec.start_date DESC`, empIDs, endStr, startStr)
@@ -820,7 +820,7 @@ func loadContracts(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr, e
 
 func loadAssignments(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr, endStr string) (map[uuid.UUID][]assignmentEntry, error) {
 	rows, err := db.Query(ctx, `SELECT ea.employment_id, ea.host_location_id, ea.start_date::text, ea.end_date::text
-		FROM employee_assignments ea
+		FROM employment_location_assignments ea
 		WHERE ea.employment_id = ANY($1) AND ea.status = 'active'
 		AND ea.start_date <= $2::date AND (ea.end_date IS NULL OR ea.end_date >= $3::date)
 		ORDER BY ea.start_date DESC`, empIDs, endStr, startStr)
@@ -964,7 +964,7 @@ func loadPatternAssignments(ctx context.Context, db DBTX, empIDs []uuid.UUID, st
 func loadAssignmentRules(ctx context.Context, db DBTX) ([]assignmentRuleWithDetails, error) {
 	rows, err := db.Query(ctx, `SELECT ar.id, ar.name, ar.priority, ar.conditions, ar.pattern_id, ar.start_date::text, ar.end_date::text,
 		wpd.schedule_day, wpd.template_id
-		FROM assignment_rules ar
+		FROM working_pattern_assignment_rules ar
 		LEFT JOIN working_pattern_details wpd ON wpd.pattern_id = ar.pattern_id
 		WHERE ar.is_active = true
 		ORDER BY ar.priority DESC, ar.created_at ASC`)
@@ -1056,7 +1056,7 @@ func loadFixedShifts(ctx context.Context, db DBTX, empIDs []uuid.UUID, startStr,
 
 func loadDeptHistory(ctx context.Context, db DBTX, employeeIDs []uuid.UUID) (map[uuid.UUID][]deptHistoryEntry, error) {
 	rows, err := db.Query(ctx, `SELECT employee_id, department_id, start_date::text
-		FROM employments
+		FROM employment_segments
 		WHERE employee_id = ANY($1) AND deleted_at IS NULL AND department_id IS NOT NULL
 		ORDER BY start_date DESC, id DESC`, employeeIDs)
 	if err != nil {

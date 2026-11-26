@@ -105,7 +105,7 @@ func (r EmployeeImportRepository) TerminationCandidates(ctx context.Context, cod
 	}
 
 	employmentsRows, err := db.Query(ctx, `SELECT id, employee_id, status, start_date
-		FROM employments
+		FROM employment_segments
 		WHERE employee_id = ANY($1) AND deleted_at IS NULL
 		ORDER BY start_date DESC`,
 		empIDs)
@@ -193,7 +193,7 @@ func (r EmployeeImportRepository) TerminationStatuses(ctx context.Context, emplo
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT id, status FROM employments WHERE id = ANY($1) AND deleted_at IS NULL`,
+	rows, err := db.Query(ctx, `SELECT id, status FROM employment_segments WHERE id = ANY($1) AND deleted_at IS NULL`,
 		employmentIDs)
 	if err != nil {
 		return nil, err
@@ -236,7 +236,7 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 		var currentStatus string
 		var employeeID, employerID, relationshipID uuid.UUID
 		err = tx.QueryRow(ctx, `SELECT employee_id, employer_id, status, start_date, relationship_id
-				FROM employments
+				FROM employment_segments
 				WHERE id = $1 AND deleted_at IS NULL
 				FOR UPDATE`,
 			row.EmploymentID).Scan(&employeeID, &employerID, &currentStatus, &startDate, &relationshipID)
@@ -256,7 +256,7 @@ func (r EmployeeImportRepository) TerminateEmploymentsTransactional(ctx context.
 			return successCount, err
 		}
 
-		_, err = tx.Exec(ctx, `UPDATE employments
+		_, err = tx.Exec(ctx, `UPDATE employment_segments
 			SET status = 'terminated', end_date = $1::date, termination_reason = $2, notes = $3, updated_at = NOW()
 			WHERE id = $4 AND deleted_at IS NULL`,
 			row.TerminationDate, row.TerminationReason, row.TerminationNotes, row.EmploymentID)

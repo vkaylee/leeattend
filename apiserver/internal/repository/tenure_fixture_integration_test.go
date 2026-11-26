@@ -45,7 +45,7 @@ func seedIntegrationEmployeeGraph(
 		t.Fatalf("seed employment_relationships: %v", err)
 	}
 	if _, err := db.Exec(ctx, `
-		INSERT INTO employments (id, employee_id, employer_id, relationship_id, department_id, primary_location_id, status, start_date, employment_type)
+		INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, department_id, primary_location_id, status, start_date, employment_type)
 		VALUES ($1, $2, $3, $4, $5, $6, 'active', $7::date, 'full_time')
 	`, employmentID, employeeID, employerID, relationshipID, departmentID, locationID, startDate); err != nil {
 		t.Fatalf("seed employments: %v", err)
@@ -83,7 +83,7 @@ func seedIntegrationEmployeeGraphWithRange(
 		t.Fatalf("seed employment_relationships: %v", err)
 	}
 	if _, err := db.Exec(ctx, `
-		INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date, end_date, employment_type)
+		INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date, end_date, employment_type)
 		VALUES ($1, $2, $3, $4, 'active', $5::date, NULLIF($6, '')::date, 'full_time')
 	`, employmentID, employeeID, employerID, relationshipID, employmentStartDate, employmentEndDate); err != nil {
 		t.Fatalf("seed employments: %v", err)

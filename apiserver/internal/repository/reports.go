@@ -192,7 +192,7 @@ func (r ReportRepository) ResolveBehalfEmployeeIDs(ctx context.Context, userID u
 	}
 	rows, err := db.Query(ctx, `SELECT DISTINCT e.id
 FROM behalf_assignments ba
-JOIN employments emp ON (
+JOIN employment_segments emp ON (
     (ba.target_employee_id IS NOT NULL AND emp.employee_id = ba.target_employee_id)
     OR (ba.target_department_id IS NOT NULL AND emp.department_id = ba.target_department_id)
 )
@@ -228,7 +228,7 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
 	}
 	if params.EmploymentID != nil {
 		var exists bool
-		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, *params.EmploymentID).Scan(&exists); err != nil {
+		if err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employment_segments WHERE id = $1 AND deleted_at IS NULL)`, *params.EmploymentID).Scan(&exists); err != nil {
 			return api.PaginatedReportResponse{}, err
 		}
 		if !exists {
@@ -267,7 +267,7 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
 		filterClause, args, argIndex = appendEmployeeStatusFilter(filterClause, args, argIndex, params.EmployeeStatus)
 
 		var total int64
-		countQuery := fmt.Sprintf(`SELECT count(*) FROM employments emp JOIN employees e ON e.id = emp.employee_id JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ads.date AND (t.end_date IS NULL OR t.end_date >= ads.date) WHERE %s%s`, whereClause, filterClause)
+		countQuery := fmt.Sprintf(`SELECT count(*) FROM employment_segments emp JOIN employees e ON e.id = emp.employee_id JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= ads.date AND (t.end_date IS NULL OR t.end_date >= ads.date) WHERE %s%s`, whereClause, filterClause)
 		if err := db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 			return api.PaginatedReportResponse{}, err
 		}
@@ -285,7 +285,7 @@ func (r ReportRepository) GetAttendanceReport(ctx context.Context, params api.At
        COALESCE(ads.standard_minutes, 0),
        COALESCE(ads.approved_ot_minutes, 0),
        COALESCE(ads.ot_status::text, 'none')
-FROM employments emp
+FROM employment_segments emp
 JOIN employees e ON e.id = emp.employee_id
 JOIN attendance_daily_summaries ads ON ads.employment_id = emp.id
 LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL
@@ -460,7 +460,7 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
 	dataFilterClause, dataArgs, dataArgIndex = appendEmployeeStatusFilter(dataFilterClause, dataArgs, dataArgIndex, params.EmployeeStatus)
 
 	var total int64
-	countQuery := fmt.Sprintf(`SELECT count(DISTINCT (emp.id, t.id)) FROM employments emp JOIN employees e ON e.id = emp.employee_id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $2::date AND (t.end_date IS NULL OR t.end_date >= $1::date) WHERE %s%s`, baseClause, countFilterClause)
+	countQuery := fmt.Sprintf(`SELECT count(DISTINCT (emp.id, t.id)) FROM employment_segments emp JOIN employees e ON e.id = emp.employee_id LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $2::date AND (t.end_date IS NULL OR t.end_date >= $1::date) WHERE %s%s`, baseClause, countFilterClause)
 	if err := db.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		return api.PaginatedReportResponse{}, err
 	}
@@ -470,7 +470,7 @@ LIMIT $%d OFFSET $%d`, whereClause, filterClause, argIndex, argIndex+1)
        COALESCE(SUM(ads.approved_ot_minutes), 0)::int AS total_ot_minutes,
        COALESCE(json_agg(json_build_object('date', ads.date::text, 'standard_minutes', ads.standard_minutes)) FILTER (WHERE ads.id IS NOT NULL), '[]'::json) AS daily_entries,
        emp.employer_id, em.name AS employer_name
-FROM employments emp
+FROM employment_segments emp
 JOIN employees e ON e.id = emp.employee_id
 LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL
 LEFT JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = e.id AND t.deleted_at IS NULL AND t.start_date <= $2::date AND (t.end_date IS NULL OR t.end_date >= $1::date)
@@ -657,7 +657,7 @@ func (r ReportRepository) GetNoShowReport(ctx context.Context, params api.NoShow
 
 	fromClause := noShowCTE + ` SELECT `
 	joins := `
-FROM employments emp
+FROM employment_segments emp
 JOIN employees e ON e.id = emp.employee_id
 LEFT JOIN work_locations wl ON wl.id = emp.primary_location_id
 LEFT JOIN employment_relationships er ON er.id = emp.relationship_id AND er.employee_id = emp.employee_id AND er.deleted_at IS NULL

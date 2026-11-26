@@ -81,8 +81,8 @@ func TestIntegrationLegacyScheduleMutationGuardsRejectAllEightSources(t *testing
 			args: func() []any { return []any{fixture.activeTemplate} },
 		},
 		{
-			name: "assignment_rules",
-			stmt: `INSERT INTO assignment_rules (id, pattern_id, name, priority, conditions) VALUES ($1, $2, 'blocked rule', 1, '{}'::jsonb)`,
+			name: "working_pattern_assignment_rules",
+			stmt: `INSERT INTO working_pattern_assignment_rules (id, pattern_id, name, priority, conditions) VALUES ($1, $2, 'blocked rule', 1, '{}'::jsonb)`,
 			args: func() []any { return []any{uuid.New(), fixture.activePattern} },
 		},
 		{
@@ -111,7 +111,7 @@ func TestIntegrationLegacyScheduleMutationGuardAllowsInactiveAndUnrelatedScopes(
 
 	t.Run("inactive employer assignment rule", func(t *testing.T) {
 		assertLegacyMutationAllowed(t, ctx, tx,
-			`INSERT INTO assignment_rules (id, pattern_id, name, priority, conditions) VALUES ($1, $2, 'inactive rule', 1, '{}'::jsonb)`,
+			`INSERT INTO working_pattern_assignment_rules (id, pattern_id, name, priority, conditions) VALUES ($1, $2, 'inactive rule', 1, '{}'::jsonb)`,
 			uuid.New(), fixture.inactivePattern,
 		)
 	})

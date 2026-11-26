@@ -92,7 +92,7 @@ func TestEnterPaperOTBlocksClosedDate(t *testing.T) {
 			calls++
 			return fakeRow{scanFn: func(dest ...any) error {
 				switch {
-				case strings.Contains(query, "FROM employments"):
+				case strings.Contains(query, "FROM employment_segments"):
 					*(dest[0].(*uuid.UUID)) = employmentID
 				case calls == 2:
 					for _, value := range dest {
@@ -438,7 +438,7 @@ func holidayLeaveGuardRowFn(employmentID uuid.UUID, leaveTypeID *uuid.UUID) func
 				*(dest[3].(**uuid.UUID)) = leaveTypeID
 			case strings.Contains(query, "FROM leave_types"):
 				*(dest[0].(*string)) = "Annual"
-			case strings.Contains(query, "FROM employments"):
+			case strings.Contains(query, "FROM employment_segments"):
 				*(dest[0].(*uuid.UUID)) = employmentID
 			case strings.Contains(query, "FROM leave_requests WHERE employment_id = $1 AND status"):
 				*(dest[0].(*bool)) = false
@@ -493,7 +493,7 @@ func legacySwapGuardRowFn(requesterID, targetID, reqEmpID, tgtEmpID uuid.UUID, e
 				*(dest[1].(*uuid.UUID)) = requesterID
 				*(dest[2].(*uuid.UUID)) = targetID
 				*(dest[3].(*string)) = "2026-11-15"
-			case strings.Contains(query, "FROM employments"):
+			case strings.Contains(query, "FROM employment_segments"):
 				*empLookup++
 				if *empLookup == 1 {
 					*(dest[0].(*uuid.UUID)) = reqEmpID

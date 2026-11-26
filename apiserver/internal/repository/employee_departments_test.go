@@ -78,7 +78,7 @@ func TestEmployeeDepartmentRepository_TransferPreservesRelationshipOnSegmentSpli
 		}}}, nil
 	}
 	tx.fakeDBTX.execFn = func(_ context.Context, query string, args ...any) (pgconn.CommandTag, error) {
-		if strings.Contains(query, "INSERT INTO employments") {
+		if strings.Contains(query, "INSERT INTO employment_segments") {
 			if !strings.Contains(query, "relationship_id") {
 				t.Fatalf("split insert missing relationship_id: %s", query)
 			}

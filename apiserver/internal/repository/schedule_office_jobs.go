@@ -135,7 +135,7 @@ func (ApprovedScheduleOfficePolicySource) Coverage(ctx context.Context, db DBTX,
 	rows, err := db.Query(ctx, `SELECT p.approval_instance_id, e.employer_id, e.id, days.day::text, 'office'
 		FROM schedule_office_policies p
 		JOIN approval_workflow_instances i ON i.id = p.approval_instance_id
-		JOIN employments e ON e.employer_id = p.employer_id AND e.deleted_at IS NULL
+		JOIN employment_segments e ON e.employer_id = p.employer_id AND e.deleted_at IS NULL
 		CROSS JOIN LATERAL generate_series(GREATEST($2::date, p.effective_from), LEAST($3::date, COALESCE(p.effective_to, $3::date)), interval '1 day') days(day)
 		WHERE p.employer_id = $1
 		  AND p.status = 'active'

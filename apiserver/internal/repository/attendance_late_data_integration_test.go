@@ -146,7 +146,7 @@ func seedAttendanceSegmentFixture(t *testing.T, name string) (*pgxpool.Pool, con
 	exec(`INSERT INTO employees (id, full_name) VALUES ($1, $2)`, employeeID, name+"-employee")
 	exec(`INSERT INTO employee_tenures (id, employee_id, employee_number, start_date) VALUES ($1, $2, $3, DATE '2026-01-01')`, tenureID, employeeID, employeeID.String())
 	exec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, relationshipID, employeeID, employerID, tenureID)
-	exec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID, relationshipID)
+	exec(`INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID, relationshipID)
 	exec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	exec(`INSERT INTO shift_templates (id, name) VALUES ($1, $2)`, templateID, name+"-template")
 	exec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, $3, DATE '2026-01-01', 'create', $4)`, versionID, templateID, name+"-version", actorID)
@@ -168,7 +168,7 @@ func TestIntegrationRequiredBreakWorkOutRejectsOpenOrMissingBreak(t *testing.T) 
 	mustExec(`INSERT INTO employees (id, full_name) VALUES ($1, 'required-break-employee')`, employeeID)
 	mustExec(`INSERT INTO employee_tenures (id, employee_id, employee_number, start_date) VALUES ($1, $2, $3, DATE '2026-01-01')`, tenureID, employeeID, employeeID.String())
 	mustExec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, relationshipID, employeeID, employerID, tenureID)
-	mustExec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID, relationshipID)
+	mustExec(`INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, employmentID, employeeID, employerID, relationshipID)
 	mustExec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, actorID, actorID.String()+"@invalid.test")
 	mustExec(`INSERT INTO shift_templates (id, name) VALUES ($1, 'required-break-template')`, templateID)
 	mustExec(`INSERT INTO shift_versions (id, template_id, version_number, name, effective_from, change_type, created_by) VALUES ($1, $2, 1, 'required-break-version', DATE '2026-01-01', 'create', $3)`, versionID, templateID, actorID)
@@ -204,7 +204,7 @@ func TestIntegrationRequiredBreakWorkOutRejectsOpenOrMissingBreak(t *testing.T) 
 func TestIntegrationPunchInIgnoresSupersededRevisionAndMatchesEarlyArrival(t *testing.T) {
 	pool, ctx, employmentID, employeeID, templateID, versionID := seedAttendanceSegmentFixture(t, "official-punch")
 	var employerID, actorID uuid.UUID
-	if err := pool.QueryRow(ctx, `SELECT employer_id FROM employments WHERE id = $1`, employmentID).Scan(&employerID); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT employer_id FROM employment_segments WHERE id = $1`, employmentID).Scan(&employerID); err != nil {
 		t.Fatalf("load employer: %v", err)
 	}
 	if err := pool.QueryRow(ctx, `SELECT created_by FROM shift_versions WHERE id = $1`, versionID).Scan(&actorID); err != nil {

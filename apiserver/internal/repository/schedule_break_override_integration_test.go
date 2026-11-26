@@ -34,7 +34,7 @@ func seedBreakOverrideFixture(t *testing.T) *breakOverrideFixture {
 	exec(`INSERT INTO employees (id, full_name) VALUES ($1, 'break-override-employee')`, employeeID)
 	exec(`INSERT INTO employee_tenures (id, employee_id, employee_number, start_date) VALUES ($1, $2, $3, DATE '2026-01-01')`, tenureID, employeeID, employeeID.String())
 	exec(`INSERT INTO employment_relationships (id, employee_id, employer_id, tenure_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, relationshipID, employeeID, fixture.employerID, tenureID)
-	exec(`INSERT INTO employments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, fixture.employmentID, employeeID, fixture.employerID, relationshipID)
+	exec(`INSERT INTO employment_segments (id, employee_id, employer_id, relationship_id, status, start_date) VALUES ($1, $2, $3, $4, 'active', DATE '2026-01-01')`, fixture.employmentID, employeeID, fixture.employerID, relationshipID)
 	exec(`INSERT INTO users (id, email, password_hash) VALUES ($1, $2, 'integration-test-hash')`, fixture.actorID, fixture.actorID.String()+"@invalid.test")
 	exec(`INSERT INTO payroll_periods (id, employer_id, period_year, period_month, status, version) VALUES ($1, $2, 2026, 11, 'open', 1)`, uuid.New(), fixture.employerID)
 	exec(`INSERT INTO shift_templates (id, name) VALUES ($1, $2)`, templateID, "break-override-template-"+templateID.String())

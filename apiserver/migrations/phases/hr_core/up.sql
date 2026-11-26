@@ -38,7 +38,7 @@ CREATE TABLE public.econtract_envelopes (
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE public.employee_assignments (
+CREATE TABLE public.employment_location_assignments (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     home_location_id uuid NOT NULL,
     host_location_id uuid NOT NULL,
@@ -94,7 +94,7 @@ CREATE TABLE public.employee_emergency_contacts (
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE public.employee_phases (
+CREATE TABLE public.employment_phases (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     phase_definition_id uuid NOT NULL,
     start_date date NOT NULL,
@@ -107,7 +107,7 @@ CREATE TABLE public.employee_phases (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     employment_id uuid NOT NULL,
-    CONSTRAINT employee_phases_check CHECK ((end_date >= start_date))
+    CONSTRAINT employment_phases_check CHECK ((end_date >= start_date))
 );
 
 CREATE TABLE public.employee_profiles (
@@ -246,7 +246,7 @@ CREATE TABLE public.employment_relationships (
     CONSTRAINT employment_relationships_dates_check CHECK (((end_date IS NULL) OR (start_date <= end_date)))
 );
 
-CREATE TABLE public.employments (
+CREATE TABLE public.employment_segments (
     id uuid NOT NULL,
     employee_id uuid NOT NULL,
     employer_id uuid NOT NULL,
@@ -264,7 +264,7 @@ CREATE TABLE public.employments (
     notes text,
     termination_reason character varying(50),
     relationship_id uuid NOT NULL,
-    CONSTRAINT employments_dates_check CHECK (((end_date IS NULL) OR (start_date <= end_date)))
+    CONSTRAINT employment_segments_dates_check CHECK (((end_date IS NULL) OR (start_date <= end_date)))
 );
 
 CREATE TABLE public.leave_accrual_logs (
@@ -449,8 +449,8 @@ ALTER TABLE ONLY public.econtract_envelopes
 ALTER TABLE ONLY public.econtract_envelopes
     ADD CONSTRAINT uq_envelope_provider UNIQUE (provider_type, external_envelope_id);
 
-ALTER TABLE ONLY public.employee_assignments
-    ADD CONSTRAINT employee_assignments_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.employment_location_assignments
+    ADD CONSTRAINT employment_location_assignments_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.employee_contracts
     ADD CONSTRAINT employee_contracts_pkey PRIMARY KEY (id);
@@ -461,8 +461,8 @@ ALTER TABLE ONLY public.employee_documents
 ALTER TABLE ONLY public.employee_emergency_contacts
     ADD CONSTRAINT employee_emergency_contacts_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.employee_phases
-    ADD CONSTRAINT employee_phases_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.employment_phases
+    ADD CONSTRAINT employment_phases_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.employee_profiles
     ADD CONSTRAINT employee_profiles_employee_id_key UNIQUE (employee_id);
@@ -515,8 +515,8 @@ ALTER TABLE ONLY public.employment_relationships
 ALTER TABLE ONLY public.employment_relationships
     ADD CONSTRAINT employment_relationships_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.employments
-    ADD CONSTRAINT employments_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.employment_segments
+    ADD CONSTRAINT employment_segments_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.leave_accrual_logs
     ADD CONSTRAINT leave_accrual_logs_employment_leave_type_id_date_key UNIQUE (employment_id, leave_type_id, accrual_date);
@@ -583,7 +583,7 @@ CREATE INDEX idx_econtract_envelopes_external_id ON public.econtract_envelopes U
 
 CREATE INDEX idx_econtract_routing_rules ON public.employer_econtract_routing_rules USING btree (employer_id, signer_country);
 
-CREATE INDEX idx_employee_assignments_employment_id ON public.employee_assignments USING btree (employment_id);
+CREATE INDEX idx_employment_location_assignments_employment_id ON public.employment_location_assignments USING btree (employment_id);
 
 CREATE INDEX idx_employee_contracts_dates ON public.employee_contracts USING btree (start_date, end_date);
 
@@ -603,13 +603,13 @@ CREATE INDEX idx_employee_emergency_contacts_employee_id ON public.employee_emer
 
 CREATE UNIQUE INDEX idx_employee_emergency_contacts_primary ON public.employee_emergency_contacts USING btree (employee_id) WHERE (is_primary = true);
 
-CREATE INDEX idx_employee_phases_active_lookup ON public.employee_phases USING btree (employment_id, status, start_date, end_date) WHERE (status = 'active'::text);
+CREATE INDEX idx_employment_phases_active_lookup ON public.employment_phases USING btree (employment_id, status, start_date, end_date) WHERE (status = 'active'::text);
 
-CREATE INDEX idx_employee_phases_definition ON public.employee_phases USING btree (phase_definition_id);
+CREATE INDEX idx_employment_phases_definition ON public.employment_phases USING btree (phase_definition_id);
 
-CREATE INDEX idx_employee_phases_employment ON public.employee_phases USING btree (employment_id);
+CREATE INDEX idx_employment_phases_employment ON public.employment_phases USING btree (employment_id);
 
-CREATE INDEX idx_employee_phases_status ON public.employee_phases USING btree (status);
+CREATE INDEX idx_employment_phases_status ON public.employment_phases USING btree (status);
 
 CREATE INDEX idx_employee_profiles_employee_id ON public.employee_profiles USING btree (employee_id);
 
@@ -657,15 +657,15 @@ CREATE INDEX idx_employment_relationships_employer ON public.employment_relation
 
 CREATE INDEX idx_employment_relationships_tenure_id ON public.employment_relationships USING btree (tenure_id, start_date DESC, id DESC) WHERE (deleted_at IS NULL);
 
-CREATE INDEX idx_employments_date_range ON public.employments USING btree (start_date, end_date);
+CREATE INDEX idx_employment_segments_date_range ON public.employment_segments USING btree (start_date, end_date);
 
-CREATE INDEX idx_employments_employee_id ON public.employments USING btree (employee_id);
+CREATE INDEX idx_employment_segments_employee_id ON public.employment_segments USING btree (employee_id);
 
-CREATE INDEX idx_employments_employer_id ON public.employments USING btree (employer_id);
+CREATE INDEX idx_employment_segments_employer_id ON public.employment_segments USING btree (employer_id);
 
-CREATE INDEX idx_employments_query ON public.employments USING btree (employee_id, start_date, end_date) WHERE (deleted_at IS NULL);
+CREATE INDEX idx_employment_segments_query ON public.employment_segments USING btree (employee_id, start_date, end_date) WHERE (deleted_at IS NULL);
 
-CREATE INDEX idx_employments_relationship_id ON public.employments USING btree (relationship_id) WHERE ((relationship_id IS NOT NULL) AND (deleted_at IS NULL));
+CREATE INDEX idx_employment_segments_relationship_id ON public.employment_segments USING btree (relationship_id) WHERE ((relationship_id IS NOT NULL) AND (deleted_at IS NULL));
 
 CREATE INDEX idx_leave_accrual_logs_leave_type_id ON public.leave_accrual_logs USING btree (leave_type_id);
 
@@ -727,7 +727,7 @@ CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.departments FOR EACH ROW E
 
 CREATE TRIGGER trg_validate_contract_relationship_link BEFORE INSERT OR UPDATE OF employment_id, relationship_id ON public.employee_contracts FOR EACH ROW EXECUTE FUNCTION public.fn_validate_contract_relationship_link();
 
-CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.employee_phases FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
+CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.employment_phases FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
 CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.employee_profiles FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
@@ -751,11 +751,11 @@ CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.employment_relationships F
 
 CREATE TRIGGER trg_validate_relationship_tenure_bounds BEFORE INSERT OR UPDATE OF tenure_id, employee_id, start_date, end_date, deleted_at ON public.employment_relationships FOR EACH ROW EXECUTE FUNCTION public.fn_validate_relationship_tenure_bounds();
 
-CREATE TRIGGER trg_roster_cache_invalidation_employments AFTER INSERT OR DELETE OR UPDATE ON public.employments FOR EACH ROW EXECUTE FUNCTION public.enqueue_roster_cache_invalidation('direct');
+CREATE TRIGGER trg_roster_cache_invalidation_employment_segments AFTER INSERT OR DELETE OR UPDATE ON public.employment_segments FOR EACH ROW EXECUTE FUNCTION public.enqueue_roster_cache_invalidation('direct');
 
-CREATE TRIGGER trg_validate_segment_relationship_bounds BEFORE INSERT OR UPDATE OF relationship_id, employee_id, employer_id, start_date, end_date, deleted_at ON public.employments FOR EACH ROW EXECUTE FUNCTION public.fn_validate_segment_relationship_bounds();
+CREATE TRIGGER trg_validate_segment_relationship_bounds BEFORE INSERT OR UPDATE OF relationship_id, employee_id, employer_id, start_date, end_date, deleted_at ON public.employment_segments FOR EACH ROW EXECUTE FUNCTION public.fn_validate_segment_relationship_bounds();
 
-CREATE TRIGGER trg_validate_segment_relationship_change BEFORE UPDATE OF relationship_id ON public.employments FOR EACH ROW EXECUTE FUNCTION public.fn_validate_segment_relationship_change();
+CREATE TRIGGER trg_validate_segment_relationship_change BEFORE UPDATE OF relationship_id ON public.employment_segments FOR EACH ROW EXECUTE FUNCTION public.fn_validate_segment_relationship_change();
 
 CREATE TRIGGER trg_updated_at BEFORE UPDATE ON public.leave_balances FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
@@ -835,20 +835,20 @@ ALTER TABLE ONLY public.econtract_envelopes
 ALTER TABLE ONLY public.econtract_envelopes
     ADD CONSTRAINT econtract_envelopes_employer_id_fkey FOREIGN KEY (employer_id) REFERENCES public.employers(id) ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.employee_assignments
-    ADD CONSTRAINT employee_assignments_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.employment_location_assignments
+    ADD CONSTRAINT employment_location_assignments_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.employee_assignments
-    ADD CONSTRAINT employee_assignments_home_location_id_fkey FOREIGN KEY (home_location_id) REFERENCES public.work_locations(id);
+ALTER TABLE ONLY public.employment_location_assignments
+    ADD CONSTRAINT employment_location_assignments_home_location_id_fkey FOREIGN KEY (home_location_id) REFERENCES public.work_locations(id);
 
-ALTER TABLE ONLY public.employee_assignments
-    ADD CONSTRAINT employee_assignments_host_location_id_fkey FOREIGN KEY (host_location_id) REFERENCES public.work_locations(id);
+ALTER TABLE ONLY public.employment_location_assignments
+    ADD CONSTRAINT employment_location_assignments_host_location_id_fkey FOREIGN KEY (host_location_id) REFERENCES public.work_locations(id);
 
 ALTER TABLE ONLY public.employee_contracts
     ADD CONSTRAINT employee_contracts_document_id_fkey FOREIGN KEY (document_id) REFERENCES public.employee_documents(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.employee_contracts
-    ADD CONSTRAINT employee_contracts_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT employee_contracts_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.employee_contracts
     ADD CONSTRAINT employee_contracts_relationship_id_fkey FOREIGN KEY (relationship_id) REFERENCES public.employment_relationships(id) ON DELETE RESTRICT;
@@ -862,11 +862,11 @@ ALTER TABLE ONLY public.employee_documents
 ALTER TABLE ONLY public.employee_emergency_contacts
     ADD CONSTRAINT employee_emergency_contacts_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.employee_phases
-    ADD CONSTRAINT employee_phases_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.employment_phases
+    ADD CONSTRAINT employment_phases_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.employee_phases
-    ADD CONSTRAINT employee_phases_phase_definition_id_fkey FOREIGN KEY (phase_definition_id) REFERENCES public.employment_phase_definitions(id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.employment_phases
+    ADD CONSTRAINT employment_phases_phase_definition_id_fkey FOREIGN KEY (phase_definition_id) REFERENCES public.employment_phase_definitions(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.employee_profiles
     ADD CONSTRAINT employee_profiles_avatar_file_id_fkey FOREIGN KEY (avatar_file_id) REFERENCES public.files(id);
@@ -878,7 +878,7 @@ ALTER TABLE ONLY public.employee_salary_components
     ADD CONSTRAINT employee_salary_components_component_definition_id_fkey FOREIGN KEY (component_definition_id) REFERENCES public.salary_component_definitions(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_salary_components
-    ADD CONSTRAINT employee_salary_components_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE CASCADE;
+    ADD CONSTRAINT employee_salary_components_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_tenures
     ADD CONSTRAINT employee_tenures_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE RESTRICT;
@@ -907,26 +907,26 @@ ALTER TABLE ONLY public.employment_relationships
 ALTER TABLE ONLY public.employment_relationships
     ADD CONSTRAINT employment_relationships_tenure_identity_fkey FOREIGN KEY (tenure_id, employee_id) REFERENCES public.employee_tenures(id, employee_id) ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.employments
-    ADD CONSTRAINT employments_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.employment_segments
+    ADD CONSTRAINT employment_segments_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.employments
-    ADD CONSTRAINT employments_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.employment_segments
+    ADD CONSTRAINT employment_segments_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.employments
-    ADD CONSTRAINT employments_employer_id_fkey FOREIGN KEY (employer_id) REFERENCES public.employers(id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.employment_segments
+    ADD CONSTRAINT employment_segments_employer_id_fkey FOREIGN KEY (employer_id) REFERENCES public.employers(id) ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.employments
-    ADD CONSTRAINT employments_manager_employment_id_fkey FOREIGN KEY (manager_employment_id) REFERENCES public.employments(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.employment_segments
+    ADD CONSTRAINT employment_segments_manager_employment_id_fkey FOREIGN KEY (manager_employment_id) REFERENCES public.employment_segments(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.employments
-    ADD CONSTRAINT employments_primary_location_id_fkey FOREIGN KEY (primary_location_id) REFERENCES public.work_locations(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.employment_segments
+    ADD CONSTRAINT employment_segments_primary_location_id_fkey FOREIGN KEY (primary_location_id) REFERENCES public.work_locations(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.employments
-    ADD CONSTRAINT employments_relationship_id_fkey FOREIGN KEY (relationship_id) REFERENCES public.employment_relationships(id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.employment_segments
+    ADD CONSTRAINT employment_segments_relationship_id_fkey FOREIGN KEY (relationship_id) REFERENCES public.employment_relationships(id) ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.employments
-    ADD CONSTRAINT employments_relationship_identity_fkey FOREIGN KEY (relationship_id, employee_id, employer_id) REFERENCES public.employment_relationships(id, employee_id, employer_id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.employment_segments
+    ADD CONSTRAINT employment_segments_relationship_identity_fkey FOREIGN KEY (relationship_id, employee_id, employer_id) REFERENCES public.employment_relationships(id, employee_id, employer_id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.file_acknowledgements
     ADD CONSTRAINT file_acknowledgements_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -935,7 +935,7 @@ ALTER TABLE ONLY public.file_acknowledgements
     ADD CONSTRAINT file_acknowledgements_tenure_identity_fkey FOREIGN KEY (tenure_id, employee_id) REFERENCES public.employee_tenures(id, employee_id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.leave_accrual_logs
-    ADD CONSTRAINT leave_accrual_logs_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE CASCADE;
+    ADD CONSTRAINT leave_accrual_logs_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.leave_accrual_logs
     ADD CONSTRAINT leave_accrual_logs_leave_type_id_fkey FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id) ON DELETE RESTRICT;
@@ -944,7 +944,7 @@ ALTER TABLE ONLY public.leave_accrual_logs
     ADD CONSTRAINT leave_accrual_logs_policy_assignment_id_fkey FOREIGN KEY (policy_assignment_id) REFERENCES public.leave_policy_assignments(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.leave_balances
-    ADD CONSTRAINT leave_balances_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT leave_balances_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.leave_balances
     ADD CONSTRAINT leave_balances_leave_type_id_fkey FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id) ON DELETE RESTRICT;
@@ -956,7 +956,7 @@ ALTER TABLE ONLY public.leave_policy_definitions
     ADD CONSTRAINT leave_policy_definitions_leave_type_id_fkey FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.leave_requests
-    ADD CONSTRAINT leave_requests_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT leave_requests_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.leave_requests
     ADD CONSTRAINT leave_requests_leave_type_id_fkey FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id) ON DELETE RESTRICT;
@@ -971,7 +971,7 @@ ALTER TABLE ONLY public.overtime_policy_versions
     ADD CONSTRAINT overtime_policy_versions_published_by_fkey FOREIGN KEY (published_by) REFERENCES public.users(id);
 
 ALTER TABLE ONLY public.overtime_request_employees
-    ADD CONSTRAINT overtime_request_employees_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT overtime_request_employees_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.overtime_requests
     ADD CONSTRAINT overtime_requests_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id);
@@ -986,7 +986,7 @@ ALTER TABLE ONLY public.signature_requests
     ADD CONSTRAINT signature_requests_signer_id_fkey FOREIGN KEY (signer_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.working_conditions
-    ADD CONSTRAINT working_conditions_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employments(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT working_conditions_employment_id_fkey FOREIGN KEY (employment_id) REFERENCES public.employment_segments(id) ON DELETE RESTRICT;
 
 INSERT INTO public.schema_migrations(version) VALUES ('fresh_hr_core_v1');
 

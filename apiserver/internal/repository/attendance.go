@@ -37,7 +37,7 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUI
 			return err
 		}
 		var active bool
-		if err := tx.QueryRow(ctx, `SELECT status = 'active' FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&active); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT status = 'active' FROM employment_segments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&active); err != nil {
 			return err
 		}
 		if !active {
@@ -492,7 +492,7 @@ func loadReprocessDailyGroupsForScope(ctx context.Context, db DBTX, startDate, e
 	}
 	rows, err := db.Query(ctx, `SELECT te.employment_id, `+businessDateExpr+`::text, te.punch_in_time, te.punch_out_time, te.duration_minutes, te.segment_id, te.shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot, COALESCE(sdi.break_punch_mode, 'none'), COALESCE(tbr.actual_break_minutes, 0), COALESCE(tbr.actual_break_count, 0), COALESCE(tbr.has_open_break, false), COALESCE(bwo.approved_break_worked_minutes, 0)
 		FROM time_entries te
-		JOIN employments e ON e.id = te.employment_id
+		JOIN employment_segments e ON e.id = te.employment_id
 		LEFT JOIN work_segments ws ON ws.id = te.segment_id
 		LEFT JOIN shift_default_intervals sdi ON sdi.id = ws.interval_id
 		LEFT JOIN schedule_day_revisions sdr ON sdr.id = ws.schedule_revision_id
@@ -659,7 +659,7 @@ func resolveActiveEmployment(ctx context.Context, db DBTX, employeeID uuid.UUID)
 	}
 	var employmentID uuid.UUID
 	var status string
-	err := db.QueryRow(ctx, `SELECT em.id, em.status FROM employments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY (em.status = 'active') DESC, em.start_date DESC, em.id DESC LIMIT 1`, employeeID).Scan(&employmentID, &status)
+	err := db.QueryRow(ctx, `SELECT em.id, em.status FROM employment_segments em JOIN employment_relationships er ON er.id = em.relationship_id AND er.employee_id = em.employee_id JOIN employee_tenures t ON t.id = er.tenure_id AND t.employee_id = er.employee_id WHERE em.employee_id = $1 AND em.deleted_at IS NULL AND t.deleted_at IS NULL AND t.start_date <= CURRENT_DATE AND (t.end_date IS NULL OR t.end_date >= CURRENT_DATE) ORDER BY (em.status = 'active') DESC, em.start_date DESC, em.id DESC LIMIT 1`, employeeID).Scan(&employmentID, &status)
 	if err != nil {
 		return uuid.Nil, api.ErrNoActiveEmployment
 	}
@@ -730,7 +730,7 @@ func (r AttendanceRepository) CreateAdjustment(ctx context.Context, req api.Adju
 		return api.AdjustmentRecord{}, err
 	}
 	var exists bool
-	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM employment_segments WHERE id = $1 AND deleted_at IS NULL)`, req.EmploymentID).Scan(&exists)
 	if err != nil {
 		return api.AdjustmentRecord{}, err
 	}
@@ -781,10 +781,10 @@ func (r AttendanceRepository) ListAdjustments(ctx context.Context, status *strin
 	}
 	offset := (page - 1) * limit
 	var total int64
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE ($1::text IS NULL OR a.status::text = $1) AND ($2::uuid IS NULL OR em.employee_id = $2)`, status, employeeID).Scan(&total); err != nil {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM attendance_adjustment_requests a JOIN employment_segments em ON em.id = a.employment_id WHERE ($1::text IS NULL OR a.status::text = $1) AND ($2::uuid IS NULL OR em.employee_id = $2)`, status, employeeID).Scan(&total); err != nil {
 		return api.PaginatedAdjustments{}, err
 	}
-	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.adjustment_type, a.details, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE ($1::text IS NULL OR a.status::text = $1) AND ($2::uuid IS NULL OR em.employee_id = $2) ORDER BY a.created_at DESC LIMIT $3 OFFSET $4`, status, employeeID, limit, offset)
+	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.adjustment_type, a.details, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employment_segments em ON em.id = a.employment_id WHERE ($1::text IS NULL OR a.status::text = $1) AND ($2::uuid IS NULL OR em.employee_id = $2) ORDER BY a.created_at DESC LIMIT $3 OFFSET $4`, status, employeeID, limit, offset)
 	if err != nil {
 		return api.PaginatedAdjustments{}, err
 	}
@@ -808,7 +808,7 @@ func (r AttendanceRepository) ListEmployeeAdjustments(ctx context.Context, emplo
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.adjustment_type, a.details, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employments em ON em.id = a.employment_id WHERE em.employee_id = $1 ORDER BY a.created_at DESC`, employeeID)
+	rows, err := db.Query(ctx, `SELECT a.id, a.employment_id, a.time_entry_id, a.requested_punch_time, a.reason, a.status::text, a.requested_by_user_id, a.approved_by_user_id, a.attachment_file_ids, a.adjustment_type, a.details, a.created_at, a.updated_at FROM attendance_adjustment_requests a JOIN employment_segments em ON em.id = a.employment_id WHERE em.employee_id = $1 ORDER BY a.created_at DESC`, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -947,7 +947,7 @@ func (r AttendanceRepository) GetAttendanceSummaries(ctx context.Context, startD
 	idx := 3
 
 	if employeeID != nil {
-		whereClauses = append(whereClauses, fmt.Sprintf("s.employment_id IN (SELECT id FROM employments WHERE employee_id = $%d AND deleted_at IS NULL)", idx))
+		whereClauses = append(whereClauses, fmt.Sprintf("s.employment_id IN (SELECT id FROM employment_segments WHERE employee_id = $%d AND deleted_at IS NULL)", idx))
 		args = append(args, *employeeID)
 		idx++
 	}
