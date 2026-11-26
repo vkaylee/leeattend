@@ -23,12 +23,23 @@ type reprocessOfficialSegment struct {
 }
 
 func ensureReprocessPeriodsOpen(ctx context.Context, db DBTX, startDate, endDate string, employeeID *uuid.UUID) error {
-	schema, err := lifecycleSchemaState(ctx, db)
-	if err != nil || !schema.any() {
-		return err
-	}
 	empIDs, err := loadReprocessTargetEmployments(ctx, db, startDate, endDate, employeeID)
 	if err != nil || len(empIDs) == 0 {
+		return err
+	}
+	// Lock target employments in deterministic order (matching ESSAttendanceAction/PunchIn/ResolveUnscheduled/CloseAttendancePeriod)
+	// to serialize concurrent reprocess/resolve/closure operations without deadlocks.
+	if _, err := db.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended(id::text, 0)) FROM unnest($1::uuid[]) AS id ORDER BY id`, empIDs); err != nil {
+		return err
+	}
+	if _, err := db.Exec(ctx, `SELECT e.id FROM employees e JOIN employments em ON em.employee_id = e.id WHERE em.id = ANY($1) ORDER BY e.id FOR UPDATE`, empIDs); err != nil {
+		return err
+	}
+	if _, err := db.Exec(ctx, `SELECT id FROM employments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, empIDs); err != nil {
+		return err
+	}
+	schema, err := lifecycleSchemaState(ctx, db)
+	if err != nil || !schema.any() {
 		return err
 	}
 	closed, err := hasClosedPeriod(ctx, db, schema, empIDs, startDate, endDate)
@@ -81,11 +92,19 @@ func scanUUIDList(rows interface {
 }
 
 func pairRawLogsForReprocess(ctx context.Context, db DBTX, startDate, endDate string, employeeID *uuid.UUID) error {
-	segmentsByEmp, err := loadOfficialSegmentsForPairing(ctx, db, startDate, endDate, employeeID)
+	return pairRawLogsForScope(ctx, db, startDate, endDate, employeeID, nil)
+}
+
+func pairRawLogsForEmployment(ctx context.Context, db DBTX, startDate, endDate string, employmentID uuid.UUID) error {
+	return pairRawLogsForScope(ctx, db, startDate, endDate, nil, &employmentID)
+}
+
+func pairRawLogsForScope(ctx context.Context, db DBTX, startDate, endDate string, employeeID, employmentID *uuid.UUID) error {
+	segmentsByEmp, err := loadOfficialSegmentsForPairing(ctx, db, startDate, endDate, employeeID, employmentID)
 	if err != nil || len(segmentsByEmp) == 0 {
 		return err
 	}
-	rawByEmployment, err := loadRawLogsForPairing(ctx, db, startDate, endDate, employeeID)
+	rawByEmployment, err := loadRawLogsForPairing(ctx, db, startDate, endDate, employeeID, employmentID)
 	if err != nil || len(rawByEmployment) == 0 {
 		return err
 	}
@@ -101,12 +120,15 @@ func pairRawLogsForReprocess(ctx context.Context, db DBTX, startDate, endDate st
 	return nil
 }
 
-func loadOfficialSegmentsForPairing(ctx context.Context, db DBTX, startDate, endDate string, employeeID *uuid.UUID) (map[uuid.UUID][]reprocessOfficialSegment, error) {
+func loadOfficialSegmentsForPairing(ctx context.Context, db DBTX, startDate, endDate string, employeeID, employmentID *uuid.UUID) (map[uuid.UUID][]reprocessOfficialSegment, error) {
 	where := `sdr.state = 'published' AND ws.segment_status <> 'cancelled' AND ws.date BETWEEN $1::date AND $2::date AND ws.scheduled_start_at IS NOT NULL AND ws.scheduled_end_at IS NOT NULL`
 	args := []any{startDate, endDate}
 	if employeeID != nil {
 		where += ` AND e.employee_id = $3`
 		args = append(args, *employeeID)
+	} else if employmentID != nil {
+		where += ` AND ws.employment_id = $3`
+		args = append(args, *employmentID)
 	}
 	rows, err := db.Query(ctx, `SELECT ws.employment_id, ws.date::text, ws.id, ws.template_id, ws.selected_shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot
 		FROM work_segments ws
@@ -130,12 +152,15 @@ func loadOfficialSegmentsForPairing(ctx context.Context, db DBTX, startDate, end
 	return grouped, rows.Err()
 }
 
-func loadRawLogsForPairing(ctx context.Context, db DBTX, startDate, endDate string, employeeID *uuid.UUID) (map[uuid.UUID][]pairing.LogEvent, error) {
+func loadRawLogsForPairing(ctx context.Context, db DBTX, startDate, endDate string, employeeID, employmentID *uuid.UUID) (map[uuid.UUID][]pairing.LogEvent, error) {
 	where := `ral.punch_time >= ($1::date - interval '1 day') AND ral.punch_time <= ($2::date + interval '2 days')`
 	args := []any{startDate, endDate}
 	if employeeID != nil {
 		where += ` AND e.employee_id = $3`
 		args = append(args, *employeeID)
+	} else if employmentID != nil {
+		where += ` AND ral.employment_id = $3`
+		args = append(args, *employmentID)
 	}
 	rows, err := db.Query(ctx, `SELECT ral.id, ral.employment_id, ral.punch_time
 		FROM raw_attendance_logs ral

@@ -6,10 +6,11 @@ import {
     reprocessAttendance,
     adminConfirmAttendance,
     approveOt,
-    upsertRoster,
+    resolveUnscheduledSchedule,
     DailyAttendanceReport,
 } from "@/lib/api";
 import { createQueryKey } from "@/lib/query-keys";
+import { generateUUID } from "@/utils/uuid";
 
 
 interface UseDailyDrawerMutationsProps {
@@ -80,16 +81,30 @@ export function useDailyDrawerMutations({employeeId,
     });
 
     const resolveUnscheduledMutation = useMutation({
-        mutationFn: async ({ row, shiftId }: { row: DailyAttendanceReport; shiftId: string }) => {
-            const empId = employeeId ?? "";
-            await upsertRoster(empId, {
-                date: row.date,
-                shift_id: shiftId,
-            });
-            await reprocessAttendance(empId, row.date, row.date);
+        mutationFn: async ({
+            idempotencyKey,
+            reason,
+            row,
+            shiftId,
+        }: {
+            idempotencyKey?: string;
+            reason: string;
+            row: DailyAttendanceReport;
+            shiftId: string;
+        }) => {
+            if (!row.employment_id) {
+                throw new Error("Missing employment_id for unscheduled attendance resolution");
+            }
+            await resolveUnscheduledSchedule(
+                row.employment_id,
+                row.date,
+                { shift_id: shiftId, reason },
+                idempotencyKey ?? generateUUID(),
+            );
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: createQueryKey("attendance-report") });
+            void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
             toast.success(t("reports.unscheduled.success"));
             onResolveSuccess();
         },

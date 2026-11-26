@@ -15,7 +15,7 @@ export interface ResolveUnscheduledModalProps {
     isOpen: boolean;
     isPending: boolean;
     onClose: () => void;
-    onSubmit: (shiftId: string) => void;
+    onSubmit: (shiftId: string, reason: string) => void;
     row: DailyAttendanceReport | null;
     shifts: Shift[] | undefined;
 }
@@ -32,6 +32,7 @@ export default function ResolveUnscheduledModal({
     const { formatDate, formatTime } = useDateTimeFormatter();
 
     const [selectedShiftId, setSelectedShiftId] = useState("");
+    const [reason, setReason] = useState("");
 
     if (!row) return null;
 
@@ -91,6 +92,21 @@ export default function ResolveUnscheduledModal({
                     </select>
                 </div>
 
+                {/* Audit reason */}
+                <div>
+                    <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block" htmlFor="resolve-unscheduled-reason">
+                        {t("scheduleLifecycle.reasonLabel")}
+                    </label>
+                    <textarea
+                        className="w-full min-h-20 resize-y px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        id="resolve-unscheduled-reason"
+                        maxLength={2000}
+                        onChange={(e) => { setReason(e.target.value); }}
+                        placeholder={t("scheduleLifecycle.reasonPlaceholder")}
+                        value={reason}
+                    />
+                </div>
+
                 {/* Explanation note */}
                 <Typography className="text-[10px] text-slate-500 dark:text-slate-400 italic leading-relaxed" variant="p">
                     {t("reports.unscheduled.resolve_subtitle")}
@@ -108,10 +124,10 @@ export default function ResolveUnscheduledModal({
                     </Button>
                     <Button
                         className="flex-[1.5] bg-amber-600 hover:bg-amber-700 shadow-xl h-auto py-3.5 rounded-2xl flex items-center justify-center gap-3"
-                        disabled={isPending || !selectedShiftId}
+                        disabled={isPending || !selectedShiftId || reason.trim().length === 0}
                         icon={<CalendarCheck size={18} />}
                         loading={isPending}
-                        onClick={() => { onSubmit(selectedShiftId); }}
+                        onClick={() => { onSubmit(selectedShiftId, reason.trim()); }}
                         variant="primary"
                     >
                         {t("reports.unscheduled.submit")}

@@ -49,17 +49,19 @@ const SOURCE_PRIORITY = [
 ] as const;
 
 /** Resolve official lifecycle state for a cell, including empty missing days. */
-export type ScheduleLifecycleCellState = "published" | "explicit_off" | "missing" | "closed" | "draft" | "conflict" | "legacy_unverified";
+export type ScheduleLifecycleCellState = "published" | "explicit_off" | "missing" | "closed" | "draft" | "provisional" | "conflict" | "legacy_unverified";
 
 export function getScheduleLifecycleCellState(
   schedules: EffectiveSchedule[],
 ): ScheduleLifecycleCellState {
+  if (schedules.some((schedule) => schedule.closed)) return "closed";
   const state = schedules.find((schedule) => schedule.schedule_status)?.schedule_status;
-  if (state === "published" || state === "explicit_off" || state === "missing" || state === "closed" || state === "draft" || state === "conflict" || state === "legacy_unverified") {
+  if (state === "conflict" || state === "missing" || state === "explicit_off" || state === "closed" || state === "draft" || state === "legacy_unverified") {
     return state;
   }
-  if (schedules.some((schedule) => schedule.closed)) return "closed";
-  if (schedules.some((schedule) => schedule.shift_id)) return "published";
+  if (schedules.some((schedule) => schedule.provisional)) return "provisional";
+  if (state === "published" || state === "work") return "published";
+  if (schedules.some((schedule) => schedule.shift_id)) return "provisional";
   return "missing";
 }
 
@@ -99,13 +101,18 @@ function translateScheduleEntries(
   currentYearMonth: string,
   validDates: Set<string>,
 ): { date: string; shift_id: string | null }[] {
+  const seenDates = new Set<string>();
   return schedules
-    .filter((schedule) => schedule.source === "roster" && Boolean(schedule.shift_id))
+    .filter(
+      (schedule) =>
+        schedule.source === "roster" &&
+        (Boolean(schedule.shift_id) || schedule.schedule_status === "explicit_off"),
+    )
     .map((schedule) => {
       const targetDate = `${currentYearMonth}-${schedule.date.substring(8)}`;
-      return validDates.has(targetDate)
-        ? { date: targetDate, shift_id: schedule.shift_id ?? null }
-        : null;
+      if (!validDates.has(targetDate) || seenDates.has(targetDate)) return null;
+      seenDates.add(targetDate);
+      return { date: targetDate, shift_id: schedule.shift_id ?? null };
     })
     .filter((entry): entry is { date: string; shift_id: string | null } => entry !== null);
 }

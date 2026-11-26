@@ -125,9 +125,13 @@ function useWorkingPatternMutations(setters: {
       const failedEmployees = data.failed_employees ?? [];
       if (successCount > 0) {
         toast.success(t("patterns.messages.bulk_assign_success_count", { count: successCount }));
-        setters.setIsBulkModalOpen(false); setters.setSelectedEmployeeIds([]);
         void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
-      } else if (failedEmployees.length > 0) {
+        if (failedEmployees.length === 0) {
+          setters.setIsBulkModalOpen(false);
+          setters.setSelectedEmployeeIds([]);
+        }
+      }
+      if (failedEmployees.length > 0) {
         toast.error(t("patterns.messages.bulk_assign_conflict", { count: failedEmployees.length }));
       }
     },

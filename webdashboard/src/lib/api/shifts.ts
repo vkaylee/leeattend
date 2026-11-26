@@ -53,6 +53,7 @@ export const fetchSchedules = async (
   endDate: string,
   employmentIds?: string[],
   coverage: "all" | "missing" | "complete" = "all",
+  view?: "official" | "legacy",
 ): Promise<EmployeeSchedule[]> => {
   const { data } = await client.GET<PaginatedResponse<EmployeeSchedule>>("/api/v1/schedules", {
     params: {
@@ -61,6 +62,7 @@ export const fetchSchedules = async (
         end_date: endDate,
         employment_ids: employmentIds?.join(",") ?? undefined,
         coverage,
+        view,
         limit: employmentIds && employmentIds.length > 0 ? 1000 : undefined,
       },
     },

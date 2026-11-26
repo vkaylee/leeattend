@@ -57,6 +57,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
       toast.success(t("rules.messages.create_success"));
       setIsDirty(false);
       void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment-rules") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
       void navigate({ to: "/shifts/rules", search: { tab: "rules" } });
     },
     onError: () => {
@@ -71,6 +72,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
       toast.success(t("rules.messages.update_success"));
       setIsDirty(false);
       void queryClient.invalidateQueries({ queryKey: createQueryKey("assignment-rules") });
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
       void navigate({ to: "/shifts/rules", search: { tab: "rules" } });
     },
     onError: () => {

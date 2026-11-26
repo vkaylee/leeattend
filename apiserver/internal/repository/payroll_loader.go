@@ -269,8 +269,14 @@ func loadBatchWorkSegments(ctx context.Context, db DBTX, result map[uuid.UUID]Lo
 	rows, err := db.Query(ctx, `
 		SELECT ws.employment_id, ws.date::text,
 		       COUNT(DISTINCT CASE WHEN ws.segment_status = 'completed' AND te.id IS NOT NULL THEN ws.id END)::int,
-		       BOOL_OR(ws.segment_type = 'work' AND ws.segment_status <> 'cancelled')
+		       BOOL_OR(ws.segment_type = 'work' AND ws.segment_status <> 'cancelled'
+		         AND (sdr.state = 'published' OR (ws.schedule_revision_id IS NULL AND NOT EXISTS (
+		              SELECT 1 FROM schedule_day_revisions cur
+		              WHERE cur.employment_id = ws.employment_id AND cur.business_date = ws.date
+		                AND cur.state IN ('published', 'explicit_off')
+		         ))))
 		FROM work_segments ws
+		LEFT JOIN schedule_day_revisions sdr ON sdr.id = ws.schedule_revision_id
 		LEFT JOIN time_entries te ON te.segment_id = ws.id AND te.punch_out_time IS NOT NULL
 		WHERE ws.employment_id = ANY($1::uuid[]) AND ws.date >= $2::date AND ws.date <= $3::date
 		GROUP BY ws.employment_id, ws.date`, validEmpIDs, startStr, endStr)

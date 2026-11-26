@@ -5,7 +5,9 @@ import { useTranslation } from "react-i18next";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
-interface ShiftTimeWindow {
+import type { ScheduleLifecycleCellState } from "@/components/shifts/roster/roster-utils";
+
+export interface ShiftTimeWindow {
   breakEndHour?: number; // e.g. 13.0
   breakStartHour?: number; // e.g. 12.0
   endHour: number; // e.g. 17.5 for 17:30
@@ -21,7 +23,8 @@ interface ActualPunchSpan {
 interface Shift24hTimelineProps {
   actualPunches?: ActualPunchSpan[];
   className?: string;
-  scheduledShift?: ShiftTimeWindow;
+  scheduledShift?: ShiftTimeWindow | null;
+  scheduleStatus?: ScheduleLifecycleCellState;
   timezone?: string;
 }
 
@@ -42,13 +45,8 @@ function formatMinsToTime(mins: number): string {
 }
 
 export function Shift24hTimeline({
-  scheduledShift = {
-    startHour: 8.5, // 08:30
-    endHour: 17.5, // 17:30
-    breakStartHour: 12.0, // 12:00
-    breakEndHour: 13.0, // 13:00
-    label: "Ca hành chính",
-  },
+  scheduledShift = null,
+  scheduleStatus,
   actualPunches = [],
   className,
 }: Shift24hTimelineProps) {
@@ -68,17 +66,33 @@ export function Shift24hTimeline({
     return () => { clearInterval(timer); };
   }, []);
 
-  // Scheduled shift boundaries
-  const shiftStartMin = scheduledShift.startHour * 60;
-  const shiftEndMin = scheduledShift.endHour * 60;
+  // Scheduled shift boundaries (only when an assigned shift exists)
+  const shiftStartMin = scheduledShift ? scheduledShift.startHour * 60 : 0;
+  const shiftEndMin = scheduledShift ? scheduledShift.endHour * 60 : 0;
+  const visualEndMin = scheduledShift
+    ? shiftEndMin > shiftStartMin
+      ? shiftEndMin
+      : 1440
+    : 0;
   const shiftLeft = minsToPercent(shiftStartMin);
-  const shiftWidth = minsToPercent(shiftEndMin - shiftStartMin);
+  const shiftWidth = minsToPercent(Math.max(0, visualEndMin - shiftStartMin));
 
-  // Break window boundaries
-  const breakStartMin = (scheduledShift.breakStartHour ?? 12) * 60;
-  const breakEndMin = (scheduledShift.breakEndHour ?? 13) * 60;
+  // Break window boundaries (only when explicitly defined on the shift)
+  const hasBreak = Boolean(
+    scheduledShift &&
+      scheduledShift.breakStartHour !== undefined &&
+      scheduledShift.breakEndHour !== undefined &&
+      scheduledShift.breakEndHour > scheduledShift.breakStartHour,
+  );
+  const breakStartMin = (scheduledShift?.breakStartHour ?? 0) * 60;
+  const breakEndMin = (scheduledShift?.breakEndHour ?? 0) * 60;
   const breakLeft = minsToPercent(breakStartMin);
-  const breakWidth = minsToPercent(breakEndMin - breakStartMin);
+  const breakWidth = minsToPercent(Math.max(0, breakEndMin - breakStartMin));
+
+  const unscheduledLabel =
+    scheduleStatus === "explicit_off"
+      ? t("shifts.off_day")
+      : t(`scheduleLifecycle.states.${scheduleStatus ?? "missing"}`);
 
   const nowLeft = minsToPercent(currentMinutes);
 
@@ -99,11 +113,19 @@ export function Shift24hTimeline({
             <Clock className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             {t("ess.clock.timeline_title", "Dòng thời gian ca làm việc 24h")}
           </Typography>
-          <Typography as="p" className="text-xs text-slate-500 dark:text-slate-400" variant="body">
-            {scheduledShift.label}: {formatMinsToTime(shiftStartMin)} →{" "}
-            {formatMinsToTime(shiftEndMin)} (Nghỉ trưa:{" "}
-            {formatMinsToTime(breakStartMin)} - {formatMinsToTime(breakEndMin)})
-          </Typography>
+          {scheduledShift ? (
+            <Typography as="p" className="text-xs text-slate-500 dark:text-slate-400" variant="body">
+              {scheduledShift.label}: {formatMinsToTime(shiftStartMin)} →{" "}
+              {formatMinsToTime(shiftEndMin)}
+              {hasBreak
+                ? ` (${t("ess.clock.break_tooltip", "Giờ nghỉ")}: ${formatMinsToTime(breakStartMin)} - ${formatMinsToTime(breakEndMin)})`
+                : ""}
+            </Typography>
+          ) : (
+            <Typography as="p" className="text-xs text-slate-500 dark:text-slate-400" data-testid="timeline-unscheduled-status" variant="body">
+              {unscheduledLabel}
+            </Typography>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
@@ -121,37 +143,42 @@ export function Shift24hTimeline({
       <div className="pt-6 pb-4">
         <div className="relative w-full h-10 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 overflow-visible">
           {/* 1. Scheduled Shift Box */}
-          <div
-            className="absolute top-0 bottom-0 bg-primary-100/70 dark:bg-primary-950/50 border-x-2 border-primary-400/80 dark:border-primary-500/80 rounded-lg flex items-center justify-start pl-3 transition-all"
-            data-testid="scheduled-shift-box"
-            style={{ left: `${shiftLeft}%`, width: `${shiftWidth}%` }}
-          >
-            <span className="text-[10px] font-bold text-primary-800 dark:text-primary-300 uppercase tracking-tighter hidden md:inline">
-              {scheduledShift.label}
-            </span>
-          </div>
+          {scheduledShift ? (
+            <div
+              className="absolute top-0 bottom-0 bg-primary-100/70 dark:bg-primary-950/50 border-x-2 border-primary-400/80 dark:border-primary-500/80 rounded-lg flex items-center justify-start pl-3 transition-all"
+              data-testid="scheduled-shift-box"
+              style={{ left: `${shiftLeft}%`, width: `${shiftWidth}%` }}
+            >
+              <span className="text-[10px] font-bold text-primary-800 dark:text-primary-300 uppercase tracking-tighter hidden md:inline">
+                {scheduledShift.label}
+              </span>
+            </div>
+          ) : null}
 
           {/* 2. Break Window Box */}
-          <div
-            className="absolute top-1 bottom-1 bg-amber-200/60 dark:bg-amber-900/40 border border-dashed border-amber-400/80 dark:border-amber-600/80 rounded-md flex items-center justify-center"
-            data-testid="break-window-box"
-            style={{ left: `${breakLeft}%`, width: `${breakWidth}%` }}
-            title={t("ess.clock.break_tooltip", "Giờ nghỉ trưa")}
-          >
-            <span className="text-[9px] font-bold text-amber-900 dark:text-amber-300 uppercase tracking-tighter hidden sm:inline">
-              Nghỉ
-            </span>
-          </div>
+          {hasBreak ? (
+            <div
+              className="absolute top-1 bottom-1 bg-amber-200/60 dark:bg-amber-900/40 border border-dashed border-amber-400/80 dark:border-amber-600/80 rounded-md flex items-center justify-center"
+              data-testid="break-window-box"
+              style={{ left: `${breakLeft}%`, width: `${breakWidth}%` }}
+              title={t("ess.clock.break_tooltip", "Giờ nghỉ trưa")}
+            >
+              <span className="text-[9px] font-bold text-amber-900 dark:text-amber-300 uppercase tracking-tighter hidden sm:inline">
+                {t("ess.clock.break_tooltip")}
+              </span>
+            </div>
+          ) : null}
 
           {/* 3. Actual Worked Spans */}
           {actualPunches.map((punch, idx) => {
             const inMins = timeStrToMinutes(punch.punchInTime);
-            const outMins = punch.punchOutTime
+            const rawOutMins = punch.punchOutTime
               ? timeStrToMinutes(punch.punchOutTime)
               : currentMinutes;
+            const visualOutMins = rawOutMins < inMins ? 1440 : rawOutMins;
 
             const punchLeft = minsToPercent(inMins);
-            const punchWidth = Math.max(1, minsToPercent(outMins - inMins));
+            const punchWidth = Math.max(1, minsToPercent(visualOutMins - inMins));
 
             return (
               <React.Fragment key={idx}>
@@ -181,13 +208,13 @@ export function Shift24hTimeline({
                   <div
                     className="absolute -top-2.5 z-20 -translate-x-1/2 flex flex-col items-center group cursor-pointer"
                     data-testid={`punch-out-dot-${idx}`}
-                    style={{ left: `${minsToPercent(outMins)}%` }}
+                    style={{ left: `${minsToPercent(visualOutMins)}%` }}
                   >
                     <span className="h-4 w-4 rounded-full bg-teal-600 border-2 border-white dark:border-slate-900 shadow-md flex items-center justify-center text-[8px] font-bold text-white">
                       ✕
                     </span>
                     <span className="text-[9px] font-mono font-bold text-teal-700 dark:text-teal-300 mt-0.5 bg-white/90 dark:bg-slate-900/90 px-1 rounded shadow-xs">
-                      {formatMinsToTime(outMins)}
+                      {formatMinsToTime(rawOutMins)}
                     </span>
                   </div>
                 )}

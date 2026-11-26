@@ -28,6 +28,8 @@ import {
 import { createQueryKey } from "@/lib/query-keys";
 import { generateUUID } from "@/utils/uuid";
 
+import { getScheduleLifecycleCellState } from "./roster/roster-utils";
+
 
 interface ScheduleLifecyclePanelProps {
   employeeSchedule?: EmployeeSchedule;
@@ -38,9 +40,9 @@ interface ScheduleLifecyclePanelProps {
 }
 
 function formatDate(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -81,14 +83,17 @@ function LifecycleStatusList({ schedule, t }: { schedule: EmployeeSchedule; t: (
 
   return (
     <ul aria-label={t("scheduleLifecycle.statusesLabel")} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-      {schedule.schedules.map((day) => (
-        <li className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/60" key={day.date}>
-          <span className="font-mono text-xs text-slate-600 dark:text-slate-300">{day.date}</span>
-          <StatusBadge variant={lifecycleStatus(day.schedule_status)}>
-            {t(`scheduleLifecycle.states.${day.schedule_status ?? (day.shift_id ? "published" : "missing")}`)}
-          </StatusBadge>
-        </li>
-      ))}
+      {schedule.schedules.map((day) => {
+        const resolvedState = getScheduleLifecycleCellState([day]);
+        return (
+          <li className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/60" key={day.date}>
+            <span className="font-mono text-xs text-slate-600 dark:text-slate-300">{day.date}</span>
+            <StatusBadge variant={lifecycleStatus(resolvedState)}>
+              {t(`scheduleLifecycle.states.${resolvedState}`)}
+            </StatusBadge>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -115,8 +120,16 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
   const queryClient = useQueryClient();
   const [reason, setReason] = useState("");
   const [selectedDate, setSelectedDate] = useState(employeeSchedule.schedules[0]?.date ?? formatDate(weekDays[0]));
-  const [preview, setPreview] = useState<SchedulePreviewResponse | null>(null);
-  const [replanPreview, setReplanPreview] = useState<ScheduleReplanPreviewResponse | null>(null);
+  const [previewState, setPreviewState] = useState<{
+    idempotencyKey: string;
+    preview: SchedulePreviewResponse;
+    scopeKey: string;
+  } | null>(null);
+  const [replanState, setReplanState] = useState<{
+    idempotencyKey: string;
+    preview: ScheduleReplanPreviewResponse;
+    scopeKey: string;
+  } | null>(null);
   const [history, setHistory] = useState<ScheduleHistoryResponse | null>(null);
   const [evidence, setEvidence] = useState<ScheduleEvidenceResponse | null>(null);
 
@@ -134,6 +147,9 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
   });
   const resolvedTimezone = employeeSchedule.schedules.find((day) => day.timezone)?.timezone ?? organization?.timezone ?? "UTC";
   const effectiveReason = reason.trim() || t("scheduleLifecycle.preview");
+  const publishScopeKey = JSON.stringify([employeeSchedule.employment_id, dateRange.start, dateRange.end, resolvedTimezone, effectiveReason, expectedRevisions]);
+  const activePreview = previewState?.scopeKey === publishScopeKey ? previewState : null;
+  const preview = activePreview?.preview ?? null;
   const selectedSchedule = scheduleByDate.get(selectedDate);
   const selectedRevision = evidence?.revisions.find((revision) => revision.state === "published") ?? evidence?.revisions.at(-1);
   const selectedSegment = evidence?.segments.find((segment) => segment.schedule_revision_id === selectedRevision?.revision_id) ?? evidence?.segments.at(-1);
@@ -152,6 +168,9 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
           : [],
       }
     : null;
+  const replanScopeKey = JSON.stringify([employeeSchedule.employment_id, selectedDate, selectedRevision?.revision_number ?? 0, reason.trim(), replacement]);
+  const activeReplan = replanState?.scopeKey === replanScopeKey ? replanState : null;
+  const replanPreview = activeReplan?.preview ?? null;
 
   const previewMutation = useMutation({
     mutationFn: () => previewSchedules({
@@ -165,26 +184,28 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
       retroactive: false,
       expected_revisions: expectedRevisions,
     }),
-    onSuccess: ({ data }) => { setPreview(data); },
+    onSuccess: ({ data }) => {
+      setPreviewState({ idempotencyKey: generateUUID(), preview: data, scopeKey: publishScopeKey });
+    },
   });
   const publishMutation = useMutation({
     mutationFn: () => {
-      if (!preview) throw new Error("scheduleLifecycle.previewRequired");
+      if (!activePreview) throw new Error("scheduleLifecycle.previewRequired");
       return publishRotatingSchedules({
         employment_ids: [employeeSchedule.employment_id],
         start_date: dateRange.start,
         end_date: dateRange.end,
         timezone: resolvedTimezone,
         approval_instance_id: null,
-        preview_id: preview.preview_id,
-        preview_hash: preview.preview_hash,
+        preview_id: activePreview.preview.preview_id,
+        preview_hash: activePreview.preview.preview_hash,
         reason: effectiveReason,
         retroactive: false,
         expected_revisions: expectedRevisions,
-      }, generateUUID());
+      }, activePreview.idempotencyKey);
     },
     onSuccess: () => {
-      setPreview(null);
+      setPreviewState(null);
       void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
     },
   });
@@ -205,22 +226,24 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
         replacement,
       });
     },
-    onSuccess: ({ data }) => { setReplanPreview(data); },
+    onSuccess: ({ data }) => {
+      setReplanState({ idempotencyKey: generateUUID(), preview: data, scopeKey: replanScopeKey });
+    },
   });
   const replanMutation = useMutation({
     mutationFn: () => {
-      if (!replanPreview || !selectedRevision || !replacement) throw new Error("scheduleLifecycle.replanPreviewRequired");
+      if (!activeReplan || !selectedRevision || !replacement) throw new Error("scheduleLifecycle.replanPreviewRequired");
       return commitScheduleReplan(employeeSchedule.employment_id, selectedDate, {
         expected_revision: selectedRevision.revision_number,
         reason: reason.trim(),
         replacement,
-        preview_id: replanPreview.preview_id,
-        preview_hash: replanPreview.preview_hash,
-        confirm_diff_hash: replanPreview.diff_hash,
-      }, generateUUID());
+        preview_id: activeReplan.preview.preview_id,
+        preview_hash: activeReplan.preview.preview_hash,
+        confirm_diff_hash: activeReplan.preview.diff_hash,
+      }, activeReplan.idempotencyKey);
     },
     onSuccess: () => {
-      setReplanPreview(null);
+      setReplanState(null);
       void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
     },
   });
@@ -276,6 +299,157 @@ function ScheduleLifecycleReady({ employeeSchedule, weekDays }: { employeeSchedu
       {replanPreview ? <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30"><div className="flex items-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-200"><AlertTriangle size={15} />{t("scheduleLifecycle.diffNotice")}</div><JsonPreview value={replanPreview.diff} /><Button disabled={reason.trim().length === 0} loading={replanMutation.isPending} onClick={() => { replanMutation.mutate(); }}>{t("scheduleLifecycle.confirmReplan")}</Button></div> : null}
       {activeError ? <Typography className="m-0 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200" role="alert">{t(safeErrorMessage(activeError))}</Typography> : null}
       {isBusy && !preview && !history && !evidence ? <div aria-label={t("common.loading")} className="space-y-2"><Skeleton className="h-4 w-1/2" /><Skeleton className="h-16 w-full" /></div> : null}
+    </section>
+  );
+}
+
+interface BatchSchedulePublishBarProps {
+  days: Date[];
+  schedules: Pick<EmployeeSchedule, "employment_id" | "schedules">[];
+}
+
+export function BatchSchedulePublishBar({ days, schedules }: BatchSchedulePublishBarProps) {
+  const { t } = useTranslation();
+  const { organization } = useOrganization();
+  const queryClient = useQueryClient();
+  const [reason, setReason] = useState("");
+  const [previewState, setPreviewState] = useState<{
+    idempotencyKey: string;
+    preview: SchedulePreviewResponse;
+    scopeKey: string;
+  } | null>(null);
+
+  const targetEmployments = useMemo(
+    () => schedules.filter((row) => Boolean(row.employment_id)),
+    [schedules],
+  );
+  const dateRange = useMemo(
+    () =>
+      days.length > 0
+        ? { start: formatDate(days[0]), end: formatDate(days[days.length - 1]) }
+        : { start: "", end: "" },
+    [days],
+  );
+  const resolvedTimezone = useMemo(
+    () =>
+      targetEmployments.flatMap((row) => row.schedules).find((day) => day.timezone)?.timezone ??
+      organization?.timezone ??
+      "UTC",
+    [organization?.timezone, targetEmployments],
+  );
+  const expectedRevisions = useMemo(() => {
+    const entries: [string, number][] = [];
+    for (const row of targetEmployments) {
+      const byDate = new Map(row.schedules.map((day) => [day.date, day]));
+      for (const day of days) {
+        const date = formatDate(day);
+        entries.push([`${row.employment_id}:${date}`, byDate.get(date)?.revision_number ?? 0]);
+      }
+    }
+    return Object.fromEntries(entries);
+  }, [days, targetEmployments]);
+  const employmentIds = useMemo(
+    () => targetEmployments.map((row) => row.employment_id),
+    [targetEmployments],
+  );
+  const effectiveReason = reason.trim() || t("scheduleLifecycle.publish");
+  const scopeKey = useMemo(
+    () => JSON.stringify([employmentIds, dateRange.start, dateRange.end, resolvedTimezone, effectiveReason, expectedRevisions]),
+    [dateRange.end, dateRange.start, effectiveReason, employmentIds, expectedRevisions, resolvedTimezone],
+  );
+  const activePreview = previewState?.scopeKey === scopeKey ? previewState : null;
+  const preview = activePreview?.preview ?? null;
+
+  const previewMutation = useMutation({
+    mutationFn: () =>
+      previewSchedules({
+        employment_ids: employmentIds,
+        start_date: dateRange.start,
+        end_date: dateRange.end,
+        timezone: resolvedTimezone,
+        mode: "rotating",
+        approval_instance_id: null,
+        reason: effectiveReason,
+        retroactive: false,
+        expected_revisions: expectedRevisions,
+      }),
+    onSuccess: ({ data }) => {
+      setPreviewState({ idempotencyKey: generateUUID(), preview: data, scopeKey });
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: () => {
+      if (!activePreview) throw new Error("scheduleLifecycle.previewRequired");
+      return publishRotatingSchedules(
+        {
+          employment_ids: employmentIds,
+          start_date: dateRange.start,
+          end_date: dateRange.end,
+          timezone: resolvedTimezone,
+          approval_instance_id: null,
+          preview_id: activePreview.preview.preview_id,
+          preview_hash: activePreview.preview.preview_hash,
+          reason: effectiveReason,
+          retroactive: false,
+          expected_revisions: expectedRevisions,
+        },
+        activePreview.idempotencyKey,
+      );
+    },
+    onSuccess: () => {
+      setPreviewState(null);
+      void queryClient.invalidateQueries({ queryKey: createQueryKey("schedules") });
+    },
+  });
+
+  if (employmentIds.length === 0 || !dateRange.start) return null;
+  const activeError = previewMutation.isError
+    ? previewMutation.error
+    : publishMutation.isError
+      ? publishMutation.error
+      : null;
+
+  return (
+    <section aria-label={t("scheduleLifecycle.title")} className="space-y-3 rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <label className="flex-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+          {t("scheduleLifecycle.reasonLabel")}
+          <input
+            className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-slate-600 dark:bg-slate-800"
+            maxLength={2000}
+            onChange={(event) => {
+              setReason(event.target.value);
+            }}
+            placeholder={t("scheduleLifecycle.reasonPlaceholder")}
+            type="text"
+            value={reason}
+          />
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <Button icon={<RefreshCw size={15} />} loading={previewMutation.isPending} onClick={() => { previewMutation.mutate(); }} variant="outline">
+            {t("scheduleLifecycle.preview")}
+          </Button>
+          <Button disabled={!preview} icon={<Send size={15} />} loading={publishMutation.isPending} onClick={() => { publishMutation.mutate(); }}>
+            {t("scheduleLifecycle.publish")}
+          </Button>
+        </div>
+      </div>
+      {preview ? (
+        <div className="space-y-2 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+          <div className="flex items-center gap-2 text-xs font-semibold text-blue-800 dark:text-blue-200">
+            <CheckCircle2 size={15} />
+            {t("scheduleLifecycle.provisionalNotice")}
+            <StatusBadge variant="info">{t("scheduleLifecycle.states.provisional")}</StatusBadge>
+          </div>
+          <JsonPreview value={preview.data} />
+        </div>
+      ) : null}
+      {activeError ? (
+        <Typography className="m-0 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200" role="alert">
+          {t(safeErrorMessage(activeError))}
+        </Typography>
+      ) : null}
     </section>
   );
 }

@@ -37,6 +37,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
         fetchRawAttendanceLogs: vi.fn(),
         fetchShifts: vi.fn(),
         upsertRoster: vi.fn(),
+        resolveUnscheduledSchedule: vi.fn().mockResolvedValue({ data: {} }),
     };
 });
 
@@ -631,11 +632,12 @@ describe("EmployeeDailyDrawer", () => {
         const user = userEvent.setup();
         const unscheduledRow = {
             ...mockDailyRow,
+            employment_id: "employment-1",
             status: "unscheduled",
             scheduled_start: null,
             scheduled_end: null,
         };
- 
+
         (api.fetchAttendanceReport as Mock).mockResolvedValue({
             data: [unscheduledRow],
             total: 1,
@@ -661,15 +663,16 @@ describe("EmployeeDailyDrawer", () => {
         expect(select).toBeInTheDocument();
     });
 
-    it("submits resolve modal: calls upsertRoster then reprocessAttendance", async () => {
+    it("submits resolve modal through the atomic schedule endpoint", async () => {
         const user = userEvent.setup();
         const unscheduledRow = {
             ...mockDailyRow,
+            employment_id: "employment-1",
             status: "unscheduled",
             scheduled_start: null,
             scheduled_end: null,
         };
- 
+
         (api.fetchAttendanceReport as Mock).mockResolvedValue({
             data: [unscheduledRow],
             total: 1,
@@ -686,27 +689,22 @@ describe("EmployeeDailyDrawer", () => {
         // Wait for modal
         await screen.findByText("reports.unscheduled.resolve_title");
 
-        // Select a shift from the dropdown
         const select = screen.getByRole("combobox");
         await user.selectOptions(select, "shift-morning");
+        await user.type(screen.getByLabelText("scheduleLifecycle.reasonLabel"), "Confirmed shift");
 
-        // Click submit button
         const submitButton = screen.getByRole("button", { name: /reports.unscheduled.submit/i });
         await user.click(submitButton);
 
-        // Verify upsertRoster was called first
         await waitFor(() => {
-            expect(api.upsertRoster).toHaveBeenCalledWith("emp-1",
-                { date: "2026-01-15", shift_id: "shift-morning" }
-            );
-        });
-
-        // Then reprocessAttendance
-        await waitFor(() => {
-            expect(api.reprocessAttendance).toHaveBeenCalledWith("emp-1",
+            expect(api.resolveUnscheduledSchedule).toHaveBeenCalledWith(
+                "employment-1",
                 "2026-01-15",
-                "2026-01-15"
+                { reason: "Confirmed shift", shift_id: "shift-morning" },
+                expect.any(String),
             );
         });
+        expect(api.upsertRoster).not.toHaveBeenCalled();
+        expect(api.reprocessAttendance).not.toHaveBeenCalled();
     });
 });

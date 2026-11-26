@@ -10,6 +10,8 @@
 
 ## Context
 
+The following source observations describe the original decision baseline, not necessarily the current implementation. The 2026-11-26 clarification below defines the target; runtime cutover and acceptance remain unverified.
+
 LeeAttend currently calculates schedules on read through `resolveEffectiveShift` and returns a paginated schedule view. Current precedence is roster, individual working pattern, assignment rule, then fixed shift. The resolver currently uses the current shift representation, reads only `sort_order = 0` intervals, performs rotation arithmetic with elapsed hours, and has no official schedule revision read path.
 
 Current schedule inputs and consumers are mutable and not lifecycle-aware:
@@ -160,3 +162,12 @@ After official publication or closure evidence exists, do not down-migrate, dele
 ## Verification gate
 
 Implementation remains incomplete until repository-wrapper tests cover resolver semantics, migration up/down boundaries, publication atomicity, audit failure rollback, idempotency, concurrency, authorization scope, immutable segments, closure snapshots, payroll dependency, late punches, legacy writer bypass, outbox retry/dead-letter recovery, API contracts, frontend states, and the complete preview → publish → amend → close → reopen → reclose → evidence chain. Existing focused tests prove foundation only; unit-only success is insufficient, and integration, role-scoped E2E and full-suite phases are required.
+
+## 2026-11-26 Clarification: Official-Only Schedule Contract
+
+Target behavior locked for consumer cutover (documentation decision only; runtime cutover and legacy removal remain pending verification):
+
+1. **Official-only reads for operational surfaces:** Schedule displays, attendance consumers, and reports read only assigned official records (`schedule_day_revisions` + `work_segments`). Operational schedule views must not silently fall back to on-the-fly resolution (including whole-query fallback when mixed scopes exist). `resolveEffectiveShift` is restricted to **preview** and **generating records during publication**.
+2. **Immutable assigned records; intentional replan for changes:** Each assignment commits a `schedule_day_revision` and its `work_segments` pinning `selected_shift_version_id`, concrete work times, break snapshots, `published_at`, actor metadata, and `source_snapshot`. Creating a new `shift_version` or editing patterns/rules never mutates existing official records. Changing an assigned schedule requires an explicit replan creating a new revision with a required `reason` while preserving the prior revision as `superseded`.
+3. **Two auditable assignment channels:** Automated assignment (background worker/cron under an approved effective office policy) publishes ahead on the horizon with `actor_type = 'system'`; manual assignment (preview → batch publish for rotating shifts or manual adjustments) records the human `actor_id`. Both channels persist the same official revision and audit evidence.
+4. **Explicit day states; no inference on missing schedules:** `published` (work), `explicit_off` (explicit day off), and `missing` (unassigned) remain distinct. Missing days render explicitly as unassigned and never auto-convert to day off; raw punches on unassigned days remain accepted as unscheduled attendance for manager reconciliation rather than dropped.

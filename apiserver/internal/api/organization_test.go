@@ -409,7 +409,7 @@ func TestOrganizationHandler_PutConfigRejectsLegacyScope(t *testing.T) {
 	}
 }
 
-func TestOrganizationHandler_PutLifecycleConfigEmitsAudit(t *testing.T) {
+func TestOrganizationHandler_PutLifecycleConfigRequiresActivationEndpoint(t *testing.T) {
 	userID, employerID := uuid.New(), uuid.New()
 	auditRecorder := &organizationAuditRecorder{}
 	h := OrganizationHandler{
@@ -433,11 +433,11 @@ func TestOrganizationHandler_PutLifecycleConfigEmitsAudit(t *testing.T) {
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec = httptest.NewRecorder()
 	h.PutConfig(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected global manager write 200, got %d: %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected direct lifecycle config write to be forbidden, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if len(auditRecorder.events) != 1 || auditRecorder.events[0].Name != "schedule_lifecycle.activation.updated" {
-		t.Fatalf("expected lifecycle activation audit, got %+v", auditRecorder.events)
+	if len(auditRecorder.events) != 0 {
+		t.Fatalf("rejected config write must not emit audit, got %+v", auditRecorder.events)
 	}
 }
 

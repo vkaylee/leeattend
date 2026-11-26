@@ -54,6 +54,21 @@ func TestIntegrationOfficialReaderAndNoShowUsePublishedRevisionSegments(t *testi
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatalf("commit publication fixture: %v", err)
 	}
+	legacyID := uuid.New()
+	if _, err := pool.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, template_id) VALUES ($1, $2, DATE '2026-11-19', 0, '08:00', '17:00', 'work', 'scheduled', $3)`, legacyID, employmentID, templateID); err != nil {
+		t.Fatalf("insert legacy segment: %v", err)
+	}
+	shadow, err := loadLegacyShadowDays(ctx, pool, []uuid.UUID{employmentID}, "2026-11-19", "2026-11-20")
+	if err != nil {
+		t.Fatalf("load legacy shadow: %v", err)
+	}
+	legacyDay := shadow[shadowDayKey(employmentID, "2026-11-19")]
+	if legacyDay == nil || len(legacyDay.SegmentIDs) != 1 || legacyDay.SegmentIDs[0] != legacyID {
+		t.Fatalf("legacy shadow missing legacy segment: %+v", legacyDay)
+	}
+	if day := shadow[shadowDayKey(employmentID, "2026-11-20")]; day != nil {
+		t.Fatalf("official segment included in legacy shadow: %+v", day)
+	}
 	if _, err := pool.Exec(ctx, `INSERT INTO schedule_day_overrides (id, employment_id, business_date, work_segment_id, override_type, start_at, end_at, minutes, reason, status, created_by) VALUES ($1, $2, DATE '2026-11-20', $3, 'break_worked', TIMESTAMPTZ '2026-11-20 12:15:00+00', TIMESTAMPTZ '2026-11-20 12:45:00+00', 30, 'official reader integration', 'approved', $4)`, overrideID, employmentID, segmentID, actorID); err != nil {
 		t.Fatalf("insert break worked override: %v", err)
 	}

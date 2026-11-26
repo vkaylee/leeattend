@@ -182,7 +182,7 @@ func loadLegacyShadowDays(ctx context.Context, db DBTX, employmentIDs []uuid.UUI
 		return nil, err
 	}
 	rows.Close()
-	rows, err = db.Query(ctx, `SELECT id, employment_id, date::text, template_id, sort_order, scheduled_start::text, scheduled_end::text FROM work_segments WHERE employment_id = ANY($1) AND date BETWEEN $2::date AND $3::date ORDER BY date, employment_id, sort_order, id`, employmentIDs, startDate, endDate)
+	rows, err = db.Query(ctx, `SELECT id, employment_id, date::text, template_id, sort_order, scheduled_start::text, scheduled_end::text FROM work_segments WHERE employment_id = ANY($1) AND date BETWEEN $2::date AND $3::date AND schedule_revision_id IS NULL AND segment_status <> 'cancelled' ORDER BY date, employment_id, sort_order, id`, employmentIDs, startDate, endDate)
 	if err != nil {
 		return nil, err
 	}

@@ -19,6 +19,7 @@ vi.mock("@/hooks/use-ess", () => ({
 
 vi.mock("@/lib/api", () => ({
   fetchOrganization: vi.fn().mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" }),
+  fetchSchedules: vi.fn().mockResolvedValue([]),
   submitAttendanceAdjustment: vi.fn(),
 }));
 
@@ -200,5 +201,38 @@ describe("MyClockPage", () => {
     });
 
     await waitFor(() => { expect(mockToast.error).toHaveBeenCalledWith("Invalid time"); });
+  });
+
+  it("renders today's official schedule on the 24h timeline instead of a hardcoded shift", () => {
+    const today = new Date().toISOString().split("T")[0];
+    vi.mocked(essHooks.useMyProfile).mockReturnValue(createMockUseMyProfile({
+      isLoading: false,
+      employee: createMockEmployee({ id: "emp-1", active_employment_id: "employment-123" }),
+    }));
+    vi.mocked(essHooks.useMyClock).mockReturnValue(createMockUseMyClockReturn({ isLoading: false, entries: [] }));
+    vi.mocked(reactQuery.useQuery).mockImplementation((opts: { queryKey?: unknown[] }) => {
+      if (Array.isArray(opts.queryKey) && opts.queryKey[0] === "schedules") {
+        return {
+          data: [{
+            employment_id: "employment-123",
+            employee_id: "emp-1",
+            schedules: [{
+              date: today,
+              shift_id: "shift-night",
+              shift_name: "Ca chiều",
+              start_time: "14:00:00",
+              end_time: "22:00:00",
+              schedule_status: "work",
+              provisional: false,
+            }],
+          }],
+        } as unknown as ReturnType<typeof reactQuery.useQuery>;
+      }
+      return { data: { timezone: "UTC" } } as unknown as ReturnType<typeof reactQuery.useQuery>;
+    });
+
+    render(<MyClockPage />);
+    expect(screen.getByTestId("scheduled-shift-box")).toHaveTextContent("Ca chiều");
+    expect(screen.queryByTestId("break-window-box")).not.toBeInTheDocument();
   });
 });

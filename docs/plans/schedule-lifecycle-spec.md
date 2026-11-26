@@ -47,6 +47,10 @@ Implementation tracking. Tables, APIs, permissions and workers from this specifi
 8. Raw punches, manual exceptions, prior calculations và prior closure snapshots không bị xóa hoặc rewrite tự động.
 9. Payroll lock trong `payroll_periods` là lock riêng. Attendance closure có domain riêng và bắt buộc liên kết exact schedule revision; payroll lock chặn amendment/recalculation. Payroll lock chỉ được lock khi attendance period đã closed.
 10. Punch/device data đến muộn vẫn ingest. Nó tạo reconciliation signal, không tự rewrite closed result.
+11. **(Clarified 2026-11-26 — target contract)** Lịch chính thức hiển thị, chấm công và báo cáo chỉ đọc record đã gán (`schedule_day_revisions` + `work_segments`), không fallback ngầm sang resolve on-the-fly (kể cả fallback cả query khi phạm vi trộn lẫn). `resolveEffectiveShift` chỉ dùng cho **preview** và **sinh record khi publish**.
+12. **(Clarified 2026-11-26 — target contract)** Tạo `shift_version` mới hoặc sửa pattern/rule không tự làm đổi record đã gán. Muốn đổi lịch đã gán bắt buộc replan tạo revision mới có `reason`, giữ revision cũ ở trạng thái `superseded`.
+13. **(Clarified 2026-11-26 — target contract)** Cả hai kênh sinh lịch — tự động theo policy được duyệt (`actor_type='system'`) và gán tay/batch (`actor_id` người dùng) — đều phải ghi record official + audit đầy đủ.
+14. **(Clarified 2026-11-26 — target contract)** Ngày `missing` hiển thị rõ "Chưa phân ca", không suy diễn thành nghỉ; raw punch vẫn được nhận ở trạng thái unscheduled để quản lý đối soát.
 
 ## 3. Current source map
 

@@ -280,7 +280,7 @@ func lockScheduleRevisionTargets(ctx context.Context, tx DBTX, keys []scheduleRe
 	if _, err := tx.Exec(ctx, `SELECT id FROM employments WHERE id = ANY($1) ORDER BY id FOR UPDATE`, employmentIDs); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(ctx, `SELECT id FROM schedule_day_revisions WHERE employment_id = ANY($1) AND business_date BETWEEN $2::date AND $3::date FOR UPDATE`, employmentIDs, dates[0], dates[len(dates)-1]); err != nil {
+	if _, err := tx.Exec(ctx, `SELECT id FROM schedule_day_revisions WHERE employment_id = ANY($1) AND business_date BETWEEN $2::date AND $3::date ORDER BY id FOR UPDATE`, employmentIDs, dates[0], dates[len(dates)-1]); err != nil {
 		return err
 	}
 	return nil
@@ -442,14 +442,18 @@ func dayIntervals(day map[string]any, timezone string, businessDate string) ([]n
 		return nil, err
 	}
 	var intervals []struct {
-		SortOrder      int              `json:"sort_order"`
-		Start          string           `json:"start"`
-		End            string           `json:"end"`
-		StartAt        time.Time        `json:"start_at"`
-		EndAt          time.Time        `json:"end_at"`
-		ShiftVersionID string           `json:"shift_version_id"`
-		Breaks         []map[string]any `json:"breaks"`
-		BreakPunchMode string           `json:"break_punch_mode"`
+		SortOrder             int              `json:"sort_order"`
+		Start                 string           `json:"start"`
+		End                   string           `json:"end"`
+		StartAt               time.Time        `json:"start_at"`
+		EndAt                 time.Time        `json:"end_at"`
+		ShiftVersionID        string           `json:"shift_version_id"`
+		Breaks                []map[string]any `json:"breaks"`
+		BreakPunchMode        string           `json:"break_punch_mode"`
+		StartDayOffset        int              `json:"start_day_offset"`
+		EndDayOffset          int              `json:"end_day_offset"`
+		StartUTCOffsetMinutes *int             `json:"start_utc_offset_minutes"`
+		EndUTCOffsetMinutes   *int             `json:"end_utc_offset_minutes"`
 	}
 	if err := json.Unmarshal(encoded, &intervals); err != nil {
 		return nil, err
@@ -460,7 +464,7 @@ func dayIntervals(day map[string]any, timezone string, businessDate string) ([]n
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, normalizedInterval{SortOrder: item.SortOrder, StartLocal: item.Start, EndLocal: item.End, StartAt: item.StartAt, EndAt: item.EndAt, ShiftVersionID: versionID, Breaks: item.Breaks, BreakPunchMode: item.BreakPunchMode})
+		result = append(result, normalizedInterval{SortOrder: item.SortOrder, StartLocal: item.Start, EndLocal: item.End, StartAt: item.StartAt, EndAt: item.EndAt, ShiftVersionID: versionID, Breaks: item.Breaks, BreakPunchMode: item.BreakPunchMode, StartDayOffset: item.StartDayOffset, EndDayOffset: item.EndDayOffset, StartUTCOffsetMinutes: item.StartUTCOffsetMinutes, EndUTCOffsetMinutes: item.EndUTCOffsetMinutes})
 	}
 	if len(result) == 0 {
 		return nil, errors.New("schedule lifecycle preview has no work intervals")

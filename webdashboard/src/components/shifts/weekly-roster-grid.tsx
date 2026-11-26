@@ -19,6 +19,7 @@ import Button from "@/components/ui/button";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Employee, EmployeeSchedule, EffectiveSchedule, Shift } from "@/lib/api/types";
 
+import { getScheduleLifecycleCellState } from "./roster/roster-utils";
 import { ScheduleTracePopover } from "./schedule-trace-popover";
 
 const dateLocales: Partial<Record<string, Locale>> = {
@@ -140,11 +141,22 @@ const getShiftSymbol = (shiftName?: string | null, reportSymbol?: string | null)
 
 function DayCardShiftDetails({ daySchedules, formatTime, onDeleteRoster, dateString, t, shifts }: DayCardShiftDetailsProps) {
   const workingSchedules = daySchedules.filter((s) => s.shift_id);
+  const lifecycleState = getScheduleLifecycleCellState(daySchedules);
 
   if (workingSchedules.length === 0) {
+    const emptyLabel =
+      lifecycleState === "explicit_off"
+        ? t("shifts.off_day")
+        : lifecycleState === "conflict"
+          ? t("scheduleLifecycle.states.conflict")
+          : t("scheduleLifecycle.states.missing");
+    const emptyTone =
+      lifecycleState === "explicit_off"
+        ? "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400"
+        : "bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/70 dark:border-rose-900/60 text-rose-600 dark:text-rose-300";
     return (
-      <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 border-dashed p-6 rounded-[24px] text-[10px] text-slate-500 dark:text-slate-400 font-bold text-center uppercase tracking-widest flex flex-col items-center justify-center gap-2">
-        {t("shifts.off_day")}
+      <div className={`${emptyTone} border border-dashed p-6 rounded-[24px] text-[10px] font-bold text-center uppercase tracking-widest flex flex-col items-center justify-center gap-2`}>
+        {emptyLabel}
       </div>
     );
   }

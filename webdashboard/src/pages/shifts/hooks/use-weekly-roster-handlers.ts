@@ -91,8 +91,13 @@ export function useWeeklyRosterHandlers({
     const previousWeekStart = addDays(startOfWeek, -7);
     const previousWeekEnd = addDays(startOfWeek, -1);
     try {
-      const previousSchedules = await fetchSchedules(format(previousWeekStart, "yyyy-MM-dd"),
-      format(previousWeekEnd, "yyyy-MM-dd"),);
+      const previousSchedules = await fetchSchedules(
+        format(previousWeekStart, "yyyy-MM-dd"),
+        format(previousWeekEnd, "yyyy-MM-dd"),
+        selectedEmployee.active_employment_id
+          ? [selectedEmployee.active_employment_id]
+          : undefined,
+      );
       const empPrevious = previousSchedules.find(
         (s: EmployeeSchedule) =>
           s.employee_id === selectedEmployee.id ||
@@ -102,12 +107,27 @@ export function useWeeklyRosterHandlers({
         toast.warning(t("shifts.messages.no_previous_data"));
         return;
       }
-      const items = empPrevious.schedules.map(
-        (s: EffectiveSchedule, index: number) => ({
-          date: format(weekDays[index], "yyyy-MM-dd"),
+      const validWeekDates = new Set(weekDays.map((day) => format(day, "yyyy-MM-dd")));
+      const seenDates = new Set<string>();
+      const items = empPrevious.schedules
+        .filter(
+          (s: EffectiveSchedule) =>
+            s.source === "roster" &&
+            (Boolean(s.shift_id) || s.schedule_status === "explicit_off"),
+        )
+        .map((s: EffectiveSchedule) => ({
+          date: format(addDays(new Date(`${s.date}T12:00:00`), 7), "yyyy-MM-dd"),
           shift_id: s.shift_id ?? null,
-        }),
-      );
+        }))
+        .filter((item) => {
+          if (!validWeekDates.has(item.date) || seenDates.has(item.date)) return false;
+          seenDates.add(item.date);
+          return true;
+        });
+      if (items.length === 0) {
+        toast.warning(t("shifts.messages.no_previous_data"));
+        return;
+      }
       mutations.bulkRosterMutation.mutate(items);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : String(e));

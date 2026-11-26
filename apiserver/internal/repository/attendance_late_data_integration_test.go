@@ -200,3 +200,76 @@ func TestIntegrationRequiredBreakWorkOutRejectsOpenOrMissingBreak(t *testing.T) 
 		t.Fatalf("out-of-order break-start error=%v, want invalid transition", err)
 	}
 }
+
+func TestIntegrationPunchInIgnoresSupersededRevisionAndMatchesEarlyArrival(t *testing.T) {
+	pool, ctx, employmentID, employeeID, templateID, versionID := seedAttendanceSegmentFixture(t, "official-punch")
+	var employerID, actorID uuid.UUID
+	if err := pool.QueryRow(ctx, `SELECT employer_id FROM employments WHERE id = $1`, employmentID).Scan(&employerID); err != nil {
+		t.Fatalf("load employer: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT created_by FROM shift_versions WHERE id = $1`, versionID).Scan(&actorID); err != nil {
+		t.Fatalf("load actor: %v", err)
+	}
+	batchID, supRevID, pubRevID := uuid.New(), uuid.New(), uuid.New()
+	supSegID, pubSeg1ID, pubSeg2ID := uuid.New(), uuid.New(), uuid.New()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin fixture tx: %v", err)
+	}
+	mustExec := func(query string, args ...any) {
+		t.Helper()
+		if _, err := tx.Exec(ctx, query, args...); err != nil {
+			_ = tx.Rollback(ctx)
+			t.Fatalf("fixture exec failed: %v", err)
+		}
+	}
+	mustExec(`SELECT set_config('schedule.lifecycle_publication', 'on', true)`)
+	mustExec(`INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, reason, timezone, range_start, range_end) VALUES ($1, $2, repeat('d', 64), 'rotating', 'published', $3, 'publish', '{}'::jsonb, 'punch official filter test', 'UTC', DATE '2026-11-21', DATE '2026-11-21')`, batchID, batchID.String(), actorID)
+	mustExec(`INSERT INTO schedule_day_revisions (id, employment_id, employer_id, business_date, timezone, revision_number, state, publication_batch_id, source, source_snapshot, resolver_version, reason, published_by, published_actor_type, published_at) VALUES ($1, $2, $3, DATE '2026-11-21', 'UTC', 1, 'draft', $4, 'pattern', '{}'::jsonb, 'schedule-resolver-v1', 'rev1', $5, 'human', NULL)`, supRevID, employmentID, employerID, batchID, actorID)
+	mustExec(`INSERT INTO work_segments (id, employment_id, date, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, source, template_id, schedule_revision_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot) VALUES ($1, $2, DATE '2026-11-21', 0, '08:00', '17:00', 'work', 'scheduled', 'pattern', $3, $4, $5, TIMESTAMPTZ '2026-11-21 08:00:00+00', TIMESTAMPTZ '2026-11-21 17:00:00+00', '[]'::jsonb)`, supSegID, employmentID, templateID, supRevID, versionID)
+	mustExec(`UPDATE schedule_day_revisions SET state = 'published', published_at = CURRENT_TIMESTAMP WHERE id = $1`, supRevID)
+	mustExec(`UPDATE schedule_day_revisions SET state = 'superseded' WHERE id = $1`, supRevID)
+	mustExec(`INSERT INTO schedule_day_revisions (id, employment_id, employer_id, business_date, timezone, revision_number, state, publication_batch_id, source, source_snapshot, resolver_version, reason, published_by, published_actor_type, published_at, previous_revision_id) VALUES ($1, $2, $3, DATE '2026-11-21', 'UTC', 2, 'draft', $4, 'pattern', '{}'::jsonb, 'schedule-resolver-v1', 'rev2', $5, 'human', NULL, $6)`, pubRevID, employmentID, employerID, batchID, actorID, supRevID)
+	mustExec(`INSERT INTO work_segments (id, employment_id, date, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, source, template_id, schedule_revision_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot) VALUES ($1, $2, DATE '2026-11-21', 0, '08:00', '12:00', 'work', 'scheduled', 'pattern', $3, $4, $5, TIMESTAMPTZ '2026-11-21 08:00:00+00', TIMESTAMPTZ '2026-11-21 12:00:00+00', '[]'::jsonb), ($6, $2, DATE '2026-11-21', 1, '13:00', '17:00', 'work', 'scheduled', 'pattern', $3, $4, $5, TIMESTAMPTZ '2026-11-21 13:00:00+00', TIMESTAMPTZ '2026-11-21 17:00:00+00', '[]'::jsonb)`, pubSeg1ID, employmentID, templateID, pubRevID, versionID, pubSeg2ID)
+	mustExec(`UPDATE schedule_day_revisions SET state = 'published', published_at = CURRENT_TIMESTAMP WHERE id = $1`, pubRevID)
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatalf("commit fixture tx: %v", err)
+	}
+
+	repo := AttendanceRepository{DB: pool}
+	// Explicit superseded segment must be rejected.
+	if _, err := repo.PunchIn(ctx, employmentID, &supSegID, "work", nil, false, time.Date(2026, 11, 21, 8, 5, 0, 0, time.UTC)); !errors.Is(err, api.ErrWorkSegmentNotFound) {
+		t.Fatalf("explicit superseded segment err=%v, want ErrWorkSegmentNotFound", err)
+	}
+	// Early arrival (30m before 08:00) must pin published first segment.
+	earlyIn, err := repo.PunchIn(ctx, employmentID, nil, "work", nil, false, time.Date(2026, 11, 21, 7, 30, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("early punch-in failed: %v", err)
+	}
+	if earlyIn.SegmentID == nil || *earlyIn.SegmentID != pubSeg1ID {
+		t.Fatalf("early punch-in segment=%v, want %s", earlyIn.SegmentID, pubSeg1ID)
+	}
+	if _, err := repo.PunchOut(ctx, employeeID, nil, time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("first punch-out failed: %v", err)
+	}
+	// Exact-match inside first segment (11:30 is within 2h of second segment 13:00) must prefer exact match pubSeg1ID.
+	midIn, err := repo.PunchIn(ctx, employmentID, nil, "work", nil, false, time.Date(2026, 11, 21, 11, 30, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("mid-shift punch-in failed: %v", err)
+	}
+	if midIn.SegmentID == nil || *midIn.SegmentID != pubSeg1ID {
+		t.Fatalf("mid-shift punch-in segment=%v, want exact match %s", midIn.SegmentID, pubSeg1ID)
+	}
+	if _, err := repo.PunchOut(ctx, employeeID, nil, time.Date(2026, 11, 21, 12, 1, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("mid-shift punch-out failed: %v", err)
+	}
+	// Early arrival in gap (12:30 before 13:00) must pin published second segment.
+	gapIn, err := repo.PunchIn(ctx, employmentID, nil, "work", nil, false, time.Date(2026, 11, 21, 12, 30, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("gap early punch-in failed: %v", err)
+	}
+	if gapIn.SegmentID == nil || *gapIn.SegmentID != pubSeg2ID {
+		t.Fatalf("gap early punch-in segment=%v, want %s", gapIn.SegmentID, pubSeg2ID)
+	}
+}

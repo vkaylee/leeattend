@@ -279,29 +279,190 @@ func (r ScheduleRepository) AuthorizeScheduleEmployment(ctx context.Context, use
 		  AND (
 		      (t.user_id = $3 AND t.start_date <= `+orgTodaySQL+` AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`))
 		      OR EXISTS (
-			SELECT 1 FROM user_roles ur
-			JOIN roles role ON role.id = ur.role_id
-			JOIN role_permissions rp ON rp.role_id = role.id
-			JOIN employments manager_em ON manager_em.employee_id = (
-				SELECT mt.employee_id
-				FROM employee_tenures mt
-				JOIN employees manager ON manager.id = mt.employee_id AND manager.deleted_at IS NULL
-				WHERE mt.user_id = ur.user_id
-				  AND mt.deleted_at IS NULL
-				  AND mt.start_date <= `+orgTodaySQL+`
-				  AND (mt.end_date IS NULL OR mt.end_date >= `+orgTodaySQL+`)
-				ORDER BY mt.start_date DESC, mt.id DESC
-				LIMIT 1
-			)
-			WHERE ur.user_id = $3
-			  AND rp.permission_name = 'schedules:evidence:export'
-			  AND (role.scope_type = 'global' OR manager_em.employer_id = em.employer_id OR manager_em.department_id = em.department_id)
-		  AND manager_em.deleted_at IS NULL
-		  AND manager_em.start_date <= $2::date
-		  AND (manager_em.end_date IS NULL OR manager_em.end_date >= $2::date)
-		  ))
+		          SELECT 1 FROM user_roles ur
+		          JOIN roles role ON role.id = ur.role_id
+		          JOIN role_permissions rp ON rp.role_id = role.id
+		          WHERE ur.user_id = $3
+		            AND rp.permission_name = 'schedules:evidence:export'
+		            AND role.scope_type = 'global'
+		      )
+		      OR EXISTS (
+		          SELECT 1 FROM user_extra_roles uer
+		          JOIN roles role ON role.id = uer.role_id
+		          JOIN role_permissions rp ON rp.role_id = role.id
+		          WHERE uer.user_id = $3
+		            AND uer.expires_at > now()
+		            AND rp.permission_name = 'schedules:evidence:export'
+		            AND role.scope_type = 'global'
+		      )
+		      OR EXISTS (
+		          SELECT 1 FROM user_roles ur
+		          JOIN role_permissions rp ON rp.role_id = ur.role_id
+		          JOIN employee_tenures mt ON mt.user_id = ur.user_id AND mt.deleted_at IS NULL
+		          JOIN employees manager ON manager.id = mt.employee_id AND manager.deleted_at IS NULL
+		          JOIN departments managed ON managed.manager_id = manager.id AND managed.deleted_at IS NULL
+		          WHERE ur.user_id = $3
+		            AND rp.permission_name = 'schedules:evidence:export'
+		            AND mt.start_date <= `+orgTodaySQL+`
+		            AND (mt.end_date IS NULL OR mt.end_date >= `+orgTodaySQL+`)
+		            AND managed.id = em.department_id
+		      )
+		  )
 	)`, employmentID, businessDate, userID).Scan(&allowed)
 	return allowed, err
+}
+
+func (r ScheduleRepository) HasGlobalScheduleRead(ctx context.Context, userID uuid.UUID) (bool, error) {
+	return r.hasGlobalSchedulePermission(ctx, userID, "schedules:read")
+}
+
+func (r ScheduleRepository) hasGlobalSchedulePermission(ctx context.Context, userID uuid.UUID, permission string) (bool, error) {
+	db, err := requireDB(r.DB, "schedule repository")
+	if err != nil {
+		return false, err
+	}
+	var allowed bool
+	err = db.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1 FROM user_roles ur
+		JOIN roles role ON role.id = ur.role_id
+		JOIN role_permissions rp ON rp.role_id = role.id
+		WHERE ur.user_id = $1 AND role.scope_type = 'global' AND rp.permission_name = $2
+		UNION ALL
+		SELECT 1 FROM user_extra_roles uer
+		JOIN roles role ON role.id = uer.role_id
+		JOIN role_permissions rp ON rp.role_id = role.id
+		WHERE uer.user_id = $1 AND uer.expires_at > now() AND role.scope_type = 'global' AND rp.permission_name = $2
+	)`, userID, permission).Scan(&allowed)
+	return allowed, err
+}
+
+func (r ScheduleRepository) AuthorizeScheduleMutation(ctx context.Context, userID uuid.UUID, permission string, employmentIDs []uuid.UUID, startDate, endDate string) (bool, error) {
+	if len(employmentIDs) == 0 {
+		return false, nil
+	}
+	isGlobal, err := r.hasGlobalSchedulePermission(ctx, userID, permission)
+	if err != nil || isGlobal {
+		return isGlobal, err
+	}
+	db, err := requireDB(r.DB, "schedule repository")
+	if err != nil {
+		return false, err
+	}
+	rows, err := db.Query(ctx, `WITH managed_departments AS (
+		SELECT DISTINCT managed.id AS department_id
+		FROM employee_tenures t
+		JOIN employees manager ON manager.id = t.employee_id AND manager.deleted_at IS NULL
+		JOIN departments managed ON managed.manager_id = manager.id AND managed.deleted_at IS NULL
+		WHERE t.user_id = $1 AND t.deleted_at IS NULL
+		  AND t.start_date <= `+orgTodaySQL+`
+		  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
+	)
+	SELECT DISTINCT em.id
+	FROM employments em
+	JOIN managed_departments md ON md.department_id = em.department_id
+	WHERE em.id = ANY($2)
+	  AND em.deleted_at IS NULL
+	  AND em.start_date <= $4::date
+	  AND (em.end_date IS NULL OR em.end_date >= $3::date)
+	UNION
+	SELECT DISTINCT em.id
+	FROM employments em
+	JOIN employment_relationships er ON er.id = em.relationship_id AND er.deleted_at IS NULL
+	JOIN employee_tenures t ON t.id = er.tenure_id AND t.deleted_at IS NULL
+	WHERE $5::boolean
+	  AND em.id = ANY($2)
+	  AND em.deleted_at IS NULL
+	  AND t.user_id = $1
+	  AND t.start_date <= `+orgTodaySQL+`
+	  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
+	  AND em.start_date <= $4::date
+	  AND (em.end_date IS NULL OR em.end_date >= $3::date)`, userID, employmentIDs, startDate, endDate, permission == "schedules:preview")
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	allowedSet := make(map[uuid.UUID]struct{}, len(employmentIDs))
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return false, err
+		}
+		allowedSet[id] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+	for _, id := range employmentIDs {
+		if _, ok := allowedSet[id]; !ok {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (r ScheduleRepository) ResolveAuthorizedScheduleEmployments(ctx context.Context, userID uuid.UUID, requested []uuid.UUID, startDate, endDate time.Time, includeManagedDepartments bool) ([]uuid.UUID, bool, error) {
+	db, err := requireDB(r.DB, "schedule repository")
+	if err != nil {
+		return nil, false, err
+	}
+	startStr, endStr := startDate.Format("2006-01-02"), endDate.Format("2006-01-02")
+	rows, err := db.Query(ctx, `WITH own_employments AS (
+		SELECT DISTINCT em.id
+		FROM employments em
+		JOIN employment_relationships er ON er.id = em.relationship_id AND er.deleted_at IS NULL
+		JOIN employee_tenures t ON t.id = er.tenure_id AND t.deleted_at IS NULL
+		WHERE em.deleted_at IS NULL
+		  AND t.user_id = $1
+		  AND t.start_date <= `+orgTodaySQL+`
+		  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
+		  AND em.start_date <= $3::date
+		  AND (em.end_date IS NULL OR em.end_date >= $2::date)
+	), managed_departments AS (
+		SELECT DISTINCT managed.id AS department_id
+		FROM employee_tenures t
+		JOIN employees manager ON manager.id = t.employee_id AND manager.deleted_at IS NULL
+		JOIN departments managed ON managed.manager_id = manager.id AND managed.deleted_at IS NULL
+		WHERE $4::boolean AND t.user_id = $1 AND t.deleted_at IS NULL
+		  AND t.start_date <= `+orgTodaySQL+`
+		  AND (t.end_date IS NULL OR t.end_date >= `+orgTodaySQL+`)
+	), dept_employments AS (
+		SELECT DISTINCT em.id
+		FROM employments em
+		JOIN managed_departments md ON md.department_id = em.department_id
+		WHERE em.deleted_at IS NULL
+		  AND em.start_date <= $3::date
+		  AND (em.end_date IS NULL OR em.end_date >= $2::date)
+	)
+	SELECT id FROM own_employments
+	UNION
+	SELECT id FROM dept_employments
+	ORDER BY id`, userID, startStr, endStr, includeManagedDepartments)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+	allowedIDs := make([]uuid.UUID, 0)
+	allowedSet := make(map[uuid.UUID]struct{})
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, false, err
+		}
+		allowedIDs = append(allowedIDs, id)
+		allowedSet[id] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+	if len(requested) > 0 {
+		for _, id := range requested {
+			if _, ok := allowedSet[id]; !ok {
+				return nil, false, nil
+			}
+		}
+		return requested, true, nil
+	}
+	return allowedIDs, true, nil
 }
 
 func (r ScheduleRepository) ListScheduleHistory(ctx context.Context, query api.ScheduleHistoryQuery) (api.ScheduleHistoryResponse, error) {

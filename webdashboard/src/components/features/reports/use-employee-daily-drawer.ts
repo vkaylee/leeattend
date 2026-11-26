@@ -6,6 +6,7 @@ import {
     AttendanceAdjustmentRequest,
 } from "@/lib/api";
 import { maybeNull } from "@/types/api-overrides";
+import { generateUUID } from "@/utils/uuid";
 
 import { useDailyDrawerMutations } from "./use-daily-drawer-mutations";
 import { useDailyDrawerQueries } from "./use-daily-drawer-queries";
@@ -31,12 +32,21 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
         isOpen: boolean;
     } | null>(null);
 
+    const {
+        confirmDialog, setConfirmDialog,
+        confirmModalData, setConfirmModalData,
+        resolveModalData, setResolveModalData
+    } = useDailyDrawerModalState();
+
     if (
         employeeId !== maybeNull(previousSelection)?.employeeId
         || employerId !== maybeNull(previousSelection)?.employerId
         || isOpen !== maybeNull(previousSelection)?.isOpen
     ) {
         setPreviousSelection({ employeeId, employerId, isOpen });
+        setResolveModalData(null);
+        setConfirmModalData(null);
+        setConfirmDialog(null);
         if (isOpen) {
             setViewMode("daily");
             setSelectedEmployerId(employerId);
@@ -53,12 +63,7 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
     // same (employee, day) and write 4 work sessions instead of 2.
     const reprocessInFlight = useRef(false);
     const resolveUnscheduledInFlight = useRef(false);
-
-    const {
-        confirmDialog, setConfirmDialog,
-        confirmModalData, setConfirmModalData,
-        resolveModalData, setResolveModalData
-    } = useDailyDrawerModalState();
+    const resolveAttemptKeyRef = useRef<{ fingerprint: string; key: string } | null>(null);
 
     const {
         isLoading, reportData, adjustmentMap, shifts, rawLogsData, rawLogsLoading,
@@ -90,13 +95,21 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
         setResolveModalData({ row });
     };
 
-    const handleResolveSubmit = (shiftId: string) => {
+    const handleResolveSubmit = (shiftId: string, reason: string) => {
         if (!resolveModalData) return;
         if (resolveUnscheduledInFlight.current) return; // debounce lead-edge
         resolveUnscheduledInFlight.current = true;
+        const fingerprint = `${resolveModalData.row.employment_id ?? employeeId}:${resolveModalData.row.date}:${shiftId}:${reason}`;
+        if (resolveAttemptKeyRef.current?.fingerprint !== fingerprint) {
+            resolveAttemptKeyRef.current = { fingerprint, key: generateUUID() };
+        }
+        const idempotencyKey = resolveAttemptKeyRef.current.key;
         resolveUnscheduledMutation.mutate(
-            { row: resolveModalData.row, shiftId },
+            { idempotencyKey, reason, row: resolveModalData.row, shiftId },
             {
+                onSuccess: () => {
+                    resolveAttemptKeyRef.current = null;
+                },
                 onSettled: () => {
                     resolveUnscheduledInFlight.current = false;
                 },

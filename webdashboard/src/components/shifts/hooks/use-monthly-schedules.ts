@@ -4,7 +4,11 @@ import type { Employee, EmployeeSchedule } from "@/lib/api/types";
 
 import { orderSchedulesBySelection } from "@/components/shifts/roster/roster-utils";
 
+import type { ScheduleCoverageFilter } from "@/pages/shifts/hooks/use-shift-form-state";
+
 interface UseMonthlySchedulesProps {
+  /** Active server-side coverage filter; when non-"all", do not fabricate missing rows. */
+  coverageFilter?: ScheduleCoverageFilter;
   /** Full employee list from the organization (may be undefined while loading). */
   employees: Employee[] | undefined;
   /** Monthly schedule rows keyed by employee/employment. */
@@ -39,6 +43,7 @@ interface UseMonthlySchedulesReturn {
  * selection-first filtered view for grid rendering.
  */
 export function useMonthlySchedules({
+  coverageFilter = "all",
   employees,
   monthSchedules,
   selectedEmployeeIds,
@@ -78,6 +83,9 @@ export function useMonthlySchedules({
           department_name: emp.department_name ?? undefined,
         };
       }
+      if (coverageFilter !== "all") {
+        return null;
+      }
       return {
         employee_id: emp.id,
         employee_id_number: emp.employee_id_number,
@@ -86,8 +94,8 @@ export function useMonthlySchedules({
         full_name: emp.full_name,
         schedules: [],
       };
-    });
-  }, [employees, monthSchedules, selectedEmployees]);
+    }).filter((row): row is NonNullable<typeof row> => row !== null);
+  }, [coverageFilter, employees, monthSchedules, selectedEmployees]);
 
   const filteredSchedules = useMemo(
     () => orderSchedulesBySelection(combinedSchedules, selectedEmployeeIds),

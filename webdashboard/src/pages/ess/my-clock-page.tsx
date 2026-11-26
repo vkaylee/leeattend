@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { TFunction } from "i18next";
 
+import { getScheduleLifecycleCellState } from "@/components/shifts/roster/roster-utils";
 import {
   AdjustmentData,
   AdjustmentRequestModal,
@@ -15,15 +16,54 @@ import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useMyClock, useMyProfile } from "@/hooks/use-ess";
-import { fetchOrganization, submitAttendanceAdjustment } from "@/lib/api";
+import { fetchOrganization, fetchSchedules, submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
 import { createQueryKey } from "@/lib/query-keys";
 
 import { HistoryTable } from "./components/history-table";
 import { MyClockSkeleton } from "./components/my-clock-skeleton";
 import { PunchGeofenceStatus } from "./components/punch-geofence-status";
-import { Shift24hTimeline } from "./components/shift-24h-timeline";
+import { Shift24hTimeline, type ShiftTimeWindow } from "./components/shift-24h-timeline";
 import { TodayHoursSummary } from "./components/today-hours-summary";
+
+function formatDateInTimezone(date: Date, timeZone: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone,
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return date.toISOString().split("T")[0];
+  }
+}
+
+function extractIntervalBreakHours(intervals?: unknown[]): { breakEndHour?: number; breakStartHour?: number } {
+  if (!Array.isArray(intervals)) return {};
+  for (const raw of intervals) {
+    const breaks = (raw as { breaks?: { end?: string; start?: string }[] } | null)?.breaks;
+    if (!Array.isArray(breaks)) continue;
+    for (const br of breaks) {
+      const startHour = parseClockHours(br.start);
+      const endHour = parseClockHours(br.end);
+      if (startHour !== undefined && endHour !== undefined && endHour > startHour) {
+        return { breakEndHour: endHour, breakStartHour: startHour };
+      }
+    }
+  }
+  return {};
+}
+
+function parseClockHours(clock?: string | null): number | undefined {
+  if (!clock) return undefined;
+  const parts = clock.split(":");
+  if (parts.length < 2) return undefined;
+  const hours = Number(parts[0]);
+  const minutes = Number(parts[1]);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return undefined;
+  return hours + minutes / 60;
+}
 
 export default function MyClockPage() {
   const { t } = useTranslation();
@@ -46,16 +86,57 @@ export default function MyClockPage() {
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
   const [nowMs] = useState(() => Date.now());
 
-  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const orgTimezone = organization?.timezone ?? "UTC";
+  const todayStr = useMemo(
+    () => formatDateInTimezone(new Date(), orgTimezone),
+    [orgTimezone],
+  );
+  const activeEmploymentId = employee?.active_employment_id;
+
+  const { data: todayScheduleRows } = useQuery({
+    queryKey: createQueryKey("schedules", todayStr, activeEmploymentId, "ess-today"),
+    queryFn: () =>
+      activeEmploymentId
+        ? fetchSchedules(todayStr, todayStr, [activeEmploymentId], "all", "official")
+        : Promise.resolve([]),
+    enabled: Boolean(activeEmploymentId),
+  });
+
+  const { todayScheduleState, todayScheduledShift } = useMemo(() => {
+    const rows = Array.isArray(todayScheduleRows) ? todayScheduleRows : [];
+    const empRow = rows.find((s) => s.employment_id === activeEmploymentId) ?? rows[0];
+    const daySchedules = empRow?.schedules.filter((s) => s.date === todayStr) ?? [];
+    const state = getScheduleLifecycleCellState(daySchedules);
+    const primary = daySchedules.find((s) => s.shift_id && s.start_time && s.end_time);
+    if (!primary || state === "missing" || state === "explicit_off") {
+      return { todayScheduleState: state, todayScheduledShift: null as ShiftTimeWindow | null };
+    }
+    const startHour = parseClockHours(primary.start_time);
+    const endHour = parseClockHours(primary.end_time);
+    if (startHour === undefined || endHour === undefined) {
+      return { todayScheduleState: state, todayScheduledShift: null as ShiftTimeWindow | null };
+    }
+    const intervalBreak = extractIntervalBreakHours((primary as { intervals?: unknown[] }).intervals);
+    return {
+      todayScheduleState: state,
+      todayScheduledShift: {
+        startHour,
+        endHour,
+        breakStartHour: parseClockHours(primary.break_start) ?? intervalBreak.breakStartHour,
+        breakEndHour: parseClockHours(primary.break_end) ?? intervalBreak.breakEndHour,
+        label: primary.shift_name ?? t("scheduleLifecycle.states.published"),
+      } satisfies ShiftTimeWindow,
+    };
+  }, [activeEmploymentId, t, todayScheduleRows, todayStr]);
 
   const todayPunches = useMemo(() => {
     return entries
-      .filter((e) => e.punch_in_time.startsWith(todayStr))
+      .filter((e) => formatDateInTimezone(new Date(e.punch_in_time), orgTimezone) === todayStr)
       .map((e) => ({
         punchInTime: e.punch_in_time,
         punchOutTime: e.punch_out_time,
       }));
-  }, [entries, todayStr]);
+  }, [entries, orgTimezone, todayStr]);
 
   const todayActualMinutes = useMemo(() => {
     let total = 0;
@@ -114,7 +195,11 @@ export default function MyClockPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8">
-          <Shift24hTimeline actualPunches={todayPunches} />
+          <Shift24hTimeline
+            actualPunches={todayPunches}
+            scheduledShift={todayScheduledShift}
+            scheduleStatus={todayScheduleState}
+          />
         </div>
         <div className="lg:col-span-4">
           <TodayHoursSummary actualMinutes={todayActualMinutes} />

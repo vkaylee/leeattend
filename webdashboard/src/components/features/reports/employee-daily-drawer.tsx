@@ -233,7 +233,7 @@ interface EmployeeDailyDrawerModalsProps {
     confirmMutationPending: boolean;
     handleConfirmReprocess: () => void;
     handleConfirmSubmit: (data: { punchIn: string; punchOut: string; reason: string }) => void;
-    handleResolveSubmit: (shiftId: string) => void;
+    handleResolveSubmit: (shiftId: string, reason: string) => void;
     reprocessMutationPending: boolean;
     resolveModalData: { row: DailyAttendanceReport } | null;
     resolveUnscheduledMutationPending: boolean;
@@ -282,7 +282,7 @@ function EmployeeDailyDrawerModals({
             <ResolveUnscheduledModal
                 isOpen={!!resolveModalData}
                 isPending={resolveUnscheduledMutationPending}
-                key={resolveModalData ? `resolve-${resolveModalData.row.date}` : "resolve-empty"}
+                key={resolveModalData ? `resolve-${resolveModalData.row.employment_id ?? resolveModalData.row.employee_id}-${resolveModalData.row.date}` : "resolve-empty"}
                 onClose={() => { setResolveModalData(null); }}
                 onSubmit={handleResolveSubmit}
                 row={resolveModalData?.row ?? null}

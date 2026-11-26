@@ -52,6 +52,16 @@ describe("Shift24hTimeline Component", () => {
     expect(screen.getByTestId("worked-bar-0")).toBeInTheDocument();
     expect(screen.getByTestId("punch-in-dot-0")).toBeInTheDocument();
     expect(screen.getByTestId("punch-out-dot-0")).toBeInTheDocument();
+    expect(screen.queryByTestId("scheduled-shift-box")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("break-window-box")).not.toBeInTheDocument();
+    expect(screen.getByTestId("timeline-unscheduled-status")).toHaveTextContent("scheduleLifecycle.states.missing");
+  });
+
+  it("renders explicit off status without fabricating a shift window", () => {
+    render(<Shift24hTimeline scheduleStatus="explicit_off" />);
+
+    expect(screen.queryByTestId("scheduled-shift-box")).not.toBeInTheDocument();
+    expect(screen.getByTestId("timeline-unscheduled-status")).toHaveTextContent("shifts.off_day");
   });
 });
 

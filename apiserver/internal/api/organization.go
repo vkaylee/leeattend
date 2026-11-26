@@ -572,7 +572,7 @@ func (h *OrganizationHandler) PutConfig(w http.ResponseWriter, r *http.Request) 
 		apperror.WriteError(w, r, apperror.Validation(key))
 		return
 	}
-	if request.ConfigKey == "schedule.lifecycle.enabled" && !h.Authorizer.IsGlobalManager(r.Context(), userID) {
+	if request.ConfigKey == "schedule.lifecycle.enabled" {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -593,9 +593,6 @@ func (h *OrganizationHandler) emitConfigAudit(r *http.Request, request ConfigEnt
 		return
 	}
 	name := "config.updated"
-	if request.ConfigKey == "schedule.lifecycle.enabled" {
-		name = "schedule_lifecycle.activation.updated"
-	}
 	resource := request.ConfigKey
 	if request.ScopeID != nil {
 		resource = request.ScopeID.String()

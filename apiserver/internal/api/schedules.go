@@ -169,6 +169,23 @@ type ScheduleActivationRepository interface {
 	DeactivateScheduleEmployer(context.Context, uuid.UUID, string, string, string, uuid.UUID) error
 }
 
+type ResolveUnscheduledScheduleRequest struct {
+	ShiftID  uuid.UUID `json:"shift_id"`
+	Reason   string    `json:"reason"`
+	Timezone string    `json:"timezone,omitempty"`
+}
+
+type ResolveUnscheduledScheduleResponse struct {
+	BatchID      uuid.UUID `json:"batch_id"`
+	RevisionID   uuid.UUID `json:"revision_id"`
+	PublishedAt  time.Time `json:"published_at"`
+	Recalculated int       `json:"recalculated"`
+}
+
+type ScheduleUnscheduledResolver interface {
+	ResolveUnscheduled(context.Context, uuid.UUID, uuid.UUID, string, string, ResolveUnscheduledScheduleRequest) (ResolveUnscheduledScheduleResponse, error)
+}
+
 type ScheduleLifecycleRepository interface {
 	MarkBreakWorked(context.Context, uuid.UUID, uuid.UUID, string, MarkBreakWorkedRequest) (MarkBreakWorkedResponse, error)
 	CreatePreview(context.Context, uuid.UUID, SchedulePreviewRequest) (SchedulePreviewResponse, error)
@@ -206,6 +223,7 @@ type ScheduleBreakWorkedOverride struct {
 type EffectiveSchedule struct {
 	Date                 string                        `json:"date"`
 	RevisionID           *uuid.UUID                    `json:"revision_id,omitempty"`
+	RevisionNumber       *int64                        `json:"revision_number,omitempty"`
 	ScheduleStatus       string                        `json:"schedule_status"`
 	Provisional          bool                          `json:"provisional"`
 	Timezone             *string                       `json:"timezone,omitempty"`
@@ -261,8 +279,10 @@ type OfficialScheduleRepository interface {
 	GetOfficialSchedulesWithCoverage(context.Context, time.Time, time.Time, []uuid.UUID, int, int, string) (PaginatedEmployeeSchedules, error)
 }
 
-type ActivationAwareScheduleRepository interface {
-	GetActivationAwareSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error)
+type ScopedScheduleAuthorizer interface {
+	HasGlobalScheduleRead(context.Context, uuid.UUID) (bool, error)
+	ResolveAuthorizedScheduleEmployments(context.Context, uuid.UUID, []uuid.UUID, time.Time, time.Time, bool) ([]uuid.UUID, bool, error)
+	AuthorizeScheduleMutation(context.Context, uuid.UUID, string, []uuid.UUID, string, string) (bool, error)
 }
 
 type ScheduleHandler struct {
@@ -372,6 +392,9 @@ func (h *ScheduleHandler) PreviewRotating(w http.ResponseWriter, r *http.Request
 		h.lifecycleUnavailable(w, r)
 		return
 	}
+	if !h.authorizeMutationScope(w, r, userID, "schedules:publish:rotating", request.EmploymentIDs, request.StartDate, request.EndDate) {
+		return
+	}
 	result, err := lifecycle.CreatePreview(r.Context(), userID, request)
 	if err != nil {
 		h.writeLifecycleError(w, r, err)
@@ -393,6 +416,9 @@ func (h *ScheduleHandler) Preview(w http.ResponseWriter, r *http.Request) {
 	lifecycle, ok := h.lifecycleRepository()
 	if !ok {
 		h.lifecycleUnavailable(w, r)
+		return
+	}
+	if !h.authorizeMutationScope(w, r, userID, scheduleLifecyclePermissionPreview, request.EmploymentIDs, request.StartDate, request.EndDate) {
 		return
 	}
 	result, err := lifecycle.CreatePreview(r.Context(), userID, request)
@@ -423,6 +449,9 @@ func (h *ScheduleHandler) PublishRotating(w http.ResponseWriter, r *http.Request
 		h.lifecycleUnavailable(w, r)
 		return
 	}
+	if !h.authorizeMutationScope(w, r, userID, "schedules:publish:rotating", request.EmploymentIDs, request.StartDate, request.EndDate) {
+		return
+	}
 	result, err := lifecycle.Publish(r.Context(), userID, key, request)
 	if err != nil {
 		h.writeLifecycleError(w, r, err)
@@ -449,6 +478,9 @@ func (h *ScheduleHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	lifecycle, ok := h.lifecycleRepository()
 	if !ok {
 		h.lifecycleUnavailable(w, r)
+		return
+	}
+	if !h.authorizeMutationScope(w, r, userID, scheduleLifecyclePermissionPublish, request.EmploymentIDs, request.StartDate, request.EndDate) {
 		return
 	}
 	result, err := lifecycle.Publish(r.Context(), userID, key, request)
@@ -478,7 +510,56 @@ func (h *ScheduleHandler) MarkBreakWorked(w http.ResponseWriter, r *http.Request
 		h.lifecycleUnavailable(w, r)
 		return
 	}
+	if !h.authorizeMutationScope(w, r, userID, scheduleLifecyclePermissionAmend, []uuid.UUID{employmentID}, date, date) {
+		return
+	}
 	result, err := lifecycle.MarkBreakWorked(r.Context(), userID, employmentID, date, request)
+	if err != nil {
+		h.writeLifecycleError(w, r, err)
+		return
+	}
+	apperror.WriteJSON(w, http.StatusCreated, result)
+}
+
+func (h *ScheduleHandler) ResolveUnscheduled(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.requirePermission(w, r, scheduleLifecyclePermissionAmend)
+	if !ok {
+		return
+	}
+	if !h.Authorizer.HasPermission(r.Context(), userID, "schedules:publish:rotating") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
+	employmentID, date, ok := lifecyclePath(w, r)
+	if !ok {
+		return
+	}
+	key, err := idempotencyKey(r)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	request, err := DecodeJSON[ResolveUnscheduledScheduleRequest](r, 1<<16)
+	trimmedReason := strings.TrimSpace(request.Reason)
+	if err != nil || request.ShiftID == uuid.Nil || trimmedReason == "" || len(trimmedReason) > 2000 {
+		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		return
+	}
+	if strings.TrimSpace(request.Timezone) != "" {
+		if _, err := ParseTimezone(strings.TrimSpace(request.Timezone)); err != nil {
+			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+			return
+		}
+	}
+	resolver, ok := h.unscheduledResolver()
+	if !ok {
+		h.lifecycleUnavailable(w, r)
+		return
+	}
+	if !h.authorizeMutationScope(w, r, userID, scheduleLifecyclePermissionAmend, []uuid.UUID{employmentID}, date, date) {
+		return
+	}
+	result, err := resolver.ResolveUnscheduled(r.Context(), userID, employmentID, date, key, request)
 	if err != nil {
 		h.writeLifecycleError(w, r, err)
 		return
@@ -503,6 +584,9 @@ func (h *ScheduleHandler) PreviewReplan(w http.ResponseWriter, r *http.Request) 
 	lifecycle, ok := h.lifecycleRepository()
 	if !ok {
 		h.lifecycleUnavailable(w, r)
+		return
+	}
+	if !h.authorizeMutationScope(w, r, userID, scheduleLifecyclePermissionAmend, []uuid.UUID{employmentID}, date, date) {
 		return
 	}
 	result, err := lifecycle.PreviewReplan(r.Context(), userID, employmentID, date, request)
@@ -537,6 +621,9 @@ func (h *ScheduleHandler) CommitReplan(w http.ResponseWriter, r *http.Request) {
 		h.lifecycleUnavailable(w, r)
 		return
 	}
+	if !h.authorizeMutationScope(w, r, userID, scheduleLifecyclePermissionAmend, []uuid.UUID{employmentID}, date, date) {
+		return
+	}
 	result, err := lifecycle.CommitReplan(r.Context(), userID, employmentID, date, key, request)
 	if err != nil {
 		h.writeLifecycleError(w, r, err)
@@ -566,6 +653,37 @@ func (h *ScheduleHandler) lifecycleRepository() (ScheduleLifecycleRepository, bo
 	return lifecycle, ok
 }
 
+func (h *ScheduleHandler) unscheduledResolver() (ScheduleUnscheduledResolver, bool) {
+	if resolver, ok := h.Lifecycle.(ScheduleUnscheduledResolver); ok {
+		return resolver, true
+	}
+	resolver, ok := h.Repository.(ScheduleUnscheduledResolver)
+	return resolver, ok
+}
+
+func (h *ScheduleHandler) authorizeMutationScope(w http.ResponseWriter, r *http.Request, userID uuid.UUID, permission string, employmentIDs []uuid.UUID, startDate, endDate string) bool {
+	var scoped ScopedScheduleAuthorizer
+	if s, ok := h.Repository.(ScopedScheduleAuthorizer); ok {
+		scoped = s
+	} else if s, ok := h.Lifecycle.(ScopedScheduleAuthorizer); ok {
+		scoped = s
+	}
+	if scoped == nil {
+		h.lifecycleUnavailable(w, r)
+		return false
+	}
+	allowed, err := scoped.AuthorizeScheduleMutation(r.Context(), userID, permission, employmentIDs, startDate, endDate)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Internal(err))
+		return false
+	}
+	if !allowed {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return false
+	}
+	return true
+}
+
 func mapLifecycleGuardError(err error) *apperror.AppError {
 	switch {
 	case errors.Is(err, ErrLifecycleEvidenceFailed):
@@ -591,7 +709,7 @@ func (h *ScheduleHandler) writeLifecycleError(w http.ResponseWriter, r *http.Req
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 	case errors.Is(err, ErrSchedulePreviewStale), errors.Is(err, ErrScheduleRevisionStale), errors.Is(err, ErrScheduleAlreadyPublished), errors.Is(err, ErrScheduleLockedPeriod), errors.Is(err, ErrScheduleNoCurrentRevision), errors.Is(err, ErrScheduleIdempotencyConflict), errors.Is(err, ErrScheduleConflict):
 		apperror.WriteError(w, r, apperror.Conflict(apperror.KeyConflict))
-	case errors.Is(err, ErrSchedulePreviewScope), errors.Is(err, ErrScheduleTimezoneMismatch), errors.Is(err, ErrScheduleValidation), errors.Is(err, ErrScheduleApprovalInvalid), errors.Is(err, ErrScheduleBreakOverrideInvalid):
+	case errors.Is(err, ErrSchedulePreviewScope), errors.Is(err, ErrScheduleTimezoneMismatch), errors.Is(err, ErrScheduleValidation), errors.Is(err, ErrScheduleApprovalInvalid), errors.Is(err, ErrScheduleBreakOverrideInvalid), errors.Is(err, ErrAttendancePolicyMissing):
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 	default:
 		apperror.WriteError(w, r, apperror.Internal(err))
@@ -722,10 +840,46 @@ func (h *ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyNotOrganizationMember))
 		return
 	}
+	if !h.Authorizer.HasPermission(r.Context(), userID, "schedules:read") {
+		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+		return
+	}
 	query, err := parseOrganizationSchedulesQuery(r)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
+	}
+	scopedAuthorizer, ok := h.Repository.(ScopedScheduleAuthorizer)
+	if !ok {
+		apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
+		return
+	}
+	isGlobalScheduleReader, err := scopedAuthorizer.HasGlobalScheduleRead(r.Context(), userID)
+	if err != nil {
+		apperror.WriteError(w, r, apperror.Internal(err))
+		return
+	}
+	if !isGlobalScheduleReader {
+		includeManagedDepts := h.Authorizer.HasPermission(r.Context(), userID, "rosters:read")
+		scopedIDs, allowed, err := scopedAuthorizer.ResolveAuthorizedScheduleEmployments(r.Context(), userID, query.employmentIDs, query.start, query.end, includeManagedDepts)
+		if err != nil {
+			apperror.WriteError(w, r, apperror.Internal(err))
+			return
+		}
+		if !allowed {
+			apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+			return
+		}
+		if len(scopedIDs) == 0 {
+			apperror.WriteJSON(w, http.StatusOK, PaginatedEmployeeSchedules{
+				Data:  []EmployeeSchedule{},
+				Total: 0,
+				Page:  query.page,
+				Limit: query.limit,
+			})
+			return
+		}
+		query.employmentIDs = scopedIDs
 	}
 	var result PaginatedEmployeeSchedules
 	if query.view == "official" {
@@ -739,13 +893,6 @@ func (h *ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
 		} else {
 			result, err = official.GetOfficialSchedulesWithCoverage(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit, query.coverage)
 		}
-	} else if query.view == "activation-aware" {
-		activationAware, ok := h.Repository.(ActivationAwareScheduleRepository)
-		if !ok {
-			apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
-			return
-		}
-		result, err = activationAware.GetActivationAwareSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
 	} else {
 		result, err = h.Repository.GetOrganizationSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
 	}
@@ -784,9 +931,9 @@ func parseOrganizationSchedulesQuery(r *http.Request) (parsedOrganizationSchedul
 	}
 	view := strings.TrimSpace(values.Get("view"))
 	if view == "" {
-		view = "activation-aware"
+		view = "official"
 	}
-	if view != "legacy" && view != "official" && view != "activation-aware" {
+	if view != "legacy" && view != "official" {
 		return parsedOrganizationSchedulesQuery{}, errors.New("unsupported schedule view")
 	}
 	coverage := strings.TrimSpace(values.Get("coverage"))

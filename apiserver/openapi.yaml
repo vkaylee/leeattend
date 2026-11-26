@@ -9863,6 +9863,61 @@ paths:
           $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+  "/api/v1/schedules/{employment_id}/{business_date}/resolve-unscheduled":
+    parameters:
+      - name: employment_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: business_date
+        in: path
+        required: true
+        schema: { type: string, format: date }
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 128 }
+    post:
+      operationId: resolveUnscheduledSchedule
+      tags: [runtime]
+      description: Atomically publish a manual schedule, reconcile unlinked work entries on that date, and reprocess attendance for the authorized employment and business date. Returns 409 Conflict if any unlinked entry cannot uniquely match the chosen shift.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [shift_id, reason]
+              properties:
+                shift_id: { type: string, format: uuid }
+                reason: { type: string, minLength: 1, maxLength: 2000 }
+                timezone: { type: string }
+      responses:
+        '201':
+          description: Published schedule and recalculation result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [batch_id, revision_id, published_at, recalculated]
+                properties:
+                  batch_id: { type: string, format: uuid }
+                  revision_id: { type: string, format: uuid }
+                  published_at: { type: string, format: date-time }
+                  recalculated: { type: integer, minimum: 0 }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/{employment_id}/{business_date}/break-worked":
     parameters:
       - name: employment_id

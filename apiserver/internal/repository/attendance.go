@@ -33,6 +33,9 @@ func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUI
 	}
 	var record api.TimeEntryRecord
 	err = service.WithTx(ctx, tx, func(ctx context.Context, tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))`, employmentID.String()); err != nil {
+			return err
+		}
 		var active bool
 		if err := tx.QueryRow(ctx, `SELECT status = 'active' FROM employments WHERE id = $1 AND deleted_at IS NULL`, employmentID).Scan(&active); err != nil {
 			return err
@@ -84,6 +87,9 @@ func (r AttendanceRepository) PunchOut(ctx context.Context, employeeID uuid.UUID
 	err = service.WithTx(ctx, tx, func(ctx context.Context, db pgx.Tx) error {
 		employmentID, err := resolveActiveEmployment(ctx, db, employeeID)
 		if err != nil {
+			return err
+		}
+		if _, err := db.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))`, employmentID.String()); err != nil {
 			return err
 		}
 		rawData, err := json.Marshal(struct {
@@ -328,17 +334,35 @@ func insertAttendanceRawLog(ctx context.Context, db DBTX, employmentID uuid.UUID
 	return nil
 }
 
-// resolvePunchSegment accepts an explicit segment only when it owns the employment
-// and contains the punch timestamp. Without an explicit segment, it pins only a
-// unique matching materialized segment; ambiguous or legacy rows stay unresolved.
+// resolvePunchSegment accepts an explicit segment only when it owns the employment,
+// belongs to a current published revision (or legacy day with no official revision),
+// and covers the punch timestamp (with up to 2h pre-shift check-in window).
+// Without an explicit segment, it prefers a unique in-shift match before falling back
+// to a unique upcoming segment within the 2h early check-in window.
 func resolvePunchSegment(ctx context.Context, db DBTX, employmentID uuid.UUID, requestedID *uuid.UUID, punchTime time.Time) (*uuid.UUID, error) {
-	const match = `scheduled_start_at IS NOT NULL
-		AND scheduled_end_at IS NOT NULL
-		AND scheduled_start_at <= $2
-		AND scheduled_end_at >= $2`
+	const eligible = `ws.segment_status <> 'cancelled'
+		AND ws.scheduled_start_at IS NOT NULL
+		AND ws.scheduled_end_at IS NOT NULL
+		AND (
+			(ws.schedule_revision_id IS NOT NULL AND sdr.state = 'published')
+			OR (
+				ws.schedule_revision_id IS NULL
+				AND NOT EXISTS (
+					SELECT 1 FROM schedule_day_revisions cur
+					WHERE cur.employment_id = ws.employment_id
+					  AND cur.business_date = ws.date
+					  AND cur.state IN ('published', 'explicit_off')
+				)
+			)
+		)`
 	if requestedID != nil {
 		var segmentID uuid.UUID
-		err := db.QueryRow(ctx, `SELECT id FROM work_segments WHERE id = $1 AND employment_id = $3 AND `+match, *requestedID, punchTime, employmentID).Scan(&segmentID)
+		err := db.QueryRow(ctx, `SELECT ws.id
+			FROM work_segments ws
+			LEFT JOIN schedule_day_revisions sdr ON sdr.id = ws.schedule_revision_id
+			WHERE ws.id = $1 AND ws.employment_id = $3 AND `+eligible+`
+			  AND ws.scheduled_start_at - INTERVAL '2 hours' <= $2
+			  AND ws.scheduled_end_at >= $2`, *requestedID, punchTime, employmentID).Scan(&segmentID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, api.ErrWorkSegmentNotFound
 		}
@@ -348,26 +372,40 @@ func resolvePunchSegment(ctx context.Context, db DBTX, employmentID uuid.UUID, r
 		return &segmentID, nil
 	}
 
-	rows, err := db.Query(ctx, `SELECT id FROM work_segments WHERE employment_id = $1 AND `+match+` ORDER BY scheduled_start_at, id LIMIT 2`, employmentID, punchTime)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var matches []uuid.UUID
-	for rows.Next() {
-		var segmentID uuid.UUID
-		if err := rows.Scan(&segmentID); err != nil {
-			return nil, err
+	queryUnique := func(windowClause string) (*uuid.UUID, int, error) {
+		rows, err := db.Query(ctx, `SELECT ws.id
+			FROM work_segments ws
+			LEFT JOIN schedule_day_revisions sdr ON sdr.id = ws.schedule_revision_id
+			WHERE ws.employment_id = $1 AND `+eligible+` AND `+windowClause+`
+			ORDER BY ws.scheduled_start_at, ws.id LIMIT 2`, employmentID, punchTime)
+		if err != nil {
+			return nil, 0, err
 		}
-		matches = append(matches, segmentID)
+		defer rows.Close()
+		var matches []uuid.UUID
+		for rows.Next() {
+			var segmentID uuid.UUID
+			if err := rows.Scan(&segmentID); err != nil {
+				return nil, 0, err
+			}
+			matches = append(matches, segmentID)
+		}
+		if err := rows.Err(); err != nil {
+			return nil, 0, err
+		}
+		if len(matches) == 1 {
+			return &matches[0], 1, nil
+		}
+		return nil, len(matches), nil
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
+
+	// Prefer exact in-shift window so an earlier split segment isn't shadowed by the next segment's early buffer.
+	segID, count, err := queryUnique(`ws.scheduled_start_at <= $2 AND ws.scheduled_end_at >= $2`)
+	if err != nil || count > 0 {
+		return segID, err
 	}
-	if len(matches) != 1 {
-		return nil, nil
-	}
-	return &matches[0], nil
+	segID, _, err = queryUnique(`ws.scheduled_start_at - INTERVAL '2 hours' <= $2 AND ws.scheduled_start_at > $2`)
+	return segID, err
 }
 
 func (r AttendanceRepository) GetESSAttendanceState(ctx context.Context, employeeID uuid.UUID) (api.AttendanceActionResponse, error) {
@@ -426,6 +464,14 @@ type rawReprocessRow struct {
 }
 
 func loadReprocessDailyGroups(ctx context.Context, db DBTX, startDate, endDate string, employeeID *uuid.UUID) ([]*reprocessDailyGroup, error) {
+	return loadReprocessDailyGroupsForScope(ctx, db, startDate, endDate, employeeID, nil)
+}
+
+func loadReprocessDailyGroupsForEmployment(ctx context.Context, db DBTX, startDate, endDate string, employmentID uuid.UUID) ([]*reprocessDailyGroup, error) {
+	return loadReprocessDailyGroupsForScope(ctx, db, startDate, endDate, nil, &employmentID)
+}
+
+func loadReprocessDailyGroupsForScope(ctx context.Context, db DBTX, startDate, endDate string, employeeID, employmentID *uuid.UUID) ([]*reprocessDailyGroup, error) {
 	parsedStart, err := time.Parse("2006-01-02", startDate)
 	if err != nil {
 		return nil, err
@@ -440,6 +486,9 @@ func loadReprocessDailyGroups(ctx context.Context, db DBTX, startDate, endDate s
 	if employeeID != nil {
 		where += " AND e.employee_id = $3"
 		args = append(args, *employeeID)
+	} else if employmentID != nil {
+		where += " AND te.employment_id = $3"
+		args = append(args, *employmentID)
 	}
 	rows, err := db.Query(ctx, `SELECT te.employment_id, `+businessDateExpr+`::text, te.punch_in_time, te.punch_out_time, te.duration_minutes, te.segment_id, te.shift_version_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot, COALESCE(sdi.break_punch_mode, 'none'), COALESCE(tbr.actual_break_minutes, 0), COALESCE(tbr.actual_break_count, 0), COALESCE(tbr.has_open_break, false), COALESCE(bwo.approved_break_worked_minutes, 0)
 		FROM time_entries te

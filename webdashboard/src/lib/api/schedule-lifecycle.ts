@@ -1,4 +1,6 @@
 import type {
+  ResolveUnscheduledScheduleRequest,
+  ResolveUnscheduledScheduleResponse,
   ScheduleEvidenceResponse,
   ScheduleHistoryResponse,
   SchedulePreviewRequest,
@@ -37,6 +39,22 @@ export function publishRotatingSchedules(
     body: { ...body, mode: "rotating" },
     headers: { "Idempotency-Key": idempotencyKey },
   });
+}
+
+export function resolveUnscheduledSchedule(
+  employmentId: string,
+  businessDate: string,
+  body: ResolveUnscheduledScheduleRequest,
+  idempotencyKey: string,
+): Promise<{ data: ResolveUnscheduledScheduleResponse }> {
+  return client.POST<ResolveUnscheduledScheduleResponse>(
+    `${schedulePath}/{employment_id}/{business_date}/resolve-unscheduled`,
+    {
+      params: { path: { employment_id: employmentId, business_date: businessDate } },
+      body,
+      headers: { "Idempotency-Key": idempotencyKey },
+    },
+  );
 }
 
 export function previewScheduleReplan(

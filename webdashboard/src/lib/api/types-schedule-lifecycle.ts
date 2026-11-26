@@ -76,6 +76,19 @@ export interface SchedulePublicationResponse {
   status: string;
 }
 
+export interface ResolveUnscheduledScheduleRequest {
+  reason: string;
+  shift_id: string;
+  timezone?: string;
+}
+
+export interface ResolveUnscheduledScheduleResponse {
+  batch_id: string;
+  published_at: string;
+  recalculated: number;
+  revision_id: string;
+}
+
 export interface ScheduleReplanPreviewResponse {
   diff: unknown;
   diff_hash: string;

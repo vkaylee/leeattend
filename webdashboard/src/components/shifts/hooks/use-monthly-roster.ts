@@ -58,6 +58,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
 
   const { selectedEmployeesMeta, combinedSchedules, filteredSchedules } =
     useMonthlySchedules({
+      coverageFilter: hook.coverageFilter,
       employees,
       monthSchedules,
       selectedEmployeeIds,
