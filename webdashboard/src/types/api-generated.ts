@@ -5262,6 +5262,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ErrorEnvelope: {
+            error: {
+                code: string;
+                message: string;
+                retry?: components["schemas"]["JsonObject"];
+            };
+        };
         JsonObject: {
             [key: string]: unknown;
         } | string | number | boolean | unknown[];
@@ -9584,6 +9591,21 @@ export interface components {
         forgotPasswordRequest: {
             email?: string;
         };
+        legacyJobStatusMeta: {
+            completed_at?: (string | number | boolean | {
+                [key: string]: unknown;
+            } | unknown[]) | null;
+            completed_batches: number;
+            created_at?: (string | number | boolean | {
+                [key: string]: unknown;
+            } | unknown[]) | null;
+            error_message?: string | null;
+            failed_batches: number;
+            job_id: string;
+            requester_id?: string | null;
+            status: string;
+            total_batches: number;
+        };
         loginRequest: {
             email?: string;
             password?: string;
@@ -9635,35 +9657,63 @@ export interface components {
             headers: {
                 [name: string]: unknown;
             };
-            content?: never;
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
         };
         /** @description Authentication required */
         Unauthorized: {
             headers: {
                 [name: string]: unknown;
             };
-            content?: never;
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
         };
         /** @description Permission denied */
         Forbidden: {
             headers: {
                 [name: string]: unknown;
             };
-            content?: never;
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
         };
         /** @description Resource not found */
         NotFound: {
             headers: {
                 [name: string]: unknown;
             };
-            content?: never;
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
+        /** @description Resource or schedule lifecycle conflict */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
         };
         /** @description Internal server error */
         InternalError: {
             headers: {
                 [name: string]: unknown;
             };
-            content?: never;
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
+        /** @description Service or lifecycle schema unavailable */
+        ServiceUnavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
         };
     };
     parameters: never;
@@ -10095,7 +10145,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     delete_api_v1_assignment_rules_rule_id: {
@@ -10129,7 +10181,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     patch_api_v1_assignment_rules_rule_id: {
@@ -10163,7 +10217,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_assignments: {
@@ -10423,7 +10479,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_attendance_approve_ot_employee_id: {
@@ -10655,7 +10713,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_attendance_import_jobs_latest: {
@@ -10885,7 +10945,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_attendance_periods_year_month: {
@@ -11252,7 +11314,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_audit_logs: {
@@ -13248,7 +13312,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_employees_employee_id_assignments_assignment_id: {
@@ -13318,7 +13384,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     patch_api_v1_employees_employee_id_assignments_assignment_id: {
@@ -13353,7 +13421,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_employees_employee_id_contracts: {
@@ -13841,6 +13911,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
         };
     };
@@ -14361,6 +14432,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
         };
     };
@@ -14565,7 +14637,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_employees_id_rosters_bulk: {
@@ -14599,7 +14673,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     delete_api_v1_employees_id_rosters_date: {
@@ -14634,7 +14710,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_employees_id_simulate_payroll: {
@@ -15306,7 +15384,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_employments_id_payroll_calculation_runs: {
@@ -17004,7 +17084,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_jobs_job_id: {
@@ -19130,6 +19212,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
         };
     };
@@ -19164,6 +19247,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
         };
     };
@@ -19197,6 +19281,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_monitor_jobs: {
@@ -22020,6 +22105,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_schedules_activation_readiness: {
@@ -22052,6 +22138,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_schedules_activation_employer_id: {
@@ -22085,7 +22172,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_schedules_deactivation_employer_id: {
@@ -22119,7 +22208,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_schedules_evidence_employment_id_business_date: {
@@ -22155,6 +22246,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_schedules_history: {
@@ -22187,6 +22279,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_schedules_preview: {
@@ -22218,7 +22311,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_schedules_preview_rotating: {
@@ -22250,7 +22345,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_schedules_publish: {
@@ -22282,7 +22379,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_schedules_publish_rotating: {
@@ -22314,7 +22413,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_schedules_shadow_mismatches: {
@@ -22347,6 +22448,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_schedules_shadow_mismatches_mismatch_id_resolve: {
@@ -22381,6 +22483,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_schedules_employment_id_business_date_break_worked: {
@@ -22415,7 +22518,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_schedules_employment_id_business_date_replan: {
@@ -22450,7 +22555,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_schedules_employment_id_business_date_replan_preview: {
@@ -22485,7 +22592,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_settings_storage: {
@@ -22743,7 +22852,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_shifts: {
@@ -22839,7 +22950,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     put_api_v1_shifts_shift_id: {
@@ -22873,7 +22986,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_shifts_shift_id_versions: {
@@ -23069,7 +23184,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     delete_api_v1_time_entries_id: {
@@ -23103,7 +23220,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_time_history_employee_id: {
@@ -23299,7 +23418,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     post_api_v1_work_segments_bulk: {
@@ -23331,7 +23452,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_work_segments_segment_id: {
@@ -23399,7 +23522,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     delete_api_v1_work_segments_segment_id: {
@@ -23433,7 +23558,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_working_conditions: {
@@ -23561,7 +23688,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     get_api_v1_working_patterns_pattern_id: {
@@ -23629,7 +23758,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     delete_api_v1_working_patterns_pattern_id: {
@@ -23663,7 +23794,9 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
 }

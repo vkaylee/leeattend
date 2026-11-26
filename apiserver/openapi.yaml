@@ -317,8 +317,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/assignment-rules/{rule_id}":
     parameters:
       - name: rule_id
@@ -346,8 +350,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     patch:
       operationId: patch_api_v1_assignment_rules_rule_id
       tags: [runtime]
@@ -368,8 +376,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/assignments":
     get:
       operationId: get_api_v1_assignments
@@ -562,8 +574,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/attendance/approve-ot/{employee_id}":
     parameters:
       - name: employee_id
@@ -746,8 +762,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/attendance/import-jobs/latest":
     get:
       operationId: get_api_v1_attendance_import_jobs_latest
@@ -925,8 +945,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/attendance/periods/{year}/{month}":
     parameters:
       - name: year
@@ -1229,8 +1253,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/audit-logs":
     get:
       operationId: get_api_v1_audit_logs
@@ -2680,8 +2708,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/employees/{employee_id}/assignments/{assignment_id}":
     parameters:
       - name: employee_id
@@ -2714,8 +2746,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     get:
       operationId: get_api_v1_employees_employee_id_assignments_assignment_id
       tags: [runtime]
@@ -2758,8 +2794,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/employees/{employee_id}/contracts":
     parameters:
       - name: employee_id
@@ -3141,6 +3181,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
   "/api/v1/employees/{employee_id}/payslips":
@@ -3563,6 +3605,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
   "/api/v1/employees/{id}/leave/adjust":
@@ -3730,8 +3774,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/employees/{id}/rosters/bulk":
     parameters:
       - name: id
@@ -3759,8 +3807,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/employees/{id}/rosters/{date}":
     parameters:
       - name: id
@@ -3793,8 +3845,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/employees/{id}/simulate-payroll":
     parameters:
       - name: id
@@ -4309,8 +4365,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/employments/{id}/payroll/calculation-runs":
     parameters:
       - name: id
@@ -5599,8 +5659,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/jobs/{job_id}":
     parameters:
       - name: job_id
@@ -7216,6 +7280,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
   "/api/v1/monitor/alerts/{alert_id}/resolve":
@@ -7245,6 +7311,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
   "/api/v1/monitor/correlations":
@@ -7270,6 +7338,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/monitor/jobs":
     get:
       operationId: get_api_v1_monitor_jobs
@@ -9475,6 +9545,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/activation-readiness":
     get:
       operationId: get_api_v1_schedules_activation_readiness
@@ -9498,6 +9570,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/activation/{employer_id}":
     parameters:
       - name: employer_id
@@ -9525,8 +9599,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/deactivation/{employer_id}":
     parameters:
       - name: employer_id
@@ -9554,8 +9632,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/evidence/{employment_id}/{business_date}":
     parameters:
       - name: employment_id
@@ -9590,6 +9672,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/history":
     get:
       operationId: get_api_v1_schedules_history
@@ -9613,6 +9697,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/preview":
     post:
       operationId: post_api_v1_schedules_preview
@@ -9634,8 +9720,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/preview/rotating":
     post:
       operationId: post_api_v1_schedules_preview_rotating
@@ -9657,8 +9747,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/publish":
     post:
       operationId: post_api_v1_schedules_publish
@@ -9680,8 +9774,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/publish/rotating":
     post:
       operationId: post_api_v1_schedules_publish_rotating
@@ -9703,8 +9801,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/shadow-mismatches":
     get:
       operationId: get_api_v1_schedules_shadow_mismatches
@@ -9728,6 +9830,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/shadow-mismatches/{mismatch_id}/resolve":
     parameters:
       - name: mismatch_id
@@ -9757,6 +9861,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/{employment_id}/{business_date}/break-worked":
     parameters:
       - name: employment_id
@@ -9789,8 +9895,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/{employment_id}/{business_date}/replan":
     parameters:
       - name: employment_id
@@ -9823,8 +9933,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/schedules/{employment_id}/{business_date}/replan/preview":
     parameters:
       - name: employment_id
@@ -9857,8 +9971,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/settings/storage":
     delete:
       operationId: delete_api_v1_settings_storage
@@ -10044,8 +10162,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/shifts":
     get:
       operationId: get_api_v1_shifts
@@ -10112,8 +10234,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/shifts/{shift_id}":
     parameters:
       - name: shift_id
@@ -10141,8 +10267,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/shifts/{shift_id}/versions":
     parameters:
       - name: shift_id
@@ -10290,8 +10420,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     put:
       operationId: put_api_v1_time_entries_id
       tags: [runtime]
@@ -10312,8 +10446,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/time/history/{employee_id}":
     parameters:
       - name: employee_id
@@ -10461,8 +10599,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/work-segments/bulk":
     post:
       operationId: post_api_v1_work_segments_bulk
@@ -10484,8 +10626,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/work-segments/{segment_id}":
     parameters:
       - name: segment_id
@@ -10513,8 +10659,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     get:
       operationId: get_api_v1_work_segments_segment_id
       tags: [runtime]
@@ -10557,8 +10707,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/working-conditions":
     get:
       operationId: get_api_v1_working_conditions
@@ -10648,8 +10802,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   "/api/v1/working-patterns/{pattern_id}":
     parameters:
       - name: pattern_id
@@ -10677,8 +10835,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     get:
       operationId: get_api_v1_working_patterns_pattern_id
       tags: [runtime]
@@ -10721,8 +10883,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 components:
   securitySchemes:
     bearerAuth:
@@ -10732,15 +10898,61 @@ components:
   responses:
     BadRequest:
       description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
     Unauthorized:
       description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
     Forbidden:
       description: Permission denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
     NotFound:
       description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Conflict:
+      description: Resource or schedule lifecycle conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
     InternalError:
       description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    ServiceUnavailable:
+      description: Service or lifecycle schema unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            retry:
+              $ref: '#/components/schemas/JsonObject'
     JsonObject:
       oneOf:
         - type: object
@@ -22099,6 +22311,50 @@ components:
       properties:
         email:
           type: string
+    legacyJobStatusMeta:
+      properties:
+        completed_at:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: object
+              additionalProperties: true
+            - type: array
+              items: {}
+          nullable: true
+        completed_batches:
+          type: number
+        created_at:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: object
+              additionalProperties: true
+            - type: array
+              items: {}
+          nullable: true
+        error_message:
+          type: string
+          nullable: true
+        failed_batches:
+          type: number
+        job_id:
+          type: string
+        requester_id:
+          type: string
+          nullable: true
+        status:
+          type: string
+        total_batches:
+          type: number
+      required:
+        - completed_batches
+        - failed_batches
+        - job_id
+        - status
+        - total_batches
     loginRequest:
       properties:
         email:

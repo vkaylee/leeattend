@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
@@ -50,30 +51,29 @@ func (r AttendanceRepository) ProcessAttendanceImport(ctx context.Context, userI
 		employmentID, lookupErr := resolveImportedEmployment(ctx, db, row.EmployeeCode, row.PunchTime)
 		if errors.Is(lookupErr, pgx.ErrNoRows) {
 			if err := stageUnknownPunch(ctx, db, row); err != nil {
-				return err
+				return markAttendanceImportJobFailed(ctx, db, jobID, len(rows), processed, err)
 			}
 			staged++
 			processed++
 			continue
 		}
 		if lookupErr != nil {
+			if !errors.Is(lookupErr, errAmbiguousImportedEmployment) {
+				return markAttendanceImportJobFailed(ctx, db, jobID, len(rows), processed, lookupErr)
+			}
 			failed++
 			errorLines = append(errorLines, row.EmployeeCode)
-			message := "no active employment"
-			if errors.Is(lookupErr, errAmbiguousImportedEmployment) {
-				message = "employee number is ambiguous for punch date"
-			}
-			if err := recordLogError(ctx, db, row.EmployeeCode, message); err != nil {
-				return err
+			if err := recordLogError(ctx, db, row.EmployeeCode, "employee number is ambiguous for punch date"); err != nil {
+				return markAttendanceImportJobFailed(ctx, db, jobID, len(rows), processed, err)
 			}
 			continue
 		}
 		if target == "log" {
 			if err := insertImportedRawLog(ctx, db, employmentID, row); err != nil {
-				return err
+				return markAttendanceImportJobFailed(ctx, db, jobID, len(rows), processed, err)
 			}
 		} else if err := insertApprovedAdjustment(ctx, db, employmentID, userID, row); err != nil {
-			return err
+			return markAttendanceImportJobFailed(ctx, db, jobID, len(rows), processed, err)
 		}
 		processed++
 	}
@@ -96,6 +96,57 @@ func (r AttendanceRepository) ProcessAttendanceImport(ctx context.Context, userI
 	}
 	_ = staged
 	return nil
+}
+
+func safeLifecycleSummary(err error) string {
+	switch {
+	case errors.Is(err, ErrLifecycleEvidenceFailed):
+		return ErrLifecycleEvidenceFailed.Error()
+	case errors.Is(err, ErrLifecycleSchemaUnavailable):
+		return ErrLifecycleSchemaUnavailable.Error()
+	case errors.Is(err, ErrLifecycleMutationBlocked):
+		return ErrLifecycleMutationBlocked.Error()
+	default:
+		return "internal error"
+	}
+}
+
+func safeErrorCodeAttr(err error) string {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code != "" {
+		return "pg:" + pgErr.Code
+	}
+	switch {
+	case errors.Is(err, ErrLifecycleEvidenceFailed):
+		return "lifecycle_evidence_failed"
+	case errors.Is(err, ErrLifecycleSchemaUnavailable):
+		return "lifecycle_schema_unavailable"
+	case errors.Is(err, ErrLifecycleMutationBlocked):
+		return "lifecycle_mutation_blocked"
+	case errors.Is(err, context.Canceled):
+		return "context_canceled"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "context_deadline_exceeded"
+	default:
+		return "internal_error"
+	}
+}
+
+func markAttendanceImportJobFailed(ctx context.Context, db DBTX, jobID uuid.UUID, totalRows, processed int, cause error) error {
+	summary := safeLifecycleSummary(cause)
+	if summary == "internal error" || errors.Is(cause, ErrLifecycleEvidenceFailed) {
+		slog.ErrorContext(ctx, "Attendance import job failed", "job_id", jobID, "error_code", safeErrorCodeAttr(cause))
+	}
+	updateCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	tag, err := db.Exec(updateCtx, `UPDATE attendance_import_jobs SET status = $2, total_rows = $3, processed_rows = $4, error_log = $5, updated_at = NOW() WHERE id = $1`,
+		jobID, "failed", totalRows, processed, &summary)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to mark attendance import job failed", "job_id", jobID, "error_code", safeErrorCodeAttr(err))
+	} else if tag.RowsAffected() == 0 {
+		slog.WarnContext(ctx, "Attendance import job not found when marking failed", "job_id", jobID)
+	}
+	return cause
 }
 
 var errAmbiguousImportedEmployment = errors.New("attendance import employee number matches multiple employments")
@@ -506,46 +557,15 @@ func (r AttendanceRepository) BulkPaperOT(ctx context.Context, rows []api.BulkPa
 	result := api.BulkPaperOTResult{TotalRows: len(rows), Errors: make([]api.BulkOTError, 0)}
 	db, err := r.attendanceDB(ctx)
 	if err != nil {
+		slog.ErrorContext(ctx, "Attendance repository unavailable during bulk paper OT", "error_code", safeErrorCodeAttr(err))
 		result.FailedCount = len(rows)
 		for _, row := range rows {
-			result.Errors = append(result.Errors, api.BulkOTError{LineNumber: row.LineNumber, EmploymentID: row.EmployeeCode, ErrorMessage: err.Error()})
+			result.Errors = append(result.Errors, api.BulkOTError{LineNumber: row.LineNumber, EmploymentID: row.EmployeeCode, ErrorMessage: "internal error"})
 		}
 		return result
 	}
 	for _, row := range rows {
-		rowErr := func() error {
-			if row.EmployeeCode == "" {
-				return errors.New("employee ID is required")
-			}
-			if row.ClaimedMinutes <= 0 {
-				return errors.New("minutes must be greater than 0")
-			}
-			if row.Reason == "" {
-				return errors.New("reason is required")
-			}
-			date, parseErr := time.Parse("2006-01-02", row.Date)
-			if parseErr != nil {
-				return errors.New("invalid date format: " + row.Date + ". Expected YYYY-MM-DD")
-			}
-			employmentID, lookupErr := resolveImportedEmployment(ctx, db, row.EmployeeCode, date)
-			if lookupErr != nil {
-				if errors.Is(lookupErr, errAmbiguousImportedEmployment) {
-					return errors.New("employee number is ambiguous for date")
-				}
-				return errors.New("employee not found")
-			}
-			if guardErr := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{row.Date}); guardErr != nil {
-				finishedErr := finishLifecycleMutationDB(ctx, db, guardErr)
-				if errors.Is(finishedErr, ErrLifecycleEvidenceFailed) {
-					slog.ErrorContext(ctx, "Lifecycle evidence write failed during bulk paper OT", "error", finishedErr, "line_number", row.LineNumber)
-					return ErrLifecycleEvidenceFailed
-				}
-				return finishedErr
-			}
-			_, upsertErr := upsertPaperOT(ctx, db, employmentID, api.PaperOTRequest{Date: row.Date, ClaimedMinutes: row.ClaimedMinutes, Reason: row.Reason}, user)
-			return upsertErr
-		}()
-		if rowErr != nil {
+		if rowErr := r.processBulkPaperOTRow(ctx, db, row, user); rowErr != nil {
 			result.FailedCount++
 			result.Errors = append(result.Errors, api.BulkOTError{LineNumber: row.LineNumber, EmploymentID: row.EmployeeCode, ErrorMessage: rowErr.Error()})
 			continue
@@ -553,6 +573,54 @@ func (r AttendanceRepository) BulkPaperOT(ctx context.Context, rows []api.BulkPa
 		result.SuccessCount++
 	}
 	return result
+}
+
+func validateBulkPaperOTRow(row api.BulkPaperOTRow) (time.Time, error) {
+	if row.EmployeeCode == "" {
+		return time.Time{}, errors.New("employee ID is required")
+	}
+	if row.ClaimedMinutes <= 0 {
+		return time.Time{}, errors.New("minutes must be greater than 0")
+	}
+	if row.Reason == "" {
+		return time.Time{}, errors.New("reason is required")
+	}
+	date, err := time.Parse("2006-01-02", row.Date)
+	if err != nil {
+		return time.Time{}, errors.New("invalid date format: " + row.Date + ". Expected YYYY-MM-DD")
+	}
+	return date, nil
+}
+
+func (r AttendanceRepository) processBulkPaperOTRow(ctx context.Context, db DBTX, row api.BulkPaperOTRow, user uuid.UUID) error {
+	date, err := validateBulkPaperOTRow(row)
+	if err != nil {
+		return err
+	}
+	employmentID, lookupErr := resolveImportedEmployment(ctx, db, row.EmployeeCode, date)
+	if lookupErr != nil {
+		if errors.Is(lookupErr, errAmbiguousImportedEmployment) {
+			return errors.New("employee number is ambiguous for date")
+		}
+		if errors.Is(lookupErr, pgx.ErrNoRows) {
+			return errors.New("employee not found")
+		}
+		slog.ErrorContext(ctx, "Employment lookup failed during bulk paper OT", "error_code", safeErrorCodeAttr(lookupErr), "line_number", row.LineNumber)
+		return errors.New("internal error")
+	}
+	if guardErr := guardLifecycleDateMutation(ctx, db, []uuid.UUID{employmentID}, []string{row.Date}); guardErr != nil {
+		finishedErr := finishLifecycleMutationDB(ctx, db, guardErr)
+		summary := safeLifecycleSummary(finishedErr)
+		if summary == "internal error" || errors.Is(finishedErr, ErrLifecycleEvidenceFailed) {
+			slog.ErrorContext(ctx, "Lifecycle guard failed during bulk paper OT", "error_code", safeErrorCodeAttr(finishedErr), "line_number", row.LineNumber)
+		}
+		return errors.New(summary)
+	}
+	if _, upsertErr := upsertPaperOT(ctx, db, employmentID, api.PaperOTRequest{Date: row.Date, ClaimedMinutes: row.ClaimedMinutes, Reason: row.Reason}, user); upsertErr != nil {
+		slog.ErrorContext(ctx, "Paper OT upsert failed during bulk paper OT", "error_code", safeErrorCodeAttr(upsertErr), "line_number", row.LineNumber)
+		return errors.New("internal error")
+	}
+	return nil
 }
 
 func itoa(v int) string {

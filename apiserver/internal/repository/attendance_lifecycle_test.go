@@ -1,8 +1,10 @@
 package repository
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -124,6 +126,170 @@ func TestEnterPaperOTBlocksClosedDate(t *testing.T) {
 	}
 	if evidenceWrites != 1 || !db.committed {
 		t.Fatalf("expected committed evidence write, got writes=%d committed=%v", evidenceWrites, db.committed)
+	}
+}
+
+func TestBulkPaperOTMasksDBUnavailable(t *testing.T) {
+	row := api.BulkPaperOTRow{LineNumber: 2, EmployeeCode: "EMP001", Date: "2026-11-13", ClaimedMinutes: 60, Reason: "overtime"}
+	res := (AttendanceRepository{}).BulkPaperOT(context.Background(), []api.BulkPaperOTRow{row}, uuid.New())
+	if res.FailedCount != 1 || len(res.Errors) != 1 || res.Errors[0].ErrorMessage != "internal error" {
+		t.Fatalf("nil DB bulk errors = %+v, want masked internal error", res.Errors)
+	}
+}
+
+func TestBulkPaperOTMasksUpsertFailure(t *testing.T) {
+	employmentID := uuid.New()
+	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+		return fakeRow{scanFn: func(dest ...any) error {
+			switch {
+			case strings.Contains(query, "WITH candidates AS"):
+				*(dest[0].(*int)) = 1
+				*(dest[1].(**uuid.UUID)) = &employmentID
+			case strings.Contains(query, "information_schema.tables"):
+				for _, v := range dest {
+					*(v.(*bool)) = false
+				}
+			default:
+				return errors.New("secret upsert constraint sql error")
+			}
+			return nil
+		}}
+	}}
+	row := api.BulkPaperOTRow{LineNumber: 2, EmployeeCode: "EMP001", Date: "2026-11-13", ClaimedMinutes: 60, Reason: "overtime"}
+	res := (AttendanceRepository{DB: db}).BulkPaperOT(context.Background(), []api.BulkPaperOTRow{row}, uuid.New())
+	if res.FailedCount != 1 || len(res.Errors) != 1 || res.Errors[0].ErrorMessage != "internal error" {
+		t.Fatalf("upsert failure bulk errors = %+v, want masked internal error", res.Errors)
+	}
+}
+
+func newImportBlockTrackingDB(employmentID uuid.UUID, updatedStatus *string, updatedErrorLog **string, evidenceWrites *int) *fakeTx {
+	return &fakeTx{fakeDBTX: fakeDBTX{
+		queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+			return fakeRow{scanFn: func(dest ...any) error {
+				switch {
+				case strings.Contains(query, "WITH candidates AS"):
+					*(dest[0].(*int)) = 1
+					*(dest[1].(**uuid.UUID)) = &employmentID
+				case strings.Contains(query, "information_schema.tables"):
+					for _, v := range dest {
+						*(v.(*bool)) = true
+					}
+				default:
+					*(dest[0].(*bool)) = true
+				}
+				return nil
+			}}
+		},
+		execFn: func(_ context.Context, query string, args ...any) (pgconn.CommandTag, error) {
+			if strings.Contains(query, "schedule_legacy_mutation_evidence") {
+				*evidenceWrites++
+				return pgconn.NewCommandTag("INSERT 1"), nil
+			}
+			if strings.Contains(query, "UPDATE attendance_import_jobs") {
+				*updatedStatus = args[1].(string)
+				if s, ok := args[4].(*string); ok {
+					*updatedErrorLog = s
+				}
+				return pgconn.NewCommandTag("UPDATE 1"), nil
+			}
+			return pgconn.NewCommandTag("INSERT 1"), nil
+		},
+	}}
+}
+
+func TestProcessAttendanceImportMarksJobFailedOnLifecycleBlock(t *testing.T) {
+	var updatedStatus string
+	var updatedErrorLog *string
+	evidenceWrites := 0
+	db := newImportBlockTrackingDB(uuid.New(), &updatedStatus, &updatedErrorLog, &evidenceWrites)
+
+	err := (AttendanceRepository{DB: db}).ProcessAttendanceImport(context.Background(), uuid.New(), uuid.New(), "/tmp/import.xlsx", "adjustment", []api.AttendanceImportRow{{
+		LineNumber:   2,
+		EmployeeCode: "EMP001",
+		PunchTime:    time.Date(2026, 11, 13, 9, 0, 0, 0, time.UTC),
+	}})
+	if !errors.Is(err, ErrLifecycleMutationBlocked) || evidenceWrites != 1 || !db.committed {
+		t.Fatalf("err=%v writes=%d committed=%v", err, evidenceWrites, db.committed)
+	}
+	if updatedStatus != "failed" || updatedErrorLog == nil || *updatedErrorLog != ErrLifecycleMutationBlocked.Error() {
+		t.Fatalf("job update status=%q errorLog=%v, want failed / %q", updatedStatus, updatedErrorLog, ErrLifecycleMutationBlocked.Error())
+	}
+}
+
+func TestBulkPaperOTLookupDBErrorReturnsMaskedInternal(t *testing.T) {
+	dbErr := &pgconn.PgError{Code: "08006", Message: "connection failed", Detail: "secret-pii@example.com"}
+	var logBuf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logBuf, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	db := &fakeDBTX{queryRowFn: func(context.Context, string, ...any) pgx.Row {
+		return fakeRow{scanFn: func(...any) error { return dbErr }}
+	}}
+	res := (AttendanceRepository{DB: db}).BulkPaperOT(context.Background(), []api.BulkPaperOTRow{{
+		LineNumber: 2, EmployeeCode: "EMP001", Date: "2026-11-13", ClaimedMinutes: 60, Reason: "overtime",
+	}}, uuid.New())
+	if res.FailedCount != 1 || len(res.Errors) != 1 || res.Errors[0].ErrorMessage != "internal error" {
+		t.Fatalf("lookup DB error bulk result = %+v, want masked internal error", res.Errors)
+	}
+	if strings.Contains(logBuf.String(), "secret-pii@example.com") || !strings.Contains(logBuf.String(), "pg:08006") {
+		t.Fatalf("log output leaked PII or missed pg code: %q", logBuf.String())
+	}
+}
+
+func TestProcessAttendanceImportLookupDBErrorMarksJobFailedEvenOnCanceledCtx(t *testing.T) {
+	dbErr := &pgconn.PgError{Code: "57014", Message: "query canceled", Detail: "secret-pii@example.com"}
+	var updatedStatus string
+	var updateCtxErr error
+	var logBuf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logBuf, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	db := &fakeDBTX{
+		queryRowFn: func(context.Context, string, ...any) pgx.Row {
+			return fakeRow{scanFn: func(...any) error { return dbErr }}
+		},
+		execFn: func(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error) {
+			if strings.Contains(query, "UPDATE attendance_import_jobs") {
+				updateCtxErr = ctx.Err()
+				updatedStatus = args[1].(string)
+				return pgconn.NewCommandTag("UPDATE 1"), nil
+			}
+			return pgconn.NewCommandTag("INSERT 1"), nil
+		},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := (AttendanceRepository{DB: db}).ProcessAttendanceImport(ctx, uuid.New(), uuid.New(), "/tmp/import.xlsx", "adjustment", []api.AttendanceImportRow{{
+		LineNumber: 2, EmployeeCode: "EMP001", PunchTime: time.Date(2026, 11, 13, 9, 0, 0, 0, time.UTC),
+	}})
+	if !errors.Is(err, dbErr) || updatedStatus != "failed" || updateCtxErr != nil {
+		t.Fatalf("err=%v status=%q updateCtxErr=%v", err, updatedStatus, updateCtxErr)
+	}
+	if strings.Contains(logBuf.String(), "secret-pii@example.com") || !strings.Contains(logBuf.String(), "pg:57014") {
+		t.Fatalf("log output leaked PII or missed pg code: %q", logBuf.String())
+	}
+}
+
+func TestBulkPaperOTMasksUnexpectedGuardError(t *testing.T) {
+	employmentID := uuid.New()
+	db := &fakeDBTX{queryRowFn: func(_ context.Context, query string, _ ...any) pgx.Row {
+		return fakeRow{scanFn: func(dest ...any) error {
+			if strings.Contains(query, "WITH candidates AS") {
+				*(dest[0].(*int)) = 1
+				*(dest[1].(**uuid.UUID)) = &employmentID
+				return nil
+			}
+			return errors.New("secret database detail")
+		}}
+	}}
+	result := (AttendanceRepository{DB: db}).BulkPaperOT(context.Background(), []api.BulkPaperOTRow{{
+		LineNumber: 2, EmployeeCode: "EMP001", Date: "2026-11-13", ClaimedMinutes: 60, Reason: "overtime",
+	}}, uuid.New())
+	if len(result.Errors) != 1 || strings.Contains(result.Errors[0].ErrorMessage, "secret") {
+		t.Fatalf("unexpected bulk errors: %+v", result.Errors)
 	}
 }
 

@@ -7,6 +7,23 @@ Base URL: `http://localhost:3000`
 
 Flat `/api/v1/...` routes are canonical for the single-organization appliance. Organization settings are singleton business data; clients MUST NOT supply organization or tenant selectors. Legacy `/workspaces/{id}` paths have no registered handler and return HTTP 404.
 
+### Error Contract
+
+The structured error responses covered below use the wire envelope `{ "error": { "code": "<ERROR_CODE>", "message": "<localized message>", "retry"?: ... } }` (see `apiserver/internal/apperror/response.go` and `ErrorEnvelope` in `apiserver/openapi.yaml`).
+
+| Scenario | HTTP | `error.code` | Server i18n key |
+|---|---:|---|---|
+| Missing monitor alert | 404 | `NOT_FOUND` | `error.not_found` |
+| Missing monitor durable job | 404 | `NOT_FOUND` | `error.job_not_found` |
+| Monitor alert state conflict (`acknowledge`/`resolve`) | 409 | `CONFLICT` | `error.conflict` |
+| Missing referenced employment or shift | 404 | `NOT_FOUND` | `error.not_found` |
+| No active employment; invalid termination date (`termination_date` before `start_date`) | 400 | `VALIDATION_ERROR` | `error.validation` |
+| Legacy mutation blocked by schedule lifecycle guard; locked payroll/attendance period | 409 | `CONFLICT` | `error.conflict` |
+| Lifecycle guard schema unavailable | 503 | `SERVICE_UNAVAILABLE` | `error.service_unavailable` |
+| Lifecycle evidence write failure (including missing transaction beginner) or unknown error | 500 | `INTERNAL_ERROR` | `error.internal` (masked) |
+
+Bulk paper OT (`POST /api/v1/attendance/bulk-upload-paper-ot`, `POST /api/v1/attendance/paper-forms/overtime/bulk`) reports per-row failures inside HTTP 200 without leaking raw database errors. Adjustment import (`POST /api/v1/attendance/upload`) attempts to mark the import job `failed` and returns the corresponding HTTP 409/503/500 error when blocked or failed. Rows processed before the failure remain committed; if the job update fails, the server logs the failure.
+
 ### 0. Authentication & Context (Updated)
 
 Hệ thống sử dụng JWT (JSON Web Token) để xác thực người dùng.

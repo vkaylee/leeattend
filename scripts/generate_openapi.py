@@ -70,6 +70,130 @@ REQUIRED_SCHEMA_FIELDS = {
     "CreateUploadUrlResponse": ("file", "upload_url"),
 }
 
+EXPLICIT_SCHEMAS: dict[str, list[str]] = {
+    "EmployeeMatchCandidate": [
+        "    EmployeeMatchCandidate:",
+        "      type: object",
+        "      additionalProperties: false",
+        "      properties:",
+        "        display_name:",
+        "          type: string",
+        "        employee_code:",
+        "          type: string",
+        "        employee_id:",
+        "          type: string",
+        "          format: uuid",
+        "        reasons:",
+        "          type: array",
+        "          items:",
+        "            type: string",
+        "            enum:",
+        "              - national_id_exact",
+        "              - phone_exact",
+        "              - name_dob_review",
+        "              - name_phone_review",
+        "        status:",
+        "          type: string",
+        "          enum:",
+        "            - active",
+        "            - terminated",
+        "        tier:",
+        "          type: string",
+        "          enum:",
+        "            - hard",
+        "            - soft",
+        "      required:",
+        "        - display_name",
+        "        - employee_code",
+        "        - employee_id",
+        "        - reasons",
+        "        - status",
+        "        - tier",
+    ],
+    "MatchEmployeeResponse": [
+        "    MatchEmployeeResponse:",
+        "      type: object",
+        "      additionalProperties: false",
+        "      properties:",
+        "        candidates:",
+        "          type: array",
+        "          items:",
+        "            $ref: '#/components/schemas/EmployeeMatchCandidate'",
+        "        tier:",
+        "          type: string",
+        "          enum:",
+        "            - hard",
+        "            - soft",
+        "            - none",
+        "      required:",
+        "        - candidates",
+        "        - tier",
+    ],
+}
+
+LIFECYCLE_GUARDED_ROUTES = {
+    # Scheduling legacy mutation guards (409 blocked / 503 schema unavailable)
+    ("PUT", "/api/v1/shifts/{shift_id}"),
+    ("POST", "/api/v1/shifts/assign"),
+    ("PUT", "/api/v1/working-patterns/{pattern_id}"),
+    ("DELETE", "/api/v1/working-patterns/{pattern_id}"),
+    ("POST", "/api/v1/employments/{employment_id}/working-patterns"),
+    ("POST", "/api/v1/working-patterns/bulk-assign"),
+    ("POST", "/api/v1/employees/{id}/rosters"),
+    ("POST", "/api/v1/employees/{id}/rosters/bulk"),
+    ("DELETE", "/api/v1/employees/{id}/rosters/{date}"),
+    ("PUT", "/api/v1/shift-swaps/{id}/approve"),
+    ("POST", "/api/v1/work-segments"),
+    ("POST", "/api/v1/work-segments/bulk"),
+    ("PUT", "/api/v1/work-segments/{segment_id}"),
+    ("DELETE", "/api/v1/work-segments/{segment_id}"),
+    # Assignment rules & employee assignments
+    ("POST", "/api/v1/assignment-rules"),
+    ("PATCH", "/api/v1/assignment-rules/{rule_id}"),
+    ("DELETE", "/api/v1/assignment-rules/{rule_id}"),
+    ("POST", "/api/v1/employees/{employee_id}/assignments"),
+    ("PATCH", "/api/v1/employees/{employee_id}/assignments/{assignment_id}"),
+    ("DELETE", "/api/v1/employees/{employee_id}/assignments/{assignment_id}"),
+    # Attendance adjustments, time entries, paper OT, adjustment upload
+    ("PUT", "/api/v1/attendance/adjustments/{id}/approve"),
+    ("PUT", "/api/v1/time/entries/{id}"),
+    ("DELETE", "/api/v1/time/entries/{id}"),
+    ("POST", "/api/v1/attendance/enter-paper-ot/{employee_id}"),
+    ("POST", "/api/v1/attendance/paper-forms/overtime/{employee_id}"),
+    ("POST", "/api/v1/attendance/upload"),
+    # Holidays
+    ("POST", "/api/v1/holidays/{id}/process-leave"),
+}
+
+SCHEDULE_LIFECYCLE_MUTATION_ROUTES = {
+    ("POST", "/api/v1/schedules/activation/{employer_id}"),
+    ("POST", "/api/v1/schedules/deactivation/{employer_id}"),
+    ("POST", "/api/v1/schedules/preview"),
+    ("POST", "/api/v1/schedules/preview/rotating"),
+    ("POST", "/api/v1/schedules/publish"),
+    ("POST", "/api/v1/schedules/publish/rotating"),
+    ("POST", "/api/v1/schedules/{employment_id}/{business_date}/break-worked"),
+    ("POST", "/api/v1/schedules/{employment_id}/{business_date}/replan/preview"),
+    ("POST", "/api/v1/schedules/{employment_id}/{business_date}/replan"),
+}
+
+ROUTE_CONFLICT_RESPONSES = LIFECYCLE_GUARDED_ROUTES | SCHEDULE_LIFECYCLE_MUTATION_ROUTES | {
+    ("POST", "/api/v1/monitor/alerts/{alert_id}/acknowledge"),
+    ("POST", "/api/v1/monitor/alerts/{alert_id}/resolve"),
+    ("POST", "/api/v1/employees/{id}/departments"),
+    ("POST", "/api/v1/employees/{employee_id}/employments/{employment_id}/terminate"),
+}
+
+ROUTE_SERVICE_UNAVAILABLE_RESPONSES = LIFECYCLE_GUARDED_ROUTES | SCHEDULE_LIFECYCLE_MUTATION_ROUTES | {
+    ("GET", "/api/v1/monitor/correlations"),
+    ("GET", "/api/v1/schedules"),
+    ("GET", "/api/v1/schedules/history"),
+    ("GET", "/api/v1/schedules/shadow-mismatches"),
+    ("POST", "/api/v1/schedules/shadow-mismatches/{mismatch_id}/resolve"),
+    ("GET", "/api/v1/schedules/activation-readiness"),
+    ("GET", "/api/v1/schedules/evidence/{employment_id}/{business_date}"),
+}
+
 
 SCHEMA_ALIASES = {
     "Employee": "EmployeeRecord",
@@ -318,10 +442,34 @@ def generate() -> str:
                     "          $ref: '#/components/responses/Forbidden'",
                     "        '404':",
                     "          $ref: '#/components/responses/NotFound'",
+                ]
+            )
+            if (method, path) in ROUTE_CONFLICT_RESPONSES:
+                lines.extend(
+                    [
+                        "        '409':",
+                        "          $ref: '#/components/responses/Conflict'",
+                    ]
+                )
+            lines.extend(
+                [
                     "        '500':",
                     "          $ref: '#/components/responses/InternalError'",
                 ]
             )
+            if (method, path) in ROUTE_SERVICE_UNAVAILABLE_RESPONSES:
+                lines.extend(
+                    [
+                        "        '503':",
+                        "          $ref: '#/components/responses/ServiceUnavailable'",
+                    ]
+                )
+    error_response_content = [
+        "      content:",
+        "        application/json:",
+        "          schema:",
+        "            $ref: '#/components/schemas/ErrorEnvelope'",
+    ]
     lines.extend(
         [
             "components:",
@@ -333,15 +481,40 @@ def generate() -> str:
             "  responses:",
             "    BadRequest:",
             "      description: Invalid request",
+            *error_response_content,
             "    Unauthorized:",
             "      description: Authentication required",
+            *error_response_content,
             "    Forbidden:",
             "      description: Permission denied",
+            *error_response_content,
             "    NotFound:",
             "      description: Resource not found",
+            *error_response_content,
+            "    Conflict:",
+            "      description: Resource or schedule lifecycle conflict",
+            *error_response_content,
             "    InternalError:",
             "      description: Internal server error",
+            *error_response_content,
+            "    ServiceUnavailable:",
+            "      description: Service or lifecycle schema unavailable",
+            *error_response_content,
             "  schemas:",
+            "    ErrorEnvelope:",
+            "      type: object",
+            "      required: [error]",
+            "      properties:",
+            "        error:",
+            "          type: object",
+            "          required: [code, message]",
+            "          properties:",
+            "            code:",
+            "              type: string",
+            "            message:",
+            "              type: string",
+            "            retry:",
+            "              $ref: '#/components/schemas/JsonObject'",
             "    JsonObject:",
             "      oneOf:",
             "        - type: object",
@@ -357,6 +530,9 @@ def generate() -> str:
     for name in sorted(set(schema_names()) | set(structs)):
 
         if name == "JsonObject":
+            continue
+        if name in EXPLICIT_SCHEMAS:
+            lines.extend(EXPLICIT_SCHEMAS[name])
             continue
         alias = SCHEMA_ALIASES.get(name)
         if name in {"Employee", "Department"}:
