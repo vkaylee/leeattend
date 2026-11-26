@@ -173,7 +173,7 @@ type ApproveOTRequest struct {
 	Status          string  `json:"status"`
 }
 
-type OvertimeRepository interface {
+type OvertimePolicyRepository interface {
 	ListOvertimePolicies(context.Context, int, int) (OvertimePolicyListResponse, error)
 	CreateOvertimePolicy(context.Context, CreateOvertimePolicyRequest, uuid.UUID) (OvertimePolicyDetail, error)
 	GetOvertimePolicy(context.Context, uuid.UUID) (OvertimePolicyDetail, error)
@@ -181,6 +181,9 @@ type OvertimeRepository interface {
 	CreateOvertimePolicyVersion(context.Context, uuid.UUID, CreateOvertimePolicyVersionRequest, uuid.UUID) (OvertimePolicyVersion, error)
 	PatchOvertimePolicyVersion(context.Context, uuid.UUID, uuid.UUID, PatchOvertimePolicyVersionRequest) (OvertimePolicyVersion, error)
 	PublishOvertimePolicyVersion(context.Context, uuid.UUID, uuid.UUID, PublishOvertimePolicyVersionRequest, uuid.UUID) (OvertimePolicyVersion, error)
+}
+
+type OvertimeRequestRepository interface {
 	ListOvertimeRequests(context.Context, int, int) (OvertimeRequestListResponse, error)
 	CreateOvertimeRequest(context.Context, uuid.UUID, CreateOvertimeRequest) (OvertimeRequest, error)
 	GetOvertimeRequest(context.Context, uuid.UUID) (OvertimeRequestDetail, error)
@@ -190,6 +193,11 @@ type OvertimeRepository interface {
 	EmployeeDepartmentID(context.Context, uuid.UUID) (*uuid.UUID, error)
 	ClaimOvertime(context.Context, uuid.UUID, ClaimOTRequest, uuid.UUID) error
 	ApproveOvertime(context.Context, uuid.UUID, ApproveOTRequest, uuid.UUID) error
+}
+
+type OvertimeRepository interface {
+	OvertimePolicyRepository
+	OvertimeRequestRepository
 }
 
 type OvertimeHandler struct {

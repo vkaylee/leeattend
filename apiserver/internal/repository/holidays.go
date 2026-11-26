@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
@@ -122,7 +122,7 @@ func (r HolidayRepository) CreateHoliday(ctx context.Context, req api.CreateHoli
 	row := db.QueryRow(ctx, `INSERT INTO holidays (id, name, date, holiday_type, is_paid, leave_type_id, ot_multiplier, description, work_threshold_percent, is_credit_on_work, location_id) VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING `+holidayColumns, id, req.Name, req.Date, holidayType, isPaid, req.LeaveTypeID, req.OTMultiplier, req.Description, req.WorkThresholdPercent, creditOnWork, req.LocationID)
 	record, err := scanHoliday(row)
 	if err != nil {
-		if isUniqueError(err) {
+		if isConflictError(err) {
 			return api.HolidayRecord{}, api.ErrHolidayAlreadyExists
 		}
 		return api.HolidayRecord{}, err
@@ -173,12 +173,12 @@ func (r HolidayRepository) UpdateHoliday(ctx context.Context, holidayID uuid.UUI
 	}
 	set = append(set, "updated_at = NOW()")
 	args = append(args, holidayID)
-	row := db.QueryRow(ctx, `UPDATE holidays SET `+joinHolidayStrings(set, ", ")+` WHERE id = $`+fmt.Sprint(len(args))+` AND deleted_at IS NULL RETURNING `+holidayColumns, args...)
+	row := db.QueryRow(ctx, `UPDATE holidays SET `+strings.Join(set, ", ")+` WHERE id = $`+fmt.Sprint(len(args))+` AND deleted_at IS NULL RETURNING `+holidayColumns, args...)
 	record, err := scanHoliday(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return api.HolidayRecord{}, api.ErrHolidayNotFound
 	}
-	if isUniqueError(err) {
+	if isConflictError(err) {
 		return api.HolidayRecord{}, api.ErrHolidayAlreadyExists
 	}
 	return record, err
@@ -197,22 +197,6 @@ func (r HolidayRepository) DeleteHoliday(ctx context.Context, holidayID uuid.UUI
 		return api.ErrHolidayNotFound
 	}
 	return EnqueueRosterCacheInvalidation(ctx, db)
-}
-
-func isUniqueError(err error) bool {
-	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && (pgErr.Code == "23505" || pgErr.Code == "23P01")
-}
-
-func joinHolidayStrings(items []string, separator string) string {
-	result := ""
-	for i, item := range items {
-		if i > 0 {
-			result += separator
-		}
-		result += item
-	}
-	return result
 }
 
 func (r HolidayRepository) ProcessHolidayLeave(ctx context.Context, holidayID uuid.UUID) ([]api.HolidayLeaveResult, error) {

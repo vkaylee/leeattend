@@ -155,4 +155,8 @@ export interface OrganizationLeaveBalance {
   remaining: number;
   used: number;
 }
+export type EmployeeSalaryComponent = components["schemas"]["EmployeeSalaryComponent"];
+export type IncentiveEvaluationResult = components["schemas"]["IncentiveEvaluationResult"];
+export type SalaryComponentWithDefinition = components["schemas"]["SalaryComponentWithDefinition"];
+export type TimeEntry = components["schemas"]["TimeEntry"];
 export type LeaveBalance = OrganizationLeaveBalance;

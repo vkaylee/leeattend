@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -346,183 +345,125 @@ func sanitizeSummary(val string) string {
 	return res
 }
 
-func (h *MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorOperationalSnapshot, error) {
-	observedAt := time.Now().UTC()
-	var (
-		pendingHigh    uint64
-		pendingNormal  uint64
-		pendingLow     uint64
-		completedToday uint64
-		failedToday    uint64
-		workers        = make([]WorkerHeartbeat, 0)
-		recentJobs     = make([]MonitorJob, 0)
-		redisAvailable = false
-	)
+type redisOperationalData struct {
+	available      bool
+	pendingHigh    uint64
+	pendingNormal  uint64
+	pendingLow     uint64
+	completedToday uint64
+	failedToday    uint64
+	workers        []WorkerHeartbeat
+	recentJobs     []MonitorJob
+}
 
+func (h *MonitorHandler) collectRedisSnapshot(ctx context.Context, observedAt time.Time) redisOperationalData {
+	res := redisOperationalData{
+		workers:    make([]WorkerHeartbeat, 0),
+		recentJobs: make([]MonitorJob, 0),
+	}
+	if h.Redis == nil || !h.Redis.IsAvailable() {
+		return res
+	}
+	res.available = true
 	today := observedAt.Format("2006-01-02")
 
-	if h.Redis != nil && h.Redis.IsAvailable() {
-		redisAvailable = true
-		if v, err := h.Redis.LLen(ctx, "worker:jobs:high"); err == nil {
-			pendingHigh = uint64(v)
-		}
-		if v, err := h.Redis.LLen(ctx, "worker:jobs:normal"); err == nil {
-			pendingNormal = uint64(v)
-		}
-		if v, err := h.Redis.LLen(ctx, "worker:jobs:low"); err == nil {
-			pendingLow = uint64(v)
-		}
-		if v, err := h.Redis.GetUint64(ctx, fmt.Sprintf("stats:completed:%s", today)); err == nil {
-			completedToday = v
-		}
-		if v, err := h.Redis.GetUint64(ctx, fmt.Sprintf("stats:failed:%s", today)); err == nil {
-			failedToday = v
-		}
-
-		// Heartbeats
-		keys, _ := h.Redis.Keys(ctx, "monitor:worker:*")
-		for _, k := range keys {
-			val, found, err := h.Redis.GetString(ctx, k)
-			if err != nil || !found {
-				continue
-			}
-			var hb struct {
-				ID              uuid.UUID `json:"id"`
-				Host            string    `json:"host"`
-				Status          string    `json:"status"`
-				CurrentTaskType *string   `json:"current_task_type"`
-				LastSeenAt      time.Time `json:"last_seen_at"`
-			}
-			if json.Unmarshal([]byte(val), &hb) == nil {
-				ageSecs := uint64(0)
-				if observedAt.After(hb.LastSeenAt) {
-					ageSecs = uint64(observedAt.Sub(hb.LastSeenAt).Seconds())
-				}
-				liveness := "live"
-				if ageSecs > 60 {
-					liveness = "offline"
-				} else if ageSecs > 15 {
-					liveness = "stale"
-				}
-				workers = append(workers, WorkerHeartbeat{
-					ID:                  hb.ID,
-					Host:                hb.Host,
-					Status:              hb.Status,
-					CurrentTaskType:     hb.CurrentTaskType,
-					LastSeenAt:          hb.LastSeenAt,
-					Liveness:            liveness,
-					HeartbeatAgeSeconds: ageSecs,
-				})
-			}
-		}
-
-		// Recent jobs
-		jobIDs, _ := h.Redis.ZRevRange(ctx, "report:job_list", 0, 9)
-		for _, jid := range jobIDs {
-			metaStr, found, err := h.Redis.GetString(ctx, fmt.Sprintf("report:meta:%s", jid))
-			if err != nil || !found {
-				continue
-			}
-			var m struct {
-				JobID            uuid.UUID `json:"job_id"`
-				Status           string    `json:"status"`
-				TotalBatches     uint32    `json:"total_batches"`
-				CompletedBatches uint32    `json:"completed_batches"`
-				FailedBatches    uint32    `json:"failed_batches"`
-				ErrorMessage     *string   `json:"error_message"`
-				CreatedAt        *string   `json:"created_at"`
-				CompletedAt      *string   `json:"completed_at"`
-				TaskType         *string   `json:"task_type"`
-			}
-			if json.Unmarshal([]byte(metaStr), &m) == nil {
-				createdAt := observedAt
-				if m.CreatedAt != nil {
-					if t, err := time.Parse(time.RFC3339, *m.CreatedAt); err == nil {
-						createdAt = t
-					}
-				}
-				var completedAt *time.Time
-				if m.CompletedAt != nil {
-					if t, err := time.Parse(time.RFC3339, *m.CompletedAt); err == nil {
-						completedAt = &t
-					}
-				}
-				recentJobs = append(recentJobs, MonitorJob{
-					JobID:            m.JobID,
-					Status:           m.Status,
-					TotalBatches:     m.TotalBatches,
-					CompletedBatches: m.CompletedBatches,
-					FailedBatches:    m.FailedBatches,
-					Error:            m.ErrorMessage,
-					CreatedAt:        createdAt,
-					CompletedAt:      completedAt,
-					TaskType:         m.TaskType,
-				})
-			}
-		}
+	if v, err := h.Redis.LLen(ctx, "worker:jobs:high"); err == nil {
+		res.pendingHigh = uint64(v)
+	}
+	if v, err := h.Redis.LLen(ctx, "worker:jobs:normal"); err == nil {
+		res.pendingNormal = uint64(v)
+	}
+	if v, err := h.Redis.LLen(ctx, "worker:jobs:low"); err == nil {
+		res.pendingLow = uint64(v)
+	}
+	if v, err := h.Redis.GetUint64(ctx, fmt.Sprintf("stats:completed:%s", today)); err == nil {
+		res.completedToday = v
+	}
+	if v, err := h.Redis.GetUint64(ctx, fmt.Sprintf("stats:failed:%s", today)); err == nil {
+		res.failedToday = v
 	}
 
-	totalWorkers := uint64(len(workers))
-	var activeWorkers, idleWorkers uint64
-	for _, w := range workers {
-		if strings.EqualFold(w.Status, "PROCESSING") {
-			activeWorkers++
-		} else if strings.EqualFold(w.Status, "IDLE") {
-			idleWorkers++
+	keys, _ := h.Redis.Keys(ctx, "monitor:worker:*")
+	for _, k := range keys {
+		val, found, err := h.Redis.GetString(ctx, k)
+		if err != nil || !found {
+			continue
+		}
+		var hb struct {
+			ID              uuid.UUID `json:"id"`
+			Host            string    `json:"host"`
+			Status          string    `json:"status"`
+			CurrentTaskType *string   `json:"current_task_type"`
+			LastSeenAt      time.Time `json:"last_seen_at"`
+		}
+		if json.Unmarshal([]byte(val), &hb) != nil {
+			continue
+		}
+		ageSecs := uint64(0)
+		if observedAt.After(hb.LastSeenAt) {
+			ageSecs = uint64(observedAt.Sub(hb.LastSeenAt).Seconds())
+		}
+		liveness := "live"
+		if ageSecs > 60 {
+			liveness = "offline"
+		} else if ageSecs > 15 {
+			liveness = "stale"
+		}
+		res.workers = append(res.workers, WorkerHeartbeat{
+			ID:                  hb.ID,
+			Host:                hb.Host,
+			Status:              hb.Status,
+			CurrentTaskType:     hb.CurrentTaskType,
+			LastSeenAt:          hb.LastSeenAt,
+			Liveness:            liveness,
+			HeartbeatAgeSeconds: ageSecs,
+		})
+	}
+
+	jobIDs, _ := h.Redis.ZRevRange(ctx, "report:job_list", 0, 9)
+	for _, jid := range jobIDs {
+		metaStr, found, err := h.Redis.GetString(ctx, fmt.Sprintf("report:meta:%s", jid))
+		if err != nil || !found {
+			continue
+		}
+		if job, ok := decodeMonitorJob(metaStr, observedAt); ok {
+			res.recentJobs = append(res.recentJobs, job)
 		}
 	}
+	return res
+}
 
-	pendingTasks := pendingHigh + pendingNormal + pendingLow
-
-	// Durable jobs
-	durableJobs := MonitorDurableJobsSection{
-		Status:          "available",
-		ErrorCode:       nil,
-		Jobs:            make([]MonitorInfraJobRecord, 0),
-		NextCursorToken: nil,
-		Limit:           10,
-		EventsTruncated: false,
-	}
-	if h.Repo != nil {
-		dj, nextTok, err := h.Repo.ListDurableJobs(ctx, ListDurableJobsParams{Limit: 10})
-		if err == nil {
-			durableJobs.Jobs = dj
-			durableJobs.NextCursorToken = nextTok
-		} else {
-			durableJobs.Status = "degraded"
-			errCode := "DURABLE_JOBS_UNAVAILABLE"
-			durableJobs.ErrorCode = &errCode
+func buildMonitorQueueHealth(high, normal, low, total uint64, window MonitorMetricWindow, observedAt time.Time) MonitorQueueHealth {
+	metric := func(val uint64, formula string) MonitorMetric {
+		f := float64(val)
+		return MonitorMetric{
+			Value:      &f,
+			Unit:       "jobs",
+			Formula:    formula,
+			TimeWindow: window,
+			ObservedAt: observedAt,
+			Source:     "redis",
 		}
 	}
-
-	window := MonitorMetricWindow{
-		Start:           observedAt.Add(-5 * time.Minute),
-		End:             observedAt,
-		DurationSeconds: 300,
+	return MonitorQueueHealth{
+		DepthHigh:   metric(high, "queue_depth_high"),
+		DepthNormal: metric(normal, "queue_depth_normal"),
+		DepthLow:    metric(low, "queue_depth_low"),
+		DepthTotal:  metric(total, "depth_high + depth_normal + depth_low"),
 	}
+}
 
-	highVal := float64(pendingHigh)
-	normalVal := float64(pendingNormal)
-	lowVal := float64(pendingLow)
-	totalVal := float64(pendingTasks)
-
-	redisStatus := "unavailable"
-	if redisAvailable {
-		redisStatus = "available"
-	}
-	availBool := redisAvailable
-	oneMs := 1.0
-
+func buildMonitorReliability(completedToday, failedToday uint64, window MonitorMetricWindow, observedAt time.Time) *MonitorReliability {
 	var successRateVal, failureRateVal float64
-	totalCompletedOrFailed := float64(completedToday + failedToday)
-	if totalCompletedOrFailed > 0 {
-		successRateVal = float64(completedToday) / totalCompletedOrFailed
-		failureRateVal = float64(failedToday) / totalCompletedOrFailed
+	total := float64(completedToday + failedToday)
+	if total > 0 {
+		successRateVal = float64(completedToday) / total
+		failureRateVal = float64(failedToday) / total
 	} else {
 		successRateVal = 1.0
 	}
 	zeroVal := 0.0
-	reliability := &MonitorReliability{
+	return &MonitorReliability{
 		SuccessRate: MonitorMetric{
 			Value:      &successRateVal,
 			Unit:       "ratio",
@@ -548,6 +489,105 @@ func (h *MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorO
 			Source:     "redis",
 		},
 	}
+}
+
+func buildMonitorDependencies(redisAvailable bool, redisStatus string, observedAt time.Time) MonitorDependencyHealthSet {
+	availBool := redisAvailable
+	oneMs := 1.0
+	unmeasured := func(source string) MonitorDependencyHealth {
+		return MonitorDependencyHealth{
+			Status:     "unavailable",
+			Source:     source,
+			Limitation: new("not measured"),
+			ObservedAt: observedAt,
+		}
+	}
+	return MonitorDependencyHealthSet{
+		Redis: MonitorDependencyHealth{
+			Status:       redisStatus,
+			Availability: &availBool,
+			LatencyMs:    &oneMs,
+			Source:       "redis.ping",
+			ObservedAt:   observedAt,
+		},
+		Postgres: MonitorDependencyHealth{
+			Status:       "available",
+			Availability: &availBool,
+			LatencyMs:    &oneMs,
+			Source:       "postgres.select_1",
+			ObservedAt:   observedAt,
+		},
+		DatabasePool: MonitorDependencyHealth{
+			Status:                 "available",
+			Availability:           &availBool,
+			PoolUtilizationPercent: &oneMs,
+			Source:                 "deadpool.api.status",
+			ObservedAt:             observedAt,
+		},
+		OutboxSweeper: unmeasured("outbox.sweeper"),
+		WorkerProcess: MonitorDependencyHealth{
+			Status:       "available",
+			Availability: &availBool,
+			Source:       "worker.heartbeat",
+			ObservedAt:   observedAt,
+		},
+		CPU:    unmeasured("host.cpu"),
+		Memory: unmeasured("host.memory"),
+		Disk:   unmeasured("host.disk"),
+	}
+}
+
+func (h *MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorOperationalSnapshot, error) {
+	observedAt := time.Now().UTC()
+	redisData := h.collectRedisSnapshot(ctx, observedAt)
+
+	totalWorkers := uint64(len(redisData.workers))
+	var activeWorkers, idleWorkers uint64
+	for _, w := range redisData.workers {
+		if strings.EqualFold(w.Status, "PROCESSING") {
+			activeWorkers++
+		} else if strings.EqualFold(w.Status, "IDLE") {
+			idleWorkers++
+		}
+	}
+
+	pendingHigh := redisData.pendingHigh
+	pendingNormal := redisData.pendingNormal
+	pendingLow := redisData.pendingLow
+	completedToday := redisData.completedToday
+	failedToday := redisData.failedToday
+	pendingTasks := pendingHigh + pendingNormal + pendingLow
+
+	durableJobs := MonitorDurableJobsSection{
+		Status:          "available",
+		ErrorCode:       nil,
+		Jobs:            make([]MonitorInfraJobRecord, 0),
+		NextCursorToken: nil,
+		Limit:           10,
+		EventsTruncated: false,
+	}
+	if h.Repo != nil {
+		dj, nextTok, err := h.Repo.ListDurableJobs(ctx, ListDurableJobsParams{Limit: 10})
+		if err == nil {
+			durableJobs.Jobs = dj
+			durableJobs.NextCursorToken = nextTok
+		} else {
+			durableJobs.Status = "degraded"
+			errCode := "DURABLE_JOBS_UNAVAILABLE"
+			durableJobs.ErrorCode = &errCode
+		}
+	}
+
+	window := MonitorMetricWindow{
+		Start:           observedAt.Add(-5 * time.Minute),
+		End:             observedAt,
+		DurationSeconds: 300,
+	}
+	redisStatus := "unavailable"
+	if redisData.available {
+		redisStatus = "available"
+	}
+
 	return MonitorOperationalSnapshot{
 		PendingTasks:       &pendingTasks,
 		PendingHigh:        &pendingHigh,
@@ -560,45 +600,12 @@ func (h *MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorO
 		FailedToday:        &failedToday,
 		ObservedAt:         observedAt,
 		SnapshotAgeSeconds: 0,
-		Workers:            workers,
-		RecentJobs:         recentJobs,
+		Workers:            redisData.workers,
+		RecentJobs:         redisData.recentJobs,
 		JobTypeStats:       make([]JobTypeStats, 0),
 		DurableJobs:        durableJobs,
-		QueueHealth: MonitorQueueHealth{
-			DepthHigh: MonitorMetric{
-				Value:      &highVal,
-				Unit:       "jobs",
-				Formula:    "queue_depth_high",
-				TimeWindow: window,
-				ObservedAt: observedAt,
-				Source:     "redis",
-			},
-			DepthNormal: MonitorMetric{
-				Value:      &normalVal,
-				Unit:       "jobs",
-				Formula:    "queue_depth_normal",
-				TimeWindow: window,
-				ObservedAt: observedAt,
-				Source:     "redis",
-			},
-			DepthLow: MonitorMetric{
-				Value:      &lowVal,
-				Unit:       "jobs",
-				Formula:    "queue_depth_low",
-				TimeWindow: window,
-				ObservedAt: observedAt,
-				Source:     "redis",
-			},
-			DepthTotal: MonitorMetric{
-				Value:      &totalVal,
-				Unit:       "jobs",
-				Formula:    "depth_high + depth_normal + depth_low",
-				TimeWindow: window,
-				ObservedAt: observedAt,
-				Source:     "redis",
-			},
-		},
-		Reliability: reliability,
+		QueueHealth:        buildMonitorQueueHealth(pendingHigh, pendingNormal, pendingLow, pendingTasks, window, observedAt),
+		Reliability:        buildMonitorReliability(completedToday, failedToday, window, observedAt),
 		Thresholds: MonitorOperationalThresholds{
 			QueuePressure: MonitorQueueThresholds{
 				MediumAt:   100,
@@ -616,59 +623,7 @@ func (h *MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorO
 			StaleAfterSeconds: 60,
 			Source:            "backend_default",
 		},
-		Dependencies: MonitorDependencyHealthSet{
-			Redis: MonitorDependencyHealth{
-				Status:       redisStatus,
-				Availability: &availBool,
-				LatencyMs:    &oneMs,
-				Source:       "redis.ping",
-				ObservedAt:   observedAt,
-			},
-			Postgres: MonitorDependencyHealth{
-				Status:       "available",
-				Availability: &availBool,
-				LatencyMs:    &oneMs,
-				Source:       "postgres.select_1",
-				ObservedAt:   observedAt,
-			},
-			DatabasePool: MonitorDependencyHealth{
-				Status:                 "available",
-				Availability:           &availBool,
-				PoolUtilizationPercent: &oneMs,
-				Source:                 "deadpool.api.status",
-				ObservedAt:             observedAt,
-			},
-			OutboxSweeper: MonitorDependencyHealth{
-				Status:     "unavailable",
-				Source:     "outbox.sweeper",
-				Limitation: new("not measured"),
-				ObservedAt: observedAt,
-			},
-			WorkerProcess: MonitorDependencyHealth{
-				Status:       "available",
-				Availability: &availBool,
-				Source:       "worker.heartbeat",
-				ObservedAt:   observedAt,
-			},
-			CPU: MonitorDependencyHealth{
-				Status:     "unavailable",
-				Source:     "host.cpu",
-				Limitation: new("not measured"),
-				ObservedAt: observedAt,
-			},
-			Memory: MonitorDependencyHealth{
-				Status:     "unavailable",
-				Source:     "host.memory",
-				Limitation: new("not measured"),
-				ObservedAt: observedAt,
-			},
-			Disk: MonitorDependencyHealth{
-				Status:     "unavailable",
-				Source:     "host.disk",
-				Limitation: new("not measured"),
-				ObservedAt: observedAt,
-			},
-		},
+		Dependencies: buildMonitorDependencies(redisData.available, redisStatus, observedAt),
 		Quality: MonitorQuality{
 			DataQuality:      "partial",
 			Freshness:        "fresh",
@@ -679,15 +634,9 @@ func (h *MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorO
 				"dependencies.memory",
 				"dependencies.disk",
 			},
-			Redis: MonitorSourceHealth{
-				Status: redisStatus,
-			},
-			DurableDB: MonitorSourceHealth{
-				Status: "available",
-			},
-			WorkerHeartbeats: MonitorSourceHealth{
-				Status: "available",
-			},
+			Redis:            MonitorSourceHealth{Status: redisStatus},
+			DurableDB:        MonitorSourceHealth{Status: "available"},
+			WorkerHeartbeats: MonitorSourceHealth{Status: "available"},
 		},
 	}, nil
 }
@@ -704,246 +653,6 @@ func (h *MonitorHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, snapshot)
-}
-
-// 2. GET /api/v1/monitor/jobs
-func (h *MonitorHandler) GetMonitorJobs(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-
-	q := r.URL.Query()
-	limit := 20
-	if l := q.Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			if parsed > 100 {
-				parsed = 100
-			}
-			limit = parsed
-		}
-	}
-
-	status := strings.TrimSpace(strings.ToLower(q.Get("status")))
-	if status != "" && status != "pending" && status != "processing" && status != "completed" && status != "failed" {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-
-	search := strings.TrimSpace(q.Get("search"))
-	if len([]rune(search)) > 64 {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-
-	state := strings.TrimSpace(strings.ToLower(q.Get("state")))
-	validStates := map[string]bool{
-		"dispatching": true, "queued": true, "processing": true, "completed": true,
-		"failed": true, "retryable": true, "dead_letter": true, "lost": true,
-	}
-	if state != "" && !validStates[state] {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-
-	taskType := strings.TrimSpace(q.Get("task_type"))
-	var taskTypePtr *string
-	if taskType != "" {
-		taskTypePtr = &taskType
-	}
-	var statePtr *string
-	if state != "" {
-		statePtr = &state
-	}
-	var searchPtr *string
-	if search != "" {
-		searchPtr = &search
-	}
-
-	// Legacy Redis jobs
-	jobs := make([]MonitorJob, 0)
-	var nextCursor *int64
-	if h.Redis != nil && h.Redis.IsAvailable() {
-		var cursor int64
-		if c := q.Get("cursor"); c != "" {
-			if parsed, err := strconv.ParseInt(c, 10, 64); err == nil {
-				cursor = parsed
-			}
-		}
-		maxScore := "+inf"
-		if cursor > 0 {
-			maxScore = fmt.Sprintf("(%d", cursor)
-		}
-		members, scores, err := h.Redis.ZRevRangeByScore(r.Context(), "report:job_list", "-inf", maxScore, int64(limit))
-		if err == nil {
-			for _, jid := range members {
-				metaStr, found, err := h.Redis.GetString(r.Context(), fmt.Sprintf("report:meta:%s", jid))
-				if err != nil || !found {
-					continue
-				}
-				var m struct {
-					JobID            uuid.UUID `json:"job_id"`
-					Status           string    `json:"status"`
-					TotalBatches     uint32    `json:"total_batches"`
-					CompletedBatches uint32    `json:"completed_batches"`
-					FailedBatches    uint32    `json:"failed_batches"`
-					ErrorMessage     *string   `json:"error_message"`
-					CreatedAt        *string   `json:"created_at"`
-					CompletedAt      *string   `json:"completed_at"`
-					TaskType         *string   `json:"task_type"`
-				}
-				if json.Unmarshal([]byte(metaStr), &m) == nil {
-					if status != "" && !strings.EqualFold(m.Status, status) {
-						continue
-					}
-					if taskTypePtr != nil && (m.TaskType == nil || !strings.EqualFold(*m.TaskType, *taskTypePtr)) {
-						continue
-					}
-					createdAt := time.Now().UTC()
-					if m.CreatedAt != nil {
-						if t, err := time.Parse(time.RFC3339, *m.CreatedAt); err == nil {
-							createdAt = t
-						}
-					}
-					var completedAt *time.Time
-					if m.CompletedAt != nil {
-						if t, err := time.Parse(time.RFC3339, *m.CompletedAt); err == nil {
-							completedAt = &t
-						}
-					}
-					jobs = append(jobs, MonitorJob{
-						JobID:            m.JobID,
-						Status:           m.Status,
-						TotalBatches:     m.TotalBatches,
-						CompletedBatches: m.CompletedBatches,
-						FailedBatches:    m.FailedBatches,
-						Error:            m.ErrorMessage,
-						CreatedAt:        createdAt,
-						CompletedAt:      completedAt,
-						TaskType:         m.TaskType,
-					})
-				}
-			}
-			if len(scores) == limit {
-				lastScore := int64(scores[len(scores)-1])
-				nextCursor = &lastScore
-			}
-		}
-	}
-
-	// Durable jobs
-	durableJobs := MonitorDurableJobsSection{
-		Status:          "available",
-		ErrorCode:       nil,
-		Jobs:            make([]MonitorInfraJobRecord, 0),
-		NextCursorToken: nil,
-		Limit:           limit,
-		EventsTruncated: false,
-	}
-	if h.Repo != nil {
-		var dCursor *string
-		if c := q.Get("durable_cursor"); c != "" {
-			dCursor = &c
-		}
-		var jIDPtr *uuid.UUID
-		if idStr := q.Get("job_id"); idStr != "" {
-			if id, err := uuid.Parse(idStr); err == nil {
-				jIDPtr = &id
-			}
-		}
-		dj, nextTok, err := h.Repo.ListDurableJobs(r.Context(), ListDurableJobsParams{
-			JobID:    jIDPtr,
-			State:    statePtr,
-			TaskType: taskTypePtr,
-			Search:   searchPtr,
-			Cursor:   dCursor,
-			Limit:    limit,
-		})
-		if err == nil {
-			durableJobs.Jobs = dj
-			durableJobs.NextCursorToken = nextTok
-		} else {
-			durableJobs.Status = "degraded"
-			errCode := "DURABLE_JOBS_UNAVAILABLE"
-			durableJobs.ErrorCode = &errCode
-		}
-	}
-
-	apperror.WriteJSON(w, http.StatusOK, MonitorJobsResponse{
-		Jobs:        jobs,
-		NextCursor:  nextCursor,
-		DurableJobs: durableJobs,
-		Quality: MonitorQuality{
-			DataQuality:      "complete",
-			Freshness:        "fresh",
-			SnapshotSequence: uuid.NewString(),
-			UnknownFields:    make([]string, 0),
-			Redis:            MonitorSourceHealth{Status: "available"},
-			DurableDB:        MonitorSourceHealth{Status: "available"},
-			WorkerHeartbeats: MonitorSourceHealth{Status: "available"},
-		},
-	})
-}
-
-// 3. GET /api/v1/monitor/correlations
-func (h *MonitorHandler) GetMonitorCorrelations(w http.ResponseWriter, r *http.Request) {
-	if _, appErr := h.requireInfraMonitor(r); appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-
-	q := r.URL.Query()
-	reqIDStr := strings.TrimSpace(q.Get("request_id"))
-	traceIDStr := strings.TrimSpace(q.Get("trace_id"))
-
-	if (reqIDStr == "" && traceIDStr == "") || (reqIDStr != "" && traceIDStr != "") {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-
-	var parsedReqID *uuid.UUID
-	if reqIDStr != "" {
-		id, err := uuid.Parse(reqIDStr)
-		if err != nil {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-			return
-		}
-		parsedReqID = &id
-	}
-
-	var parsedTraceID *string
-	if traceIDStr != "" {
-		if len(traceIDStr) > 128 {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-			return
-		}
-		for _, c := range traceIDStr {
-			if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.') {
-				apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-				return
-			}
-		}
-		parsedTraceID = &traceIDStr
-	}
-
-	if h.Repo == nil {
-		apperror.WriteJSON(w, http.StatusOK, MonitorCorrelationsResponse{
-			Jobs:            make([]MonitorInfraJobRecord, 0),
-			EventsTruncated: false,
-		})
-		return
-	}
-
-	jobs, truncated, err := h.Repo.ListCorrelations(r.Context(), parsedReqID, parsedTraceID, 25)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
-		return
-	}
-
-	apperror.WriteJSON(w, http.StatusOK, MonitorCorrelationsResponse{
-		Jobs:            jobs,
-		EventsTruncated: truncated,
-	})
 }
 
 // 4. GET /api/v1/monitor/stream
@@ -996,113 +705,4 @@ func (h *MonitorHandler) Stream(w http.ResponseWriter, r *http.Request) {
 			sendEvent()
 		}
 	}
-}
-
-// 11. GET /api/v1/jobs/{job_id}
-func (h *MonitorHandler) GetJobStatus(w http.ResponseWriter, r *http.Request) {
-	jobID, err := uuid.Parse(r.PathValue("job_id"))
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-
-	userID, appErr := h.requireMember(r)
-	if appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-
-	if h.Redis == nil || !h.Redis.IsAvailable() {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
-		return
-	}
-
-	val, found, err := h.Redis.GetString(r.Context(), fmt.Sprintf("report:meta:%s", jobID.String()))
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-	if !found {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
-		return
-	}
-
-	var meta struct {
-		JobID            uuid.UUID `json:"job_id"`
-		RequesterID      *string   `json:"requester_id"`
-		Status           string    `json:"status"`
-		TotalBatches     uint32    `json:"total_batches"`
-		CompletedBatches uint32    `json:"completed_batches"`
-		FailedBatches    uint32    `json:"failed_batches"`
-		ErrorMessage     *string   `json:"error_message"`
-		CreatedAt        any       `json:"created_at"`
-		CompletedAt      any       `json:"completed_at"`
-	}
-	if err := json.Unmarshal([]byte(val), &meta); err != nil {
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-
-	if meta.RequesterID != nil && *meta.RequesterID != "" {
-		if reqID, err := uuid.Parse(*meta.RequesterID); err == nil && reqID != userID {
-			if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionInfraMonitor)) {
-				apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
-				return
-			}
-		}
-	}
-
-	var percentage float32
-	if meta.TotalBatches > 0 {
-		percentage = (float32(meta.CompletedBatches) / float32(meta.TotalBatches)) * 100.0
-	}
-
-	apperror.WriteJSON(w, http.StatusOK, GenericJobStatusResponse{
-		JobID:  meta.JobID,
-		Status: strings.ToLower(meta.Status),
-		Progress: JobProgressStatus{
-			TotalBatches:     meta.TotalBatches,
-			CompletedBatches: meta.CompletedBatches,
-			FailedBatches:    meta.FailedBatches,
-			Percentage:       percentage,
-		},
-		Error:       meta.ErrorMessage,
-		CreatedAt:   meta.CreatedAt,
-		CompletedAt: meta.CompletedAt,
-	})
-}
-
-// 12. GET /api/v1/monitor/jobs/{job_id}
-func (h *MonitorHandler) GetMonitorJob(w http.ResponseWriter, r *http.Request) {
-	jobID, err := uuid.Parse(r.PathValue("job_id"))
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-
-	if _, appErr := h.requireMember(r); appErr != nil {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-
-	if h.Repo == nil {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
-		return
-	}
-
-	job, err := h.Repo.GetDurableJob(r.Context(), jobID)
-	if err != nil {
-		if errors.Is(err, ErrMonitorNotFound) {
-			apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
-			return
-		}
-		apperror.WriteError(w, r, apperror.Internal(err))
-		return
-	}
-	if job == nil {
-		apperror.WriteError(w, r, apperror.NotFound(apperror.KeyJobNotFound))
-		return
-	}
-
-	apperror.WriteJSON(w, http.StatusOK, job)
 }

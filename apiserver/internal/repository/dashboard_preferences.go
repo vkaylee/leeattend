@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -73,7 +74,7 @@ func (r DashboardPreferencesRepository) UpdateDashboardPreferences(ctx context.C
 	}
 	if len(sets) > 0 {
 		args = append(args, userID.UUID())
-		_, err = db.Exec(ctx, fmt.Sprintf("UPDATE dashboard_preferences SET %s, updated_at=NOW() WHERE user_id=$%d", joinStrings(sets, ", "), len(args)), args...)
+		_, err = db.Exec(ctx, fmt.Sprintf("UPDATE dashboard_preferences SET %s, updated_at=NOW() WHERE user_id=$%d", strings.Join(sets, ", "), len(args)), args...)
 		if err != nil {
 			return api.DashboardPreferences{}, err
 		}

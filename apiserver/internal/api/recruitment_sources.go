@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 var ErrRecruitmentSourceNotFound = errors.New("recruitment source: not found")
@@ -81,7 +80,7 @@ type RecruitmentSourceHandler struct {
 }
 
 func (h *RecruitmentSourceHandler) List(w http.ResponseWriter, r *http.Request) {
-	if !h.isMember(r) {
+	if !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -168,15 +167,6 @@ func (h *RecruitmentSourceHandler) Dashboard(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, result)
-}
-
-func (h *RecruitmentSourceHandler) isMember(r *http.Request) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
-		return false
-	}
-	member, err := h.Authorizer.IsMember(r.Context(), userID)
-	return err == nil && member
 }
 
 func (h *RecruitmentSourceHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 var (
@@ -68,7 +67,7 @@ type LocationHandler struct {
 }
 
 func (h *LocationHandler) List(w http.ResponseWriter, r *http.Request) {
-	if !h.isMember(r) {
+	if !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -86,7 +85,7 @@ func (h *LocationHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *LocationHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !h.isMember(r) {
+	if !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -110,7 +109,7 @@ func (h *LocationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *LocationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -124,7 +123,7 @@ func (h *LocationHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *LocationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -151,7 +150,7 @@ func (h *LocationHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *LocationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -160,15 +159,6 @@ func (h *LocationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *LocationHandler) isMember(r *http.Request) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
-		return false
-	}
-	isMem, err := h.Authorizer.IsMember(r.Context(), userID)
-	return err == nil && isMem
 }
 
 func (h *LocationHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {

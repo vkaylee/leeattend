@@ -11,11 +11,12 @@ import (
 type SystemSettingsRepository struct{ DB DBTX }
 
 func (r SystemSettingsRepository) Get(ctx context.Context, key string) (json.RawMessage, bool, error) {
-	if r.DB == nil {
-		return nil, false, errors.New("system settings repository: nil database")
+	db, err := requireDB(r.DB, "system settings repository")
+	if err != nil {
+		return nil, false, err
 	}
 	var value json.RawMessage
-	err := r.DB.QueryRow(ctx, `SELECT value_json FROM system_settings WHERE key = $1`, key).Scan(&value)
+	err = db.QueryRow(ctx, `SELECT value_json FROM system_settings WHERE key = $1`, key).Scan(&value)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, false, nil
 	}
@@ -23,9 +24,10 @@ func (r SystemSettingsRepository) Get(ctx context.Context, key string) (json.Raw
 }
 
 func (r SystemSettingsRepository) Set(ctx context.Context, key string, value json.RawMessage) error {
-	if r.DB == nil {
-		return errors.New("system settings repository: nil database")
+	db, err := requireDB(r.DB, "system settings repository")
+	if err != nil {
+		return err
 	}
-	_, err := r.DB.Exec(ctx, `INSERT INTO system_settings (key, value_json) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = NOW()`, key, value)
+	_, err = db.Exec(ctx, `INSERT INTO system_settings (key, value_json) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = NOW()`, key, value)
 	return err
 }

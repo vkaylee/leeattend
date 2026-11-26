@@ -1,4 +1,4 @@
-import type { EmployeeSalaryComponent, IncentiveEvaluationResult, SalaryComponentWithDefinition } from "./types";
+import type { EmployeeSalaryComponent, IncentiveEvaluationResult, SalaryComponentWithDefinition } from "./api-generated-reexports";
 
 export interface ConfigRecord {
   created_at?: string;

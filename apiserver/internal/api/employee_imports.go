@@ -121,12 +121,7 @@ type EmployeeImportHandler struct {
 }
 
 func (h *EmployeeImportHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
-	var appErr *apperror.AppError
-	if errors.As(err, &appErr) {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-	apperror.WriteError(w, r, apperror.Internal(err))
+	writeMappedError(w, r, err, nil)
 }
 func (h *EmployeeImportHandler) userID(r *http.Request) (uuid.UUID, bool) {
 	return httpinfra.UserIDFromContext(r.Context())

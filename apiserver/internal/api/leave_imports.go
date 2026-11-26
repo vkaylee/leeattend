@@ -173,7 +173,7 @@ func (h *LeaveHandler) UploadExcel(w http.ResponseWriter, r *http.Request) {
 			DurationType:  duration,
 		})
 	}
-	autoApprove := h.hasAnyPermission(r, "leave:requests:approve", "leave:approve:l1", "leave:approve:l2")
+	autoApprove := hasAnyPermission(r, h.Authorizer, "leave:requests:approve", "leave:approve:l1", "leave:approve:l2")
 	if err = ir.ProcessLeaveImport(r.Context(), user, job, rows, autoApprove); err != nil {
 		h.writeError(w, r, err)
 		return

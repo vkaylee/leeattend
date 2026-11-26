@@ -104,13 +104,13 @@ func (h *CustomFieldHandler) CreateDefinition(w http.ResponseWriter, r *http.Req
 	}
 	var req CreateCustomFieldDefinitionRequest
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	req.FieldKey = strings.TrimSpace(req.FieldKey)
 	req.FieldLabel = strings.TrimSpace(req.FieldLabel)
 	if req.FieldKey == "" || req.FieldLabel == "" || req.EntityType == "" || req.FieldType == "" {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	now := time.Now().UTC()
@@ -200,7 +200,7 @@ func (h *CustomFieldHandler) UpdateDefinition(w http.ResponseWriter, r *http.Req
 	}
 	var req UpdateCustomFieldDefinitionRequest
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -236,7 +236,7 @@ func (h *CustomFieldHandler) GetValues(w http.ResponseWriter, r *http.Request) {
 	entityType := r.PathValue("entity_type")
 	entityID, idOK := pathUUID(r, "entity_id")
 	if !idOK {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	perm := "employees:read"
@@ -263,7 +263,7 @@ func (h *CustomFieldHandler) SetValues(w http.ResponseWriter, r *http.Request) {
 	entityType := r.PathValue("entity_type")
 	entityID, idOK := pathUUID(r, "entity_id")
 	if !idOK {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	perm := "employees:update"
@@ -276,7 +276,7 @@ func (h *CustomFieldHandler) SetValues(w http.ResponseWriter, r *http.Request) {
 	}
 	var req BulkSetCustomFieldValuesRequest
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -289,10 +289,6 @@ func (h *CustomFieldHandler) SetValues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apperror.WriteJSON(w, http.StatusOK, values)
-}
-
-func (h *CustomFieldHandler) validation(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 }
 
 func (h *CustomFieldHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {

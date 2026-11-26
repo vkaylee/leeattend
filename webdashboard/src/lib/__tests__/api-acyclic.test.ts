@@ -3,8 +3,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const API_DIR = path.resolve(__dirname, "../api");
-// Match runtime value imports/re-exports only (exclude `import type` / `export type`).
-const IMPORT_RE = /(?:import|export)\s+(?!type\b)(?:[^'"]*?\s+from\s+)?["'](\.[^"']+)["']/g;
+// Match all local static imports and re-exports (both runtime and type-only).
+const IMPORT_RE = /(?:import|export)\s+(?:type\s+)?(?:[^'"]*?\s+from\s+)?["'](\.[^"']+)["']/g;
 
 function localImports(filePath: string): string[] {
   const src = readFileSync(filePath, "utf8");

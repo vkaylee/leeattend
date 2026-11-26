@@ -22,7 +22,7 @@ import {
     DashboardChartLoading,
 } from "@/components/features/dashboard/dashboard-chart-state";
 import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
-import { toISODate } from "@/components/features/dashboard/dashboard-hr-shared";
+import { getDefaultDateRange } from "@/components/features/dashboard/dashboard-hr-shared";
 import { useDashboardChartError } from "@/components/features/dashboard/use-dashboard-chart-error";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -35,13 +35,6 @@ const TOP_N = 10;
 const EMPLOYEE_ABSENCE_READ = "dashboard:employee_absence:read";
 
 type GroupBy = "department" | "employee";
-
-function defaultRange(): { startDate: string; endDate: string } {
-    const now = new Date();
-    const s = new Date(now);
-    s.setDate(s.getDate() - 29);
-    return { startDate: toISODate(s), endDate: toISODate(now) };
-}
 
 const COLORS = {
     unexcused: "#ef4444",
@@ -57,7 +50,7 @@ export default function UnexcusedAbsencesChart() {
     const { t } = useTranslation();
     const { organization } = useOrganization();
     const [groupBy, setGroupBy] = useState<GroupBy>("department");
-    const [range, setRange] = useState(defaultRange);
+    const [range, setRange] = useState(() => getDefaultDateRange(30));
 
     const timezone = organization?.timezone ?? undefined;
     const { data, error, isLoading } = useUnexcusedAbsences(

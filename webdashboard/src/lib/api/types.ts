@@ -6,19 +6,9 @@ import type { components } from "@/types/api-generated";
 // Anchor aliases: Group A names referenced by overrides below.
 // Kept here (not in the barrel) so they can be used in local scope.
 export type Department = components["schemas"]["Department"];
-export type Employee = components["schemas"]["Employee"] & {
-  employment_status?: string | null;
-  hire_date?: string | null;
-  job_title?: string | null;
-  manager_name?: string | null;
-};
 export type EmployeeProfile = components["schemas"]["EmployeeProfile"];
-export type EmployeeSalaryComponent = components["schemas"]["EmployeeSalaryComponent"];
 export type Employment = components["schemas"]["Employment"];
-export type IncentiveEvaluationResult = components["schemas"]["IncentiveEvaluationResult"];
-export type SalaryComponentWithDefinition = components["schemas"]["SalaryComponentWithDefinition"];
 export type Shift = components["schemas"]["Shift"];
-export type TimeEntry = components["schemas"]["TimeEntry"];
 export type WorkerHeartbeat = components["schemas"]["WorkerHeartbeat"];
 export type WorkingPatternDetailRequest = components["schemas"]["WorkingPatternDetailRequest"];
 

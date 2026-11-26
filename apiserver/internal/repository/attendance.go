@@ -25,11 +25,6 @@ type AttendanceRepository struct {
 	BeginTx func(context.Context) (TxBeginner, error)
 }
 
-// TxBeginner starts a database transaction.
-type TxBeginner interface {
-	Begin(context.Context) (pgx.Tx, error)
-}
-
 // PunchIn writes the raw attendance log and opens a time entry.
 func (r AttendanceRepository) PunchIn(ctx context.Context, employmentID uuid.UUID, segmentID *uuid.UUID, entryType string, note *string, isBreakOvertime bool, punchTime time.Time) (api.TimeEntryRecord, error) {
 	tx, err := r.begin(ctx)
@@ -853,10 +848,11 @@ func (r AttendanceRepository) begin(ctx context.Context) (TxBeginner, error) {
 	if r.BeginTx != nil {
 		return r.BeginTx(ctx)
 	}
-	if r.DB == nil {
-		return nil, errors.New("attendance repository: database is not configured")
+	db, err := requireDB(r.DB, "attendance repository")
+	if err != nil {
+		return nil, err
 	}
-	beginner, ok := r.DB.(TxBeginner)
+	beginner, ok := db.(TxBeginner)
 	if !ok {
 		return nil, errors.New("attendance repository: database does not support transactions")
 	}

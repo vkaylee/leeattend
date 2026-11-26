@@ -1,4 +1,4 @@
-import type { TimeEntry } from "./types";
+import type { TimeEntry } from "./api-generated-reexports";
 
 // --- Timekeeping Models ---
 export type AttendanceEntry = TimeEntry;

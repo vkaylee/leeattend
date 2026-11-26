@@ -16,6 +16,7 @@ import { ChartSummary } from "@/components/features/dashboard/chart-summary";
 import { ChartTableTwin, type ChartTableColumn } from "@/components/features/dashboard/chart-table-twin";
 import { DashboardChartError } from "@/components/features/dashboard/dashboard-chart-state";
 import { DashboardDateRange } from "@/components/features/dashboard/dashboard-date-range";
+import { getDefaultDateRange } from "@/components/features/dashboard/dashboard-hr-shared";
 import { useDashboardChartError } from "@/components/features/dashboard/use-dashboard-chart-error";
 import { Typography } from "@/components/ui/typography";
 import { useDepartmentAttendance, type DepartmentAttendancePoint } from "@/hooks/use-dashboard";
@@ -27,15 +28,6 @@ function rateValue(rate: { value: string | null }): string {
     return rate.value == null ? "—" : `${rate.value}%`;
 }
 
-function defaultRange(): { startDate: string; endDate: string } {
-    const now = new Date();
-    const end = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    const s = new Date(now);
-    s.setDate(s.getDate() - 29);
-    const start = `${s.getFullYear()}-${String(s.getMonth() + 1).padStart(2, "0")}-${String(s.getDate()).padStart(2, "0")}`;
-    return { startDate: start, endDate: end };
-}
-
 interface Row extends DepartmentAttendancePoint {
     attendance: number;
 }
@@ -43,7 +35,7 @@ interface Row extends DepartmentAttendancePoint {
 export default function DepartmentAttendanceChart() {
     const { t } = useTranslation();
     const { organization } = useOrganization();
-    const [range, setRange] = useState(defaultRange);
+    const [range, setRange] = useState(() => getDefaultDateRange(30));
 
     const timezone = organization?.timezone ?? undefined;
     const { data, error, isLoading } = useDepartmentAttendance({

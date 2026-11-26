@@ -345,3 +345,26 @@ func TestEmployeeIdentityMatchFeatureFlagGate(t *testing.T) {
 	assertFlagGate(false)
 	assertFlagGate(true)
 }
+
+func TestStorageConfigRoutesRemainWired(t *testing.T) {
+	router := chi.NewRouter()
+	registerOrganizationRoutes(router, &api.OrganizationHandler{}, &api.OrganizationRBACHandler{}, &api.StorageConfigHandler{})
+
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/settings/storage"},
+		{http.MethodPut, "/api/v1/settings/storage"},
+		{http.MethodDelete, "/api/v1/settings/storage"},
+		{http.MethodPost, "/api/v1/settings/storage/test"},
+	} {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, httptest.NewRequest(route.method, route.path, nil))
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d, want 401 from StorageConfigHandler", rec.Code)
+			}
+		})
+	}
+}

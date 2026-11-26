@@ -157,7 +157,7 @@ func (h *LeaveHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	autoApprove := h.hasAnyPermission(r, "leave:requests:approve", "leave:approve:l1", "leave:approve:l2")
+	autoApprove := hasAnyPermission(r, h.Authorizer, "leave:requests:approve", "leave:approve:l1", "leave:approve:l2")
 	record, err := h.Repository.SubmitLeaveRequest(r.Context(), userID, req, autoApprove)
 	if err != nil {
 		h.writeError(w, r, err)
@@ -187,7 +187,7 @@ func (h *LeaveHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 func (h *LeaveHandler) Approve(w http.ResponseWriter, r *http.Request) {
 
 	requestID, reqOK := pathUUID(r, "id")
-	if !reqOK || !h.hasAnyPermission(r, "leave:requests:approve", "leave:approve:l1", "leave:approve:l2") {
+	if !reqOK || !hasAnyPermission(r, h.Authorizer, "leave:requests:approve", "leave:approve:l1", "leave:approve:l2") {
 		writeForbidden(w, r)
 		return
 	}
@@ -282,19 +282,6 @@ func validateSubmitLeaveRequest(req SubmitLeaveRequest) error {
 		return ErrLeaveValidation
 	}
 	return nil
-}
-
-func (h *LeaveHandler) hasAnyPermission(r *http.Request, permissions ...string) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
-		return false
-	}
-	for _, permission := range permissions {
-		if h.Authorizer.HasPermission(r.Context(), userID, permission) {
-			return true
-		}
-	}
-	return false
 }
 
 func (h *LeaveHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {

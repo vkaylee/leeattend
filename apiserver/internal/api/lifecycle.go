@@ -185,7 +185,7 @@ func isValidItemStatus(s string) bool {
 	return s == "pending" || s == "completed" || s == "skipped" || s == "overdue"
 }
 
-type LifecycleRepository interface {
+type LifecycleTemplateRepository interface {
 	CreateTemplate(ctx context.Context, req CreateLifecycleChecklistTemplateRequest) (LifecycleChecklistTemplate, error)
 	GetTemplate(ctx context.Context, id uuid.UUID) (LifecycleChecklistTemplate, error)
 	ListTemplates(ctx context.Context, checklistType *string) ([]LifecycleChecklistTemplate, error)
@@ -196,6 +196,9 @@ type LifecycleRepository interface {
 	ListTemplateItems(ctx context.Context, templateID uuid.UUID) ([]LifecycleChecklistTemplateItem, error)
 	UpdateTemplateItem(ctx context.Context, itemID uuid.UUID, req UpdateLifecycleChecklistTemplateItemRequest) (LifecycleChecklistTemplateItem, error)
 	DeleteTemplateItem(ctx context.Context, itemID uuid.UUID) error
+}
+
+type LifecycleChecklistRepository interface {
 	CreateChecklistFromTemplate(ctx context.Context, employmentID, templateID uuid.UUID, actorID *uuid.UUID, usersResolver func(context.Context, string) []uuid.UUID) (LifecycleChecklistResponse, error)
 	GetChecklist(ctx context.Context, checklistID uuid.UUID) (LifecycleChecklistResponse, error)
 	ListChecklistsForEmployment(ctx context.Context, employmentID uuid.UUID) ([]LifecycleChecklistResponse, error)
@@ -203,6 +206,11 @@ type LifecycleRepository interface {
 	UpdateChecklistItemStatus(ctx context.Context, itemID uuid.UUID, status string, notes *string, completedBy *uuid.UUID) (LifecycleChecklistResponse, error)
 	GetItemAssigneeAndChecklist(ctx context.Context, itemID uuid.UUID) (assigneeID *uuid.UUID, checklistID uuid.UUID, err error)
 	GetPendingTasksForUser(ctx context.Context, userID uuid.UUID) ([]PendingTaskResponse, error)
+}
+
+type LifecycleRepository interface {
+	LifecycleTemplateRepository
+	LifecycleChecklistRepository
 }
 
 type LifecycleHandler struct {

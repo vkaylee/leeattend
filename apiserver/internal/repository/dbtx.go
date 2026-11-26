@@ -8,7 +8,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
+	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
+
+// TxBeginner starts a database transaction.
+type TxBeginner = service.TxBeginner
 
 // DBTX is the minimal database transaction interface satisfied by *pgxpool.Pool, *pgx.Conn, and pgx.Tx.
 type DBTX interface {
@@ -85,4 +89,14 @@ func requireDB(db DBTX, scope string) (DBTX, error) {
 		return nil, fmt.Errorf("%s: database is not configured", scope)
 	}
 	return wrapNoRows(db), nil
+}
+
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
+}
+
+func isConflictError(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && (pgErr.Code == "23505" || pgErr.Code == "23P01")
 }

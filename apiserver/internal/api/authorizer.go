@@ -27,13 +27,39 @@ type AuditEmitter interface {
 	Emit(context.Context, audit.Event) error
 }
 
+func isMember(r *http.Request, authorizer Authorizer) bool {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || authorizer == nil {
+		return false
+	}
+	member, err := authorizer.IsMember(r.Context(), userID)
+	return err == nil && member
+}
+
 func hasPermission(r *http.Request, authorizer Authorizer, permission string) bool {
 	userID, ok := httpinfra.UserIDFromContext(r.Context())
 	return ok && authorizer != nil && authorizer.HasPermission(r.Context(), userID, permission)
 }
 
+func hasAnyPermission(r *http.Request, authorizer Authorizer, permissions ...string) bool {
+	userID, ok := httpinfra.UserIDFromContext(r.Context())
+	if !ok || authorizer == nil {
+		return false
+	}
+	for _, permission := range permissions {
+		if authorizer.HasPermission(r.Context(), userID, permission) {
+			return true
+		}
+	}
+	return false
+}
+
 func writeForbidden(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+}
+
+func writeValidation(w http.ResponseWriter, r *http.Request) {
+	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 }
 
 func writeMappedError(w http.ResponseWriter, r *http.Request, err error, mapper func(error) *apperror.AppError) {

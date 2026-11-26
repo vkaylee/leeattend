@@ -128,7 +128,7 @@ type EmployerHandler struct {
 }
 
 func (h *EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
-	if !h.isMember(r) {
+	if !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -146,7 +146,7 @@ func (h *EmployerHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !h.isMember(r) {
+	if !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -169,7 +169,7 @@ func (h *EmployerHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -183,7 +183,7 @@ func (h *EmployerHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -215,7 +215,7 @@ func (h *EmployerHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *EmployerHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -261,15 +261,6 @@ func (h *EmployerHandler) validParent(ctx context.Context, employerID uuid.UUID,
 		visited[*parent.ParentID] = true
 		current = *parent.ParentID
 	}
-}
-
-func (h *EmployerHandler) isMember(r *http.Request) bool {
-	userID, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
-		return false
-	}
-	member, err := h.Authorizer.IsMember(r.Context(), userID)
-	return err == nil && member
 }
 
 func (h *EmployerHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {

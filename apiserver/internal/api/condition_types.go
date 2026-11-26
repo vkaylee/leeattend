@@ -117,12 +117,12 @@ func (h *ConditionTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	var req CreateConditionTypeRequest
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	req.Code = strings.TrimSpace(req.Code)
 	if !codeRegex.MatchString(req.Code) || len(req.NameI18N) == 0 {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	if req.Category == "" {
@@ -168,7 +168,7 @@ func (h *ConditionTypeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	var req UpdateConditionTypeRequest
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	if h.Repository == nil {
@@ -198,10 +198,6 @@ func (h *ConditionTypeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *ConditionTypeHandler) validation(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 }
 
 func (h *ConditionTypeHandler) writeError(w http.ResponseWriter, r *http.Request, err error) {

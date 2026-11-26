@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 )
 
@@ -106,8 +105,7 @@ func (r DepartmentRepository) CreateDepartment(ctx context.Context, req api.Crea
 	_, err = db.Exec(ctx, `INSERT INTO departments (id, name, description, manager_id, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW())`,
 		deptID, req.Name, req.Description, req.ManagerID)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if isUniqueViolation(err) {
 			return api.DepartmentRecord{}, api.ErrDepartmentConflict
 		}
 		return api.DepartmentRecord{}, err
@@ -139,8 +137,7 @@ func (r DepartmentRepository) UpdateDepartment(ctx context.Context, deptID uuid.
 		strings.Join(sets, ", "), len(args))
 	tag, err := db.Exec(ctx, query, args...)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if isUniqueViolation(err) {
 			return api.DepartmentRecord{}, api.ErrDepartmentConflict
 		}
 		return api.DepartmentRecord{}, err

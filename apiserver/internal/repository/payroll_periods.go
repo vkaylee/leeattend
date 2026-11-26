@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/domain/ids"
 	payrolldomain "github.com/vkaylee/leeattend/apiserver/internal/domain/payroll"
@@ -148,10 +147,11 @@ func (r PayrollRepository) mutatePayrollPeriod(ctx context.Context, input payrol
 }
 
 func (r PayrollRepository) begin(ctx context.Context) (TxBeginner, error) {
-	if r.DB == nil {
-		return nil, errors.New("payroll repository: database is not configured")
+	db, err := requireDB(r.DB, "payroll repository")
+	if err != nil {
+		return nil, err
 	}
-	beginner, ok := r.DB.(TxBeginner)
+	beginner, ok := db.(TxBeginner)
 	if !ok {
 		return nil, errors.New("payroll repository: database does not support transactions")
 	}
@@ -159,8 +159,7 @@ func (r PayrollRepository) begin(ctx context.Context) (TxBeginner, error) {
 }
 
 func mapPayrollPeriodError(err error) error {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+	if isUniqueViolation(err) {
 		return api.ErrPayrollPeriodConflict
 	}
 	return err

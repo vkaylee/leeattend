@@ -1,4 +1,4 @@
-import type { Employee } from "./types";
+import type { Employee } from "./types-employment";
 
 // --- Employee Self-Service (ESS) Types ---
 export interface EmployeeEmergencyContact {

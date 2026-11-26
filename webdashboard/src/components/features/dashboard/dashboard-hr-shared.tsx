@@ -17,8 +17,22 @@ export interface AnalyticsWarning {
   message: string;
 }
 
+export const HR_CHART_TOOLTIP_STYLE = {
+  borderRadius: "12px",
+  border: "none",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+  fontSize: 12,
+};
+
 export function toISODate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function getDefaultDateRange(days = 30): { startDate: string; endDate: string } {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(start.getDate() - (days - 1));
+  return { startDate: toISODate(start), endDate: toISODate(now) };
 }
 
 export function getHrPeriodOptions(t: TranslateFn): PeriodOption[] {

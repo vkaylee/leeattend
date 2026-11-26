@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
@@ -292,7 +292,7 @@ func segmentWhere(filter api.WorkSegmentFilter) (string, []any) {
 	if len(clauses) == 0 {
 		return "", args
 	}
-	return "WHERE " + joinStrings(clauses, " AND "), args
+	return "WHERE " + strings.Join(clauses, " AND "), args
 }
 
 func updateSegmentSet(req api.UpdateWorkSegmentRequest, now time.Time) (string, []any) {
@@ -348,7 +348,7 @@ func updateSegmentSet(req api.UpdateWorkSegmentRequest, now time.Time) (string, 
 		add("notes", *req.Notes)
 	}
 	add("updated_at", now)
-	return joinStrings(sets, ", "), args
+	return strings.Join(sets, ", "), args
 }
 
 func applySegmentDefaults(req *api.CreateWorkSegmentRequest) {
@@ -381,20 +381,8 @@ func jsonbArg(raw []byte) any {
 }
 
 func mapSegmentDBError(err error) error {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+	if isUniqueViolation(err) {
 		return api.ErrWorkSegmentConflict
 	}
 	return err
-}
-
-func joinStrings(values []string, separator string) string {
-	result := ""
-	for index, value := range values {
-		if index > 0 {
-			result += separator
-		}
-		result += value
-	}
-	return result
 }

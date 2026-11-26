@@ -137,7 +137,7 @@ type ReportHandler struct {
 
 func (h *ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK || !h.allowed(r, userID) {
+	if !userOK || !hasAnyPermission(r, h.Authorizer, "reports:export", "overtime:claim_on_behalf") {
 		writeForbidden(w, r)
 		return
 	}
@@ -148,11 +148,11 @@ func (h *ReportHandler) CreateExport(w http.ResponseWriter, r *http.Request) {
 	var request ExportReportRequest
 	decoder := json.NewDecoder(io.LimitReader(r.Body, maxExportRequestBytes+1))
 	if decoder.Decode(&request) != nil || validateExportRequest(&request) != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	if decoder.Decode(&struct{}{}) != io.EOF {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	if len(request.EmployeeIDs) > 1000 {
@@ -217,7 +217,7 @@ func (h *ReportHandler) scopeExportRequest(ctx context.Context, userID uuid.UUID
 func (h *ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	hasReportAccess := h.Authorizer != nil && (h.Authorizer.HasPermission(r.Context(), userID, "reports:read") ||
@@ -363,7 +363,7 @@ func (h *ReportHandler) AttendanceReport(w http.ResponseWriter, r *http.Request)
 func (h *ReportHandler) NoShowReport(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
 	if !userOK {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	if h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), userID, "reports:read") {
@@ -472,15 +472,4 @@ func validateExportRequest(request *ExportReportRequest) error {
 		return ErrReportValidation
 	}
 	return nil
-}
-func (h *ReportHandler) validation(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-}
-
-func (h *ReportHandler) allowed(r *http.Request, userID uuid.UUID) bool {
-	if h.Authorizer == nil {
-		return false
-	}
-	return h.Authorizer.HasPermission(r.Context(), userID, "reports:export") ||
-		h.Authorizer.HasPermission(r.Context(), userID, "overtime:claim_on_behalf")
 }

@@ -170,12 +170,7 @@ type AttendanceLogsHandler struct {
 }
 
 func (h *AttendanceLogsHandler) fail(w http.ResponseWriter, r *http.Request, err error) {
-	var appErr *apperror.AppError
-	if errors.As(err, &appErr) {
-		apperror.WriteError(w, r, appErr)
-		return
-	}
-	apperror.WriteError(w, r, apperror.Internal(err))
+	writeMappedError(w, r, err, nil)
 }
 
 func (h *AttendanceLogsHandler) user(r *http.Request) (uuid.UUID, bool) {

@@ -12,7 +12,7 @@ func registerOrganizationSettingsRoutes(router chi.Router, get, patch http.Handl
 	registerRoute(router, "GET /api/v1", get)
 }
 
-func registerOrganizationRoutes(router chi.Router, organization *api.OrganizationHandler, rbac *api.OrganizationRBACHandler) {
+func registerOrganizationRoutes(router chi.Router, organization *api.OrganizationHandler, rbac *api.OrganizationRBACHandler, storage *api.StorageConfigHandler) {
 	registerOrganizationSettingsRoutes(router, organization.Get, organization.Patch)
 	registerRoute(router, "GET /api/v1/feature-flags", organization.ListFeatureFlags)
 	registerRoute(router, "GET /api/v1/feature-flags/effective", organization.ListEffectiveFeatureFlags)
@@ -36,10 +36,10 @@ func registerOrganizationRoutes(router chi.Router, organization *api.Organizatio
 	registerRoute(router, "PUT /api/v1/roles/{role_id}/permissions", rbac.SetRolePermissions)
 	registerRoute(router, "GET /api/v1/permissions/catalog", rbac.PermissionCatalog)
 	registerRoute(router, "GET /api/v1/permissions/available", rbac.AvailablePermissions)
-	registerRoute(router, "GET /api/v1/settings/storage", rbac.GetStorage)
-	registerRoute(router, "PUT /api/v1/settings/storage", rbac.PutStorage)
-	registerRoute(router, "DELETE /api/v1/settings/storage", rbac.DeleteStorage)
-	registerRoute(router, "POST /api/v1/settings/storage/test", rbac.TestStorage)
+	registerRoute(router, "GET /api/v1/settings/storage", storage.GetStorage)
+	registerRoute(router, "PUT /api/v1/settings/storage", storage.PutStorage)
+	registerRoute(router, "DELETE /api/v1/settings/storage", storage.DeleteStorage)
+	registerRoute(router, "POST /api/v1/settings/storage/test", storage.TestStorage)
 	registerRoute(router, "POST /api/v1/feature-flags", organization.CreateFeatureFlag)
 	registerRoute(router, "PUT /api/v1/feature-flags", organization.UpsertFeatureFlag)
 	registerRoute(router, "GET /api/v1/feature-flags/{id}", organization.GetFeatureFlagByID)

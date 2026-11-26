@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
-	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
 var (
@@ -63,20 +62,8 @@ type DocumentHandler struct {
 	Authorizer Authorizer
 }
 
-func (h *DocumentHandler) isMember(r *http.Request) bool {
-	if h.Authorizer == nil {
-		return false
-	}
-	u, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok {
-		return false
-	}
-	member, err := h.Authorizer.IsMember(r.Context(), u)
-	return err == nil && member
-}
-
 func (h *DocumentHandler) ListFolders(w http.ResponseWriter, r *http.Request) {
-	if !h.isMember(r) {
+	if !isMember(r, h.Authorizer) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -93,7 +80,7 @@ func (h *DocumentHandler) ListFolders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DocumentHandler) CreateFolder(w http.ResponseWriter, r *http.Request) {
-	if !h.isMember(r) {
+	if !isMember(r, h.Authorizer) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -129,7 +116,7 @@ func (h *DocumentHandler) CreateFolder(w http.ResponseWriter, r *http.Request) {
 
 func (h *DocumentHandler) GetFolder(w http.ResponseWriter, r *http.Request) {
 	folderID, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -151,7 +138,7 @@ func (h *DocumentHandler) GetFolder(w http.ResponseWriter, r *http.Request) {
 
 func (h *DocumentHandler) RenameFolder(w http.ResponseWriter, r *http.Request) {
 	folderID, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -183,7 +170,7 @@ func (h *DocumentHandler) RenameFolder(w http.ResponseWriter, r *http.Request) {
 
 func (h *DocumentHandler) DeleteFolder(w http.ResponseWriter, r *http.Request) {
 	folderID, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -203,7 +190,7 @@ func (h *DocumentHandler) DeleteFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DocumentHandler) Distribute(w http.ResponseWriter, r *http.Request) {
-	if !h.isMember(r) {
+	if !isMember(r, h.Authorizer) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -242,7 +229,7 @@ func FillTemplate(template string, vars map[string]string) string {
 }
 
 func (h *DocumentHandler) PreviewTemplate(w http.ResponseWriter, r *http.Request) {
-	if !h.isMember(r) {
+	if !isMember(r, h.Authorizer) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}
@@ -270,7 +257,7 @@ func (h *DocumentHandler) PreviewTemplate(w http.ResponseWriter, r *http.Request
 
 func (h *DocumentHandler) GenerateTemplate(w http.ResponseWriter, r *http.Request) {
 	_, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return
 	}

@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
 	"github.com/vkaylee/leeattend/apiserver/internal/service"
 )
@@ -249,8 +248,7 @@ func validateRosterEmployment(ctx context.Context, db DBTX, employmentID uuid.UU
 }
 
 func mapRosterDBError(err error) error {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+	if isUniqueViolation(err) {
 		return api.ErrRosterConflict
 	}
 	return err

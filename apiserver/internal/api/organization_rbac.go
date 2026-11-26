@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/vkaylee/leeattend/apiserver/internal/apperror"
 	authpkg "github.com/vkaylee/leeattend/apiserver/internal/auth"
-	"github.com/vkaylee/leeattend/apiserver/internal/infra/crypto"
 	httpinfra "github.com/vkaylee/leeattend/apiserver/internal/infra/http"
 )
 
@@ -118,37 +117,7 @@ type PermissionCatalogItem struct {
 	LabelKey string `json:"label_key"`
 }
 
-type StorageConfigRequest struct {
-	EndpointURL      string  `json:"endpoint_url"`
-	Region           string  `json:"region"`
-	BucketName       string  `json:"bucket_name"`
-	PathPrefix       *string `json:"path_prefix"`
-	AccessKey        string  `json:"access_key"`
-	SecretKey        string  `json:"secret_key"`
-	UsePathStyle     bool    `json:"use_path_style"`
-	PresignedTTLSecs int32   `json:"presigned_ttl_secs"`
-	MaxFileSize      int64   `json:"max_file_size"`
-}
-type StorageConfigResponse struct {
-	ID              uuid.UUID `json:"id"`
-	EndpointURL     string    `json:"endpoint_url"`
-	Region          string    `json:"region"`
-	BucketName      string    `json:"bucket_name"`
-	PathPrefix      *string   `json:"path_prefix"`
-	AccessKeyMasked string    `json:"access_key_masked"`
-	UsePathStyle    bool      `json:"use_path_style"`
-	IsActive        bool      `json:"is_active"`
-}
-type StorageConfigRecord struct {
-	StorageConfigResponse
-	AccessKeyEnc         string
-	SecretKeyEnc         string
-	EncryptionKeyVersion string
-	PresignedTTLSecs     int32
-	MaxFileSize          int64
-}
-
-type OrganizationRBACRepository interface {
+type OrganizationMemberRepository interface {
 	ListMembers(context.Context, int, int) ([]MemberDetail, int64, error)
 	ListExtraRoles(context.Context) ([]MemberExtraRole, error)
 	FindUserByEmail(context.Context, string) (uuid.UUID, error)
@@ -164,6 +133,9 @@ type OrganizationRBACRepository interface {
 	RevokeExtraPermission(context.Context, uuid.UUID) (int64, error)
 	LinkMemberEmployee(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
 	UnlinkMemberEmployee(context.Context, uuid.UUID, uuid.UUID) error
+}
+
+type OrganizationRoleRepository interface {
 	ListRoles(context.Context, int, int) ([]Role, int64, error)
 	CreateRole(context.Context, CreateRoleRequest) (Role, error)
 	UpdateRole(context.Context, uuid.UUID, UpdateRoleRequest) (Role, error)
@@ -171,19 +143,16 @@ type OrganizationRBACRepository interface {
 	RolePermissions(context.Context, uuid.UUID) ([]string, error)
 	RoleIsMutable(context.Context, uuid.UUID) (bool, error)
 	SetRolePermissions(context.Context, uuid.UUID, []string) error
-	GetStorageConfig(context.Context) (*StorageConfigRecord, error)
-	UpsertStorageConfig(context.Context, StorageConfigRecord) (*StorageConfigRecord, error)
-	DeleteStorageConfig(context.Context) error
 }
 
-type StorageConnectionTester interface {
-	Test(context.Context, StorageConfigRequest) error
+type OrganizationRBACRepository interface {
+	OrganizationMemberRepository
+	OrganizationRoleRepository
 }
+
 type OrganizationRBACHandler struct {
-	Repository    OrganizationRBACRepository
-	Authorizer    Authorizer
-	Crypto        *crypto.Service
-	StorageTester StorageConnectionTester
+	Repository OrganizationRBACRepository
+	Authorizer Authorizer
 }
 
 func (h *OrganizationRBACHandler) permission(r *http.Request, permission string) (uuid.UUID, bool) {
@@ -234,7 +203,7 @@ func (h *OrganizationRBACHandler) requireMemberPermissionManagement(w http.Respo
 }
 
 func (h *OrganizationRBACHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.memberContext(w, r); !ok {
+	if _, ok := memberContext(w, r, h.Authorizer); !ok {
 		return
 	}
 	p, e := ParsePagination(r.URL.Query())
@@ -262,17 +231,17 @@ func (h *OrganizationRBACHandler) ListMembers(w http.ResponseWriter, r *http.Req
 	}
 	apperror.WriteJSON(w, http.StatusOK, MemberListResponse{Data: data, Total: total, Page: p.Page, Limit: p.Limit})
 }
-func (h *OrganizationRBACHandler) memberContext(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+func memberContext(w http.ResponseWriter, r *http.Request, authorizer Authorizer) (uuid.UUID, bool) {
 	uid, ok := httpinfra.UserIDFromContext(r.Context())
 	if !ok {
 		apperror.WriteError(w, r, apperror.Unauthorized(apperror.KeyAuthenticationRequired))
 		return uuid.Nil, false
 	}
-	if h.Authorizer == nil {
+	if authorizer == nil {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return uuid.Nil, false
 	}
-	member, err := h.Authorizer.IsMember(r.Context(), uid)
+	member, err := authorizer.IsMember(r.Context(), uid)
 	if err != nil || !member {
 		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
 		return uuid.Nil, false
@@ -345,7 +314,7 @@ func (h *OrganizationRBACHandler) GetMemberRoles(w http.ResponseWriter, r *http.
 		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
-	if _, ok := h.memberContext(w, r); !ok {
+	if _, ok := memberContext(w, r, h.Authorizer); !ok {
 		return
 	}
 	primary, extra, e := h.Repository.ListMemberRoles(r.Context(), user)
@@ -504,7 +473,7 @@ func (h *OrganizationRBACHandler) RevokeExtraPermission(w http.ResponseWriter, r
 	w.WriteHeader(http.StatusNoContent)
 }
 func (h *OrganizationRBACHandler) ListRoles(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.memberContext(w, r); !ok {
+	if _, ok := memberContext(w, r, h.Authorizer); !ok {
 		return
 	}
 	p, e := ParsePagination(r.URL.Query())
@@ -688,82 +657,4 @@ func permissionGroup(id string) string {
 	default:
 		return "other"
 	}
-}
-
-func (h *OrganizationRBACHandler) GetStorage(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.memberContext(w, r); !ok {
-		return
-	}
-	x, e := h.Repository.GetStorageConfig(r.Context())
-	if e != nil {
-		writeRBACError(w, r, e)
-		return
-	}
-	if x == nil {
-		apperror.WriteJSON(w, http.StatusOK, nil)
-		return
-	}
-	response := x.StorageConfigResponse
-	response.AccessKeyMasked = "***"
-	apperror.WriteJSON(w, http.StatusOK, response)
-}
-func (h *OrganizationRBACHandler) PutStorage(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.memberContext(w, r); !ok {
-		return
-	}
-	req, e := DecodeJSON[StorageConfigRequest](r, 1<<20)
-	if e != nil || strings.TrimSpace(req.EndpointURL) == "" || strings.TrimSpace(req.BucketName) == "" || req.AccessKey == "" || req.SecretKey == "" {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if h.Crypto == nil {
-		apperror.WriteError(w, r, apperror.InternalString("storage encryption unavailable"))
-		return
-	}
-	access, e := h.Crypto.Encrypt(req.AccessKey)
-	if e != nil {
-		apperror.WriteError(w, r, apperror.InternalString("failed to encrypt credentials"))
-		return
-	}
-	secret, e := h.Crypto.Encrypt(req.SecretKey)
-	if e != nil {
-		apperror.WriteError(w, r, apperror.InternalString("failed to encrypt credentials"))
-		return
-	}
-	rec := StorageConfigRecord{StorageConfigResponse: StorageConfigResponse{ID: uuid.New(), EndpointURL: req.EndpointURL, Region: req.Region, BucketName: req.BucketName, PathPrefix: req.PathPrefix, UsePathStyle: req.UsePathStyle, IsActive: true}, AccessKeyEnc: access, SecretKeyEnc: secret, EncryptionKeyVersion: strings.Split(access, ":")[0], PresignedTTLSecs: req.PresignedTTLSecs, MaxFileSize: req.MaxFileSize}
-	x, e := h.Repository.UpsertStorageConfig(r.Context(), rec)
-	if e != nil {
-		writeRBACError(w, r, e)
-		return
-	}
-	response := x.StorageConfigResponse
-	response.AccessKeyMasked = "***"
-	apperror.WriteJSON(w, http.StatusOK, response)
-}
-func (h *OrganizationRBACHandler) DeleteStorage(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.memberContext(w, r); !ok {
-		return
-	}
-	if e := h.Repository.DeleteStorageConfig(r.Context()); e != nil {
-		writeRBACError(w, r, e)
-		return
-	}
-	apperror.WriteJSON(w, http.StatusOK, struct{}{})
-}
-func (h *OrganizationRBACHandler) TestStorage(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.memberContext(w, r); !ok {
-		return
-	}
-	req, e := DecodeJSON[StorageConfigRequest](r, 1<<20)
-	if e != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if h.StorageTester != nil {
-		if e = h.StorageTester.Test(r.Context(), req); e != nil {
-			apperror.WriteError(w, r, apperror.Internal(e))
-			return
-		}
-	}
-	apperror.WriteJSON(w, http.StatusOK, true)
 }

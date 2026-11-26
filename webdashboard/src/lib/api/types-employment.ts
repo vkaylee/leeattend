@@ -1,3 +1,12 @@
+import type { components } from "@/types/api-generated";
+
+export type Employee = components["schemas"]["Employee"] & {
+  employment_status?: string | null;
+  hire_date?: string | null;
+  job_title?: string | null;
+  manager_name?: string | null;
+};
+
 export interface EmploymentPeriod {
   created_at: string;
   employee_id: string;

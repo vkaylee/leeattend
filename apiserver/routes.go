@@ -46,15 +46,16 @@ func buildRouter(cfg *config.Config, db repository.DBTX, redisClient *redisinfra
 		}
 	}
 	rbacRepo := repository.OrganizationRBACRepository{SystemDB: db, Revoker: redisClient}
-	rbacHandler := &api.OrganizationRBACHandler{
-		Repository:    rbacRepo,
+	rbacHandler := &api.OrganizationRBACHandler{Repository: rbacRepo, Authorizer: organizationAuthorizer}
+	storageHandler := &api.StorageConfigHandler{
+		Repository:    repository.StorageConfigRepository{SystemDB: db},
 		Authorizer:    organizationAuthorizer,
 		Crypto:        cryptoService,
 		StorageTester: api.NewS3StorageTester(cfg.S3EndpointURL),
 	}
 	authHandler.Authorizer = organizationAuthorizer
 
-	registerOrganizationRoutes(protectedRouter, organizationHandler, rbacHandler)
+	registerOrganizationRoutes(protectedRouter, organizationHandler, rbacHandler, storageHandler)
 	healthHandler := health.NewHandler(Version, nil, nil)
 	healthHandler.SetLive(true)
 	departmentRepo := repository.DepartmentRepository{DB: db}

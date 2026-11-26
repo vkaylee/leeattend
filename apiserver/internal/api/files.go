@@ -264,7 +264,7 @@ func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 	}
 	var req CreateUploadUrlRequest
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	req.FileName = strings.TrimSpace(req.FileName)
@@ -272,12 +272,12 @@ func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 	req.Category = strings.TrimSpace(req.Category)
 	req.OwnerType = strings.TrimSpace(req.OwnerType)
 	if req.FileName == "" || req.MimeType == "" || req.FileSize <= 0 || req.FileSize > 50*1024*1024 || !validOwnerTypes[req.OwnerType] {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	if req.OwnerType == "organization" {
 		if h.Repository == nil {
-			h.validation(w, r)
+			writeValidation(w, r)
 			return
 		}
 		orgID, err := h.Repository.GetOrganizationID(r.Context())
@@ -287,7 +287,7 @@ func (h *FileHandler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 		}
 		req.OwnerID = orgID
 	} else if req.OwnerID == uuid.Nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	fileID := uuid.New()
@@ -412,7 +412,7 @@ func (h *FileHandler) CreateSignatureRequest(w http.ResponseWriter, r *http.Requ
 	}
 	var req CreateSignatureRequestBody
 	if json.NewDecoder(r.Body).Decode(&req) != nil || req.SignerID == uuid.Nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	now := time.Now().UTC()
@@ -477,22 +477,9 @@ func (h *FileHandler) SignDocument(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, struct{}{})
 }
 
-func (h *FileHandler) validation(w http.ResponseWriter, r *http.Request) {
-	apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-}
-
-func (h *FileHandler) isMember(r *http.Request) bool {
-	u, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil {
-		return false
-	}
-	m, err := h.Authorizer.IsMember(r.Context(), u)
-	return err == nil && m
-}
-
 func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK || !h.isMember(r) {
+	if !userOK || !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -500,20 +487,20 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	const maxUploadBytes = 20 * 1024 * 1024
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 
 	category := strings.TrimSpace(r.FormValue("category"))
 	ownerType := strings.TrimSpace(r.FormValue("owner_type"))
 	if !validOwnerTypes[ownerType] {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	var ownerID uuid.UUID
 	if ownerType == "organization" {
 		if h.Repository == nil {
-			h.validation(w, r)
+			writeValidation(w, r)
 			return
 		}
 		var err error
@@ -527,14 +514,14 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		var err error
 		ownerID, err = uuid.Parse(ownerIDStr)
 		if err != nil || ownerID == uuid.Nil {
-			h.validation(w, r)
+			writeValidation(w, r)
 			return
 		}
 	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	defer file.Close()
@@ -550,13 +537,13 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	data, err := io.ReadAll(file)
 	if err != nil || len(data) == 0 {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 
 	fileSize := int64(len(data))
 	if err := ValidateCategory(category, fileSize, mimeType); err != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 
@@ -614,7 +601,7 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 func (h *FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 	fileID, idOK := pathUUID(r, "id")
 	userID, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !idOK || !userOK || !h.isMember(r) {
+	if !idOK || !userOK || !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -637,13 +624,13 @@ func (h *FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 	const maxUploadBytes = 20 * 1024 * 1024
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	defer file.Close()
@@ -659,7 +646,7 @@ func (h *FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 
 	data, err := io.ReadAll(file)
 	if err != nil || len(data) == 0 {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 
@@ -674,7 +661,7 @@ func (h *FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := ValidateCategory(currentFile.Category, fileSize, mimeType); err != nil {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 
@@ -724,7 +711,7 @@ func (h *FileHandler) UpdateFile(w http.ResponseWriter, r *http.Request) {
 
 func (h *FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	fileID, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -771,7 +758,7 @@ func (h *FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 func (h *FileHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
 	fileID, idOK := pathUUID(r, "id")
-	if !idOK || !h.isMember(r) {
+	if !idOK || !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
@@ -790,19 +777,19 @@ func (h *FileHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *FileHandler) ListByOwner(w http.ResponseWriter, r *http.Request) {
-	if !h.isMember(r) {
+	if !isMember(r, h.Authorizer) {
 		writeForbidden(w, r)
 		return
 	}
 	ownerType := r.PathValue("owner_type")
 	if !validOwnerTypes[ownerType] {
-		h.validation(w, r)
+		writeValidation(w, r)
 		return
 	}
 	var ownerID uuid.UUID
 	if ownerType == "organization" {
 		if h.Repository == nil {
-			h.validation(w, r)
+			writeValidation(w, r)
 			return
 		}
 		var err error
@@ -816,7 +803,7 @@ func (h *FileHandler) ListByOwner(w http.ResponseWriter, r *http.Request) {
 		var err error
 		ownerID, err = uuid.Parse(ownerIDStr)
 		if err != nil || ownerID == uuid.Nil {
-			h.validation(w, r)
+			writeValidation(w, r)
 			return
 		}
 	}
