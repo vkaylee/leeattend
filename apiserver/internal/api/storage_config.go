@@ -77,13 +77,20 @@ func (h *StorageConfigHandler) GetStorage(w http.ResponseWriter, r *http.Request
 	apperror.WriteJSON(w, http.StatusOK, response)
 }
 
+func validStorageConfigRequest(req StorageConfigRequest) bool {
+	return strings.TrimSpace(req.EndpointURL) != "" &&
+		strings.TrimSpace(req.BucketName) != "" &&
+		req.AccessKey != "" &&
+		req.SecretKey != ""
+}
+
 func (h *StorageConfigHandler) PutStorage(w http.ResponseWriter, r *http.Request) {
 	if _, ok := memberContext(w, r, h.Authorizer); !ok {
 		return
 	}
 	req, e := DecodeJSON[StorageConfigRequest](r, 1<<20)
-	if e != nil || strings.TrimSpace(req.EndpointURL) == "" || strings.TrimSpace(req.BucketName) == "" || req.AccessKey == "" || req.SecretKey == "" {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	if e != nil || !validStorageConfigRequest(req) {
+		writeValidation(w, r)
 		return
 	}
 	if h.Crypto == nil {

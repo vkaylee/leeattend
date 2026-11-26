@@ -4,48 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 	"github.com/vkaylee/leeattend/apiserver/internal/api"
-	"time"
 )
 
-func (r DashboardAnalyticsRepository) GetExecutiveOverview(ctx context.Context, q api.NormalizedDashboardMetricsQuery, allowOvertimeCost bool) (api.DashboardMetricsResponse, error) {
-	db, err := requireDB(r.DB, "dashboard analytics repository")
-	if err != nil {
-		return api.DashboardMetricsResponse{}, err
-	}
-
-	startStr := q.StartDate.Format("2006-01-02")
-	endStr := q.EndDate.Format("2006-01-02")
-
-	var compStartStr, compEndStr string
-	if q.Comparison == "previous_period" {
-		durDays := int(q.EndDate.Sub(q.StartDate).Hours()/24) + 1
-		compEnd := q.StartDate.AddDate(0, 0, -1)
-		compStart := compEnd.AddDate(0, 0, -(durDays - 1))
-		compStartStr = compStart.Format("2006-01-02")
-		compEndStr = compEnd.Format("2006-01-02")
-	} else if q.Comparison == "same_period_last_year" {
-		compStart := q.StartDate.AddDate(-1, 0, 0)
-		compEnd := q.EndDate.AddDate(-1, 0, 0)
-		compStartStr = compStart.Format("2006-01-02")
-		compEndStr = compEnd.Format("2006-01-02")
-	} else {
-		compStartStr = startStr
-		compEndStr = endStr
-	}
-
-	var deptFilter, locFilter any
-	if len(q.DepartmentIDs) > 0 {
-		deptFilter = q.DepartmentIDs
-	}
-	if len(q.LocationIDs) > 0 {
-		locFilter = q.LocationIDs
-	}
-
-	sql := `WITH periods AS (
+const executiveOverviewSQL = `WITH periods AS (
     SELECT $1::date AS start_date, $2::date AS end_date, 'current' AS period
     UNION ALL
     SELECT $3::date, $4::date, 'comparison'
@@ -181,395 +148,135 @@ LEFT JOIN payroll_cost oc USING (period)
 CROSS JOIN currency c
 WHERE h.period = $7`
 
-	type snap struct {
-		headcount           int64
-		eligibleDays        int64
-		presentDays         int64
-		absentDays          int64
-		leaveDays           int64
-		terminations        int64
-		headcountStart      int64
-		headcountEnd        int64
-		approvedOTMin       int64
-		systemOTMin         int64
-		unapprovedOTMin     int64
-		pendingHRActions    int64
-		currencyCode        string
-		overtimeCost        *decimal.Decimal
-		laborCost           *decimal.Decimal
-		payrollActual       *decimal.Decimal
-		costSourceAvailable bool
-	}
+type executiveSnapshot struct {
+	headcount           int64
+	eligibleDays        int64
+	presentDays         int64
+	absentDays          int64
+	leaveDays           int64
+	terminations        int64
+	headcountStart      int64
+	headcountEnd        int64
+	approvedOTMin       int64
+	systemOTMin         int64
+	unapprovedOTMin     int64
+	pendingHRActions    int64
+	currencyCode        string
+	overtimeCost        *decimal.Decimal
+	laborCost           *decimal.Decimal
+	payrollActual       *decimal.Decimal
+	costSourceAvailable bool
+}
 
-	scanSnap := func(period string) (snap, error) {
-		var s snap
-		err := db.QueryRow(ctx, sql, startStr, endStr, compStartStr, compEndStr, deptFilter, locFilter, period, allowOvertimeCost).Scan(
-			&s.headcount, &s.eligibleDays, &s.presentDays, &s.absentDays, &s.leaveDays,
-			&s.terminations, &s.headcountStart, &s.headcountEnd, &s.approvedOTMin,
-			&s.systemOTMin, &s.unapprovedOTMin, &s.pendingHRActions, &s.currencyCode,
-			&s.overtimeCost, &s.laborCost, &s.payrollActual, &s.costSourceAvailable,
-		)
-		if errors.Is(err, pgx.ErrNoRows) {
-			s.currencyCode = "USD"
-			return s, nil
+func resolveComparisonDateStrings(q api.NormalizedDashboardMetricsQuery, startStr, endStr string) (string, string) {
+	switch q.Comparison {
+	case "previous_period":
+		durDays := int(q.EndDate.Sub(q.StartDate).Hours()/24) + 1
+		compEnd := q.StartDate.AddDate(0, 0, -1)
+		compStart := compEnd.AddDate(0, 0, -(durDays - 1))
+		return compStart.Format("2006-01-02"), compEnd.Format("2006-01-02")
+	case "same_period_last_year":
+		return q.StartDate.AddDate(-1, 0, 0).Format("2006-01-02"), q.EndDate.AddDate(-1, 0, 0).Format("2006-01-02")
+	default:
+		return startStr, endStr
+	}
+}
+
+func scanExecutiveSnapshot(ctx context.Context, db DBTX, startStr, endStr, compStartStr, compEndStr string, deptFilter, locFilter any, period string, allowOvertimeCost bool) (executiveSnapshot, error) {
+	var s executiveSnapshot
+	err := db.QueryRow(ctx, executiveOverviewSQL, startStr, endStr, compStartStr, compEndStr, deptFilter, locFilter, period, allowOvertimeCost).Scan(
+		&s.headcount, &s.eligibleDays, &s.presentDays, &s.absentDays, &s.leaveDays,
+		&s.terminations, &s.headcountStart, &s.headcountEnd, &s.approvedOTMin,
+		&s.systemOTMin, &s.unapprovedOTMin, &s.pendingHRActions, &s.currencyCode,
+		&s.overtimeCost, &s.laborCost, &s.payrollActual, &s.costSourceAvailable,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		s.currencyCode = "USD"
+		return s, nil
+	}
+	return s, err
+}
+
+func buildExecutiveRateMetric(key, defVer, direction, qtyUnit string, numerator, denominator int64, target *api.DashboardMetricTarget, freshness api.DashboardMetricFreshness) api.DashboardMetric {
+	if denominator <= 0 {
+		return api.DashboardMetric{
+			Key: key, Unit: "percent", Status: "not_applicable", Health: "not_applicable",
+			NullReason: new("zero_denominator"), DefinitionVersion: defVer, Direction: direction,
+			Freshness: freshness, QualityFlags: []string{"zero_denominator"},
 		}
-		return s, err
 	}
-
-	cur, err := scanSnap("current")
-	if err != nil {
-		return api.DashboardMetricsResponse{}, err
+	rate := decimal.NewFromInt(numerator).Div(decimal.NewFromInt(denominator)).Mul(decimal.NewFromInt(100))
+	health := "neutral"
+	if target != nil {
+		health = "ok"
+		if (target.Operator == "gte" && rate.LessThan(target.Value)) || (target.Operator == "lte" && rate.GreaterThan(target.Value)) {
+			health = "warning"
+		}
 	}
-	cmp, _ := scanSnap("comparison")
+	num := api.DashboardMetricQuantity{Value: decimal.NewFromInt(numerator), Unit: qtyUnit}
+	den := api.DashboardMetricQuantity{Value: decimal.NewFromInt(denominator), Unit: qtyUnit}
+	return api.DashboardMetric{
+		Key: key, Value: &rate, Unit: "percent", Numerator: &num, Denominator: &den,
+		Status: "available", Health: health, DefinitionVersion: defVer, Direction: direction,
+		Freshness: freshness, QualityFlags: []string{}, Target: target,
+	}
+}
 
-	now := time.Now().UTC()
-	freshness := api.DashboardMetricFreshness{AsOf: now, LagSeconds: new(uint64(0))}
+func buildExecutiveValueMetric(key, unit, defVer, direction string, val decimal.Decimal, freshness api.DashboardMetricFreshness) api.DashboardMetric {
+	return api.DashboardMetric{
+		Key: key, Value: &val, Unit: unit, Status: "available", Health: "neutral",
+		DefinitionVersion: defVer, Direction: direction, Freshness: freshness, QualityFlags: []string{},
+	}
+}
 
-	metrics := make([]api.DashboardMetric, 0)
+func buildExecutiveDataGapMetric(key, unit, defVer, direction, reason string, freshness api.DashboardMetricFreshness) api.DashboardMetric {
+	return api.DashboardMetric{
+		Key: key, Unit: unit, Status: "data_gap", Health: "data_gap",
+		NullReason: new(reason), DefinitionVersion: defVer, Direction: direction,
+		Freshness: freshness, QualityFlags: []string{reason},
+	}
+}
 
-	// 1. Headcount
+func buildExecutiveCostMetric(key, defVer, direction string, allow, available bool, val *decimal.Decimal, freshness api.DashboardMetricFreshness) api.DashboardMetric {
+	if allow && available && val != nil {
+		return api.DashboardMetric{
+			Key: key, Value: val, Unit: "currency", Status: "available", Health: "neutral",
+			DefinitionVersion: defVer, Direction: direction, Freshness: freshness, QualityFlags: []string{},
+		}
+	}
+	return buildExecutiveDataGapMetric(key, "currency", defVer, direction, "no_paid_payslips", freshness)
+}
+
+func buildExecutiveMetrics(q api.NormalizedDashboardMetricsQuery, compStartStr, compEndStr string, cur, cmp executiveSnapshot, allowOvertimeCost bool, freshness api.DashboardMetricFreshness) []api.DashboardMetric {
 	hcVal := decimal.NewFromInt(cur.headcount)
-	metrics = append(metrics, api.DashboardMetric{
-		Key:               "headcount",
-		Value:             &hcVal,
-		Unit:              "count",
-		Status:            "available",
-		Health:            "neutral",
-		DefinitionVersion: "headcount.v1",
-		Direction:         "neutral",
-		Freshness:         freshness,
-		QualityFlags:      []string{},
-		Comparison:        buildComparison(q.Comparison, compStartStr, compEndStr, decimal.NewFromInt(cmp.headcount), hcVal),
-	})
+	hcMetric := buildExecutiveValueMetric("headcount", "count", "headcount.v1", "neutral", hcVal, freshness)
+	hcMetric.Comparison = buildComparison(q.Comparison, compStartStr, compEndStr, decimal.NewFromInt(cmp.headcount), hcVal)
 
-	// 2. Attendance rate
-	if cur.eligibleDays > 0 {
-		rate := decimal.NewFromInt(cur.presentDays).Div(decimal.NewFromInt(cur.eligibleDays)).Mul(decimal.NewFromInt(100))
-		target := decimal.NewFromInt(95)
-		health := "ok"
-		if rate.LessThan(target) {
-			health = "warning"
-		}
-		num := api.DashboardMetricQuantity{Value: decimal.NewFromInt(cur.presentDays), Unit: "employee_days"}
-		den := api.DashboardMetricQuantity{Value: decimal.NewFromInt(cur.eligibleDays), Unit: "employee_days"}
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "attendance_rate",
-			Value:             &rate,
-			Unit:              "percent",
-			Numerator:         &num,
-			Denominator:       &den,
-			Status:            "available",
-			Health:            health,
-			DefinitionVersion: "attendance-rate.v1",
-			Direction:         "higher_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{},
-			Target:            &api.DashboardMetricTarget{Value: target, Operator: "gte"},
-		})
-	} else {
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "attendance_rate",
-			Value:             nil,
-			Unit:              "percent",
-			Status:            "not_applicable",
-			Health:            "not_applicable",
-			NullReason:        new("zero_denominator"),
-			DefinitionVersion: "attendance-rate.v1",
-			Direction:         "higher_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{"zero_denominator"},
-		})
-	}
-
-	// 3. Absence rate
-	if cur.eligibleDays > 0 {
-		rate := decimal.NewFromInt(cur.absentDays).Div(decimal.NewFromInt(cur.eligibleDays)).Mul(decimal.NewFromInt(100))
-		target := decimal.NewFromInt(5)
-		health := "ok"
-		if rate.GreaterThan(target) {
-			health = "warning"
-		}
-		num := api.DashboardMetricQuantity{Value: decimal.NewFromInt(cur.absentDays), Unit: "employee_days"}
-		den := api.DashboardMetricQuantity{Value: decimal.NewFromInt(cur.eligibleDays), Unit: "employee_days"}
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "absence_rate",
-			Value:             &rate,
-			Unit:              "percent",
-			Numerator:         &num,
-			Denominator:       &den,
-			Status:            "available",
-			Health:            health,
-			DefinitionVersion: "absence-rate.v1",
-			Direction:         "lower_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{},
-			Target:            &api.DashboardMetricTarget{Value: target, Operator: "lte"},
-		})
-	} else {
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "absence_rate",
-			Value:             nil,
-			Unit:              "percent",
-			Status:            "not_applicable",
-			Health:            "not_applicable",
-			NullReason:        new("zero_denominator"),
-			DefinitionVersion: "absence-rate.v1",
-			Direction:         "lower_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{"zero_denominator"},
-		})
-	}
-
-	// 4. Late rate
-	metrics = append(metrics, api.DashboardMetric{
-		Key:               "late_rate",
-		Value:             nil,
-		Unit:              "percent",
-		Status:            "data_gap",
-		Health:            "data_gap",
-		NullReason:        new("scheduled_attendance_source_unavailable"),
-		DefinitionVersion: "late-rate.v1",
-		Direction:         "lower_is_better",
-		Freshness:         freshness,
-		QualityFlags:      []string{"scheduled_attendance_source_unavailable"},
-	})
-
-	// 5. Turnover rate
 	meanHc := (cur.headcountStart + cur.headcountEnd) / 2
-	if meanHc > 0 {
-		rate := decimal.NewFromInt(cur.terminations).Div(decimal.NewFromInt(meanHc)).Mul(decimal.NewFromInt(100))
-		target := decimal.NewFromInt(15)
-		health := "ok"
-		if rate.GreaterThan(target) {
-			health = "warning"
-		}
-		num := api.DashboardMetricQuantity{Value: decimal.NewFromInt(cur.terminations), Unit: "employees"}
-		den := api.DashboardMetricQuantity{Value: decimal.NewFromInt(meanHc), Unit: "employees"}
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "turnover_rate",
-			Value:             &rate,
-			Unit:              "percent",
-			Numerator:         &num,
-			Denominator:       &den,
-			Status:            "available",
-			Health:            health,
-			DefinitionVersion: "turnover-rate.v1",
-			Direction:         "lower_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{},
-			Target:            &api.DashboardMetricTarget{Value: target, Operator: "lte"},
-		})
-	} else {
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "turnover_rate",
-			Value:             nil,
-			Unit:              "percent",
-			Status:            "not_applicable",
-			Health:            "not_applicable",
-			NullReason:        new("zero_denominator"),
-			DefinitionVersion: "turnover-rate.v1",
-			Direction:         "lower_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{"zero_denominator"},
-		})
+	attTarget := &api.DashboardMetricTarget{Value: decimal.NewFromInt(95), Operator: "gte"}
+	absTarget := &api.DashboardMetricTarget{Value: decimal.NewFromInt(5), Operator: "lte"}
+	turnTarget := &api.DashboardMetricTarget{Value: decimal.NewFromInt(15), Operator: "lte"}
+
+	return []api.DashboardMetric{
+		hcMetric,
+		buildExecutiveRateMetric("attendance_rate", "attendance-rate.v1", "higher_is_better", "employee_days", cur.presentDays, cur.eligibleDays, attTarget, freshness),
+		buildExecutiveRateMetric("absence_rate", "absence-rate.v1", "lower_is_better", "employee_days", cur.absentDays, cur.eligibleDays, absTarget, freshness),
+		buildExecutiveDataGapMetric("late_rate", "percent", "late-rate.v1", "lower_is_better", "scheduled_attendance_source_unavailable", freshness),
+		buildExecutiveRateMetric("turnover_rate", "turnover-rate.v1", "lower_is_better", "employees", cur.terminations, meanHc, turnTarget, freshness),
+		buildExecutiveValueMetric("system_ot_hours", "hours", "system-ot-hours.v1", "lower_is_better", decimal.NewFromInt(cur.systemOTMin/60), freshness),
+		buildExecutiveValueMetric("approved_ot_hours", "hours", "approved-ot-hours.v1", "lower_is_better", decimal.NewFromInt(cur.approvedOTMin/60), freshness),
+		buildExecutiveValueMetric("unapproved_ot_hours", "hours", "unapproved-ot-hours.v1", "lower_is_better", decimal.NewFromInt(cur.unapprovedOTMin/60), freshness),
+		buildExecutiveRateMetric("ot_approval_rate", "ot-approval-rate.v1", "higher_is_better", "minutes", cur.approvedOTMin, cur.systemOTMin, nil, freshness),
+		buildExecutiveCostMetric("overtime_cost", "overtime-cost.v1", "lower_is_better", allowOvertimeCost, cur.costSourceAvailable, cur.overtimeCost, freshness),
+		buildExecutiveCostMetric("labor_cost", "labor-cost.v1", "lower_is_better", allowOvertimeCost, cur.costSourceAvailable, cur.laborCost, freshness),
+		buildExecutiveCostMetric("payroll_actual", "payroll-actual.v1", "neutral", allowOvertimeCost, cur.costSourceAvailable, cur.payrollActual, freshness),
+		buildExecutiveDataGapMetric("payroll_forecast", "currency", "payroll-forecast.v1", "neutral", "forecast_source_unavailable", freshness),
+		buildExecutiveDataGapMetric("budget_variance", "percent", "budget-variance.v1", "lower_is_better", "budget_not_configured", freshness),
+		buildExecutiveValueMetric("pending_hr_actions", "count", "pending-hr-actions.v1", "lower_is_better", decimal.NewFromInt(cur.pendingHRActions), freshness),
 	}
+}
 
-	// 6. Overtime hours (system, approved, unapproved)
-	sysHVal := decimal.NewFromInt(cur.systemOTMin / 60)
-	metrics = append(metrics, api.DashboardMetric{
-		Key:               "system_ot_hours",
-		Value:             &sysHVal,
-		Unit:              "hours",
-		Status:            "available",
-		Health:            "neutral",
-		DefinitionVersion: "system-ot-hours.v1",
-		Direction:         "lower_is_better",
-		Freshness:         freshness,
-		QualityFlags:      []string{},
-	})
-
-	appHVal := decimal.NewFromInt(cur.approvedOTMin / 60)
-	metrics = append(metrics, api.DashboardMetric{
-		Key:               "approved_ot_hours",
-		Value:             &appHVal,
-		Unit:              "hours",
-		Status:            "available",
-		Health:            "neutral",
-		DefinitionVersion: "approved-ot-hours.v1",
-		Direction:         "lower_is_better",
-		Freshness:         freshness,
-		QualityFlags:      []string{},
-	})
-
-	unappHVal := decimal.NewFromInt(cur.unapprovedOTMin / 60)
-	metrics = append(metrics, api.DashboardMetric{
-		Key:               "unapproved_ot_hours",
-		Value:             &unappHVal,
-		Unit:              "hours",
-		Status:            "available",
-		Health:            "neutral",
-		DefinitionVersion: "unapproved-ot-hours.v1",
-		Direction:         "lower_is_better",
-		Freshness:         freshness,
-		QualityFlags:      []string{},
-	})
-
-	// 7. OT approval rate
-	if cur.systemOTMin > 0 {
-		rate := decimal.NewFromInt(cur.approvedOTMin).Div(decimal.NewFromInt(cur.systemOTMin)).Mul(decimal.NewFromInt(100))
-		num := api.DashboardMetricQuantity{Value: decimal.NewFromInt(cur.approvedOTMin), Unit: "minutes"}
-		den := api.DashboardMetricQuantity{Value: decimal.NewFromInt(cur.systemOTMin), Unit: "minutes"}
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "ot_approval_rate",
-			Value:             &rate,
-			Unit:              "percent",
-			Numerator:         &num,
-			Denominator:       &den,
-			Status:            "available",
-			Health:            "neutral",
-			DefinitionVersion: "ot-approval-rate.v1",
-			Direction:         "higher_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{},
-		})
-	} else {
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "ot_approval_rate",
-			Value:             nil,
-			Unit:              "percent",
-			Status:            "not_applicable",
-			Health:            "not_applicable",
-			NullReason:        new("zero_denominator"),
-			DefinitionVersion: "ot-approval-rate.v1",
-			Direction:         "higher_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{"zero_denominator"},
-		})
-	}
-
-	// 8. Overtime cost & labor cost (conditional)
-	if allowOvertimeCost && cur.costSourceAvailable && cur.overtimeCost != nil {
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "overtime_cost",
-			Value:             cur.overtimeCost,
-			Unit:              "currency",
-			Status:            "available",
-			Health:            "neutral",
-			DefinitionVersion: "overtime-cost.v1",
-			Direction:         "lower_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{},
-		})
-	} else {
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "overtime_cost",
-			Value:             nil,
-			Unit:              "currency",
-			Status:            "data_gap",
-			Health:            "data_gap",
-			NullReason:        new("no_paid_payslips"),
-			DefinitionVersion: "overtime-cost.v1",
-			Direction:         "lower_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{"no_paid_payslips"},
-		})
-	}
-
-	if allowOvertimeCost && cur.costSourceAvailable && cur.laborCost != nil {
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "labor_cost",
-			Value:             cur.laborCost,
-			Unit:              "currency",
-			Status:            "available",
-			Health:            "neutral",
-			DefinitionVersion: "labor-cost.v1",
-			Direction:         "lower_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{},
-		})
-	} else {
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "labor_cost",
-			Value:             nil,
-			Unit:              "currency",
-			Status:            "data_gap",
-			Health:            "data_gap",
-			NullReason:        new("no_paid_payslips"),
-			DefinitionVersion: "labor-cost.v1",
-			Direction:         "lower_is_better",
-			Freshness:         freshness,
-			QualityFlags:      []string{"no_paid_payslips"},
-		})
-	}
-
-	if allowOvertimeCost && cur.costSourceAvailable && cur.payrollActual != nil {
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "payroll_actual",
-			Value:             cur.payrollActual,
-			Unit:              "currency",
-			Status:            "available",
-			Health:            "neutral",
-			DefinitionVersion: "payroll-actual.v1",
-			Direction:         "neutral",
-			Freshness:         freshness,
-			QualityFlags:      []string{},
-		})
-	} else {
-		metrics = append(metrics, api.DashboardMetric{
-			Key:               "payroll_actual",
-			Value:             nil,
-			Unit:              "currency",
-			Status:            "data_gap",
-			Health:            "data_gap",
-			NullReason:        new("no_paid_payslips"),
-			DefinitionVersion: "payroll-actual.v1",
-			Direction:         "neutral",
-			Freshness:         freshness,
-			QualityFlags:      []string{"no_paid_payslips"},
-		})
-	}
-
-	// 9. Payroll forecast & budget variance
-	metrics = append(metrics, api.DashboardMetric{
-		Key:               "payroll_forecast",
-		Value:             nil,
-		Unit:              "currency",
-		Status:            "data_gap",
-		Health:            "data_gap",
-		NullReason:        new("forecast_source_unavailable"),
-		DefinitionVersion: "payroll-forecast.v1",
-		Direction:         "neutral",
-		Freshness:         freshness,
-		QualityFlags:      []string{"forecast_source_unavailable"},
-	})
-
-	metrics = append(metrics, api.DashboardMetric{
-		Key:               "budget_variance",
-		Value:             nil,
-		Unit:              "percent",
-		Status:            "data_gap",
-		Health:            "data_gap",
-		NullReason:        new("budget_not_configured"),
-		DefinitionVersion: "budget-variance.v1",
-		Direction:         "lower_is_better",
-		Freshness:         freshness,
-		QualityFlags:      []string{"budget_not_configured"},
-	})
-
-	// 10. Pending HR actions
-	actVal := decimal.NewFromInt(cur.pendingHRActions)
-	metrics = append(metrics, api.DashboardMetric{
-		Key:               "pending_hr_actions",
-		Value:             &actVal,
-		Unit:              "count",
-		Status:            "available",
-		Health:            "neutral",
-		DefinitionVersion: "pending-hr-actions.v1",
-		Direction:         "lower_is_better",
-		Freshness:         freshness,
-		QualityFlags:      []string{},
-	})
-
+func buildExecutiveDataQuality(metrics []api.DashboardMetric, cur executiveSnapshot, allowOvertimeCost bool, freshness api.DashboardMetricFreshness) api.DashboardDataQuality {
 	qualityStatus := "complete"
 	for _, m := range metrics {
 		if m.Status == "data_gap" {
@@ -577,7 +284,6 @@ WHERE h.period = $7`
 			break
 		}
 	}
-
 	empStatus := "data_gap"
 	if cur.headcount > 0 {
 		empStatus = "complete"
@@ -590,58 +296,78 @@ WHERE h.period = $7`
 	payWarnings := []string{}
 	if allowOvertimeCost && cur.costSourceAvailable {
 		payStatus = "complete"
-	} else if allowOvertimeCost && !cur.costSourceAvailable {
+	} else if allowOvertimeCost {
 		payWarnings = append(payWarnings, "no_paid_payslips_in_period")
 	}
-
-	qualitySources := []api.DashboardQualitySource{
-		{Key: "employments", Status: empStatus, Freshness: freshness, Warnings: []string{}},
-		{Key: "attendance_daily_summaries", Status: attStatus, Freshness: freshness, Warnings: []string{}},
-		{Key: "scheduled_attendance", Status: "data_gap", Freshness: freshness, Warnings: []string{"scheduled_attendance_source_unavailable"}},
-		{Key: "payroll", Status: payStatus, Freshness: freshness, Warnings: payWarnings},
+	return api.DashboardDataQuality{
+		Status: qualityStatus,
+		Sources: []api.DashboardQualitySource{
+			{Key: "employments", Status: empStatus, Freshness: freshness, Warnings: []string{}},
+			{Key: "attendance_daily_summaries", Status: attStatus, Freshness: freshness, Warnings: []string{}},
+			{Key: "scheduled_attendance", Status: "data_gap", Freshness: freshness, Warnings: []string{"scheduled_attendance_source_unavailable"}},
+			{Key: "payroll", Status: payStatus, Freshness: freshness, Warnings: payWarnings},
+		},
 	}
+}
+
+func (r DashboardAnalyticsRepository) GetExecutiveOverview(ctx context.Context, q api.NormalizedDashboardMetricsQuery, allowOvertimeCost bool) (api.DashboardMetricsResponse, error) {
+	db, err := requireDB(r.DB, "dashboard analytics repository")
+	if err != nil {
+		return api.DashboardMetricsResponse{}, err
+	}
+
+	startStr := q.StartDate.Format("2006-01-02")
+	endStr := q.EndDate.Format("2006-01-02")
+	compStartStr, compEndStr := resolveComparisonDateStrings(q, startStr, endStr)
+
+	var deptFilter, locFilter any
+	if len(q.DepartmentIDs) > 0 {
+		deptFilter = q.DepartmentIDs
+	}
+	if len(q.LocationIDs) > 0 {
+		locFilter = q.LocationIDs
+	}
+
+	cur, err := scanExecutiveSnapshot(ctx, db, startStr, endStr, compStartStr, compEndStr, deptFilter, locFilter, "current", allowOvertimeCost)
+	if err != nil {
+		return api.DashboardMetricsResponse{}, err
+	}
+	cmp, _ := scanExecutiveSnapshot(ctx, db, startStr, endStr, compStartStr, compEndStr, deptFilter, locFilter, "comparison", allowOvertimeCost)
+
+	now := time.Now().UTC()
+	freshness := api.DashboardMetricFreshness{AsOf: now, LagSeconds: new(uint64(0))}
+	metrics := buildExecutiveMetrics(q, compStartStr, compEndStr, cur, cmp, allowOvertimeCost, freshness)
 
 	scopeKind := "organization"
 	if len(q.DepartmentIDs) > 0 {
 		scopeKind = "department"
 	}
-
-	deptIDs := q.DepartmentIDs
+	deptIDs, locIDs := q.DepartmentIDs, q.LocationIDs
 	if deptIDs == nil {
 		deptIDs = []uuid.UUID{}
 	}
-	locIDs := q.LocationIDs
 	if locIDs == nil {
 		locIDs = []uuid.UUID{}
 	}
 
 	return api.DashboardMetricsResponse{
 		ContractVersion: "executive-dashboard.v2",
-		Organization: api.DashboardOrganizationContext{
-			Timezone: q.Timezone,
-			Currency: cur.currencyCode,
-		},
+		Organization:    api.DashboardOrganizationContext{Timezone: q.Timezone, Currency: cur.currencyCode},
 		Context: api.DashboardMetricContext{
 			Period: api.DashboardReportingPeriod{
-				Key:       q.Period,
-				StartDate: startStr,
-				EndDate:   endStr,
-				Timezone:  q.Timezone,
-				AsOf:      now,
+				Key: q.Period, StartDate: startStr, EndDate: endStr, Timezone: q.Timezone, AsOf: now,
 			},
 			Comparison: q.Comparison,
 			Filters:    map[string]string{"top_n": fmt.Sprintf("%d", q.TopN), "risk_threshold": q.RiskThreshold},
 			Scope: api.DashboardMetricScope{
-				Kind:              scopeKind,
-				DepartmentIDs:     deptIDs,
-				LocationIDs:       locIDs,
+				Kind: scopeKind, DepartmentIDs: deptIDs, LocationIDs: locIDs,
 				OmittedDimensions: []string{"business_unit", "manager", "employment_type", "employee_status", "shift"},
 			},
 		},
 		Metrics:     metrics,
 		Insights:    []api.DashboardInsight{},
 		Actions:     api.DashboardActionsSummary{Total: uint64(cur.pendingHRActions), Overdue: 0, ByType: []api.DashboardActionTypeCount{}},
-		DataQuality: api.DashboardDataQuality{Status: qualityStatus, Sources: qualitySources},
+		DataQuality: buildExecutiveDataQuality(metrics, cur, allowOvertimeCost, freshness),
 		GeneratedAt: now,
 	}, nil
 }

@@ -31,15 +31,14 @@ func (a *helperAuthorizer) HasPermission(_ context.Context, _ uuid.UUID, permiss
 	return permission == "allow"
 }
 
-func TestSharedAuthorizerHelpers(t *testing.T) {
+func TestIsMemberHelper(t *testing.T) {
 	r := httptest.NewRequest("GET", "/", nil)
 	withUser := r.WithContext(httpinfra.WithUserIDForTest(r.Context(), uuid.New()))
 	a := &helperAuthorizer{member: true, err: errors.New("unavailable")}
 	if isMember(r, a) || isMember(withUser, nil) || isMember(withUser, a) {
 		t.Fatal("membership must fail closed without identity, authorizer, or on error")
 	}
-	a.err = nil
-	a.member = false
+	a.err, a.member = nil, false
 	if isMember(withUser, a) {
 		t.Fatal("non-member must be denied")
 	}
@@ -47,6 +46,12 @@ func TestSharedAuthorizerHelpers(t *testing.T) {
 	if !isMember(withUser, a) {
 		t.Fatal("member must be allowed")
 	}
+}
+
+func TestHasPermissionHelpers(t *testing.T) {
+	r := httptest.NewRequest("GET", "/", nil)
+	withUser := r.WithContext(httpinfra.WithUserIDForTest(r.Context(), uuid.New()))
+	a := &helperAuthorizer{}
 	if hasPermission(r, a, "allow") || hasPermission(withUser, nil, "allow") || hasPermission(withUser, a, "deny") {
 		t.Fatal("permission must fail closed")
 	}

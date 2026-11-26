@@ -155,13 +155,6 @@ type OrganizationRBACHandler struct {
 	Authorizer Authorizer
 }
 
-func (h *OrganizationRBACHandler) permission(r *http.Request, permission string) (uuid.UUID, bool) {
-	uid, ok := httpinfra.UserIDFromContext(r.Context())
-	if !ok || h.Authorizer == nil || !h.Authorizer.HasPermission(r.Context(), uid, permission) {
-		return uuid.Nil, false
-	}
-	return uid, true
-}
 func writeRBACError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrRBACUserNotFound):
@@ -181,12 +174,11 @@ func (h *OrganizationRBACHandler) require(w http.ResponseWriter, r *http.Request
 }
 
 func (h *OrganizationRBACHandler) requireAny(w http.ResponseWriter, r *http.Request, permissions ...string) (uuid.UUID, bool) {
-	for _, permission := range permissions {
-		if uid, ok := h.permission(r, permission); ok {
-			return uid, true
-		}
+	if hasAnyPermission(r, h.Authorizer, permissions...) {
+		uid, _ := httpinfra.UserIDFromContext(r.Context())
+		return uid, true
 	}
-	apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+	writeForbidden(w, r)
 	return uuid.Nil, false
 }
 

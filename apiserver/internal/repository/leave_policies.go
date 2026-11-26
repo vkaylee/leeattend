@@ -74,6 +74,28 @@ func (r LeaveRepository) CreateLeavePolicy(ctx context.Context, req api.CreateLe
 	return def, nil
 }
 
+func mergeLeavePolicyPatch(existingName string, existingDesc *string, existingLeaveType uuid.UUID, existingRaw []byte, req api.UpdateLeavePolicyRequest) (string, *string, uuid.UUID, []byte) {
+	name := existingName
+	if req.Name != nil && strings.TrimSpace(*req.Name) != "" {
+		name = strings.TrimSpace(*req.Name)
+	}
+	desc := existingDesc
+	if req.Description != nil {
+		desc = req.Description
+	}
+	leaveTypeID := existingLeaveType
+	if req.LeaveTypeID != nil && *req.LeaveTypeID != uuid.Nil {
+		leaveTypeID = *req.LeaveTypeID
+	}
+	configBytes := existingRaw
+	if req.RuleConfig != nil {
+		if b, err := json.Marshal(req.RuleConfig); err == nil {
+			configBytes = b
+		}
+	}
+	return name, desc, leaveTypeID, configBytes
+}
+
 func (r LeaveRepository) UpdateLeavePolicy(ctx context.Context, policyID uuid.UUID, req api.UpdateLeavePolicyRequest) (api.LeavePolicyDefinition, error) {
 	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
@@ -94,24 +116,7 @@ func (r LeaveRepository) UpdateLeavePolicy(ctx context.Context, policyID uuid.UU
 	if err != nil {
 		return api.LeavePolicyDefinition{}, err
 	}
-	name := existingName
-	if req.Name != nil && strings.TrimSpace(*req.Name) != "" {
-		name = strings.TrimSpace(*req.Name)
-	}
-	desc := existingDesc
-	if req.Description != nil {
-		desc = req.Description
-	}
-	leaveTypeID := existingLeaveType
-	if req.LeaveTypeID != nil && *req.LeaveTypeID != uuid.Nil {
-		leaveTypeID = *req.LeaveTypeID
-	}
-	configBytes := existingRaw
-	if req.RuleConfig != nil {
-		if b, err := json.Marshal(req.RuleConfig); err == nil {
-			configBytes = b
-		}
-	}
+	name, desc, leaveTypeID, configBytes := mergeLeavePolicyPatch(existingName, existingDesc, existingLeaveType, existingRaw, req)
 	var def api.LeavePolicyDefinition
 	var outConfig []byte
 	var createdAt, updatedAt time.Time

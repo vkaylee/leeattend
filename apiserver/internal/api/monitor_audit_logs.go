@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -74,47 +73,18 @@ func (h *AuditLogHandler) GetAuditLogs(w http.ResponseWriter, r *http.Request) {
 
 	q := r.URL.Query()
 	page := 1
-	if p := q.Get("page"); p != "" {
-		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
-			page = parsed
-		}
+	if parsed, err := strconv.Atoi(q.Get("page")); err == nil && parsed > 0 {
+		page = parsed
 	}
-
-	limit := 50
-	if l := q.Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			if parsed > 100 {
-				parsed = 100
-			}
-			limit = parsed
-		}
-	}
-
-	var actionPtr *string
-	if a := strings.TrimSpace(q.Get("action")); a != "" {
-		actionPtr = &a
-	}
-
-	var startDate *time.Time
-	if s := strings.TrimSpace(q.Get("start_date")); s != "" {
-		if t, err := time.Parse(time.RFC3339, s); err == nil {
-			startDate = &t
-		}
-	}
-
-	var endDate *time.Time
-	if e := strings.TrimSpace(q.Get("end_date")); e != "" {
-		if t, err := time.Parse(time.RFC3339, e); err == nil {
-			endDate = &t
-		}
-	}
-
+	limit := parseMonitorLimit(q.Get("limit"), 50, 100)
+	actionPtr := optionalTrimmedParam(q.Get("action"))
+	startDate := optionalRFC3339Param(q.Get("start_date"))
+	endDate := optionalRFC3339Param(q.Get("end_date"))
 	offset := (page - 1) * limit
 
 	if h.Repo == nil {
 		apperror.WriteJSON(w, http.StatusOK, PaginatedAuditLogs{
 			Data:  make([]AuditLogRecord, 0),
-			Total: 0,
 			Page:  int64(page),
 			Limit: int64(limit),
 		})

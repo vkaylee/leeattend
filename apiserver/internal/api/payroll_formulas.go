@@ -110,6 +110,19 @@ func (h *PayrollHandler) ListPayrollFormulaRules(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusOK, rules)
 }
 
+func validCreateFormulaRuleRequest(req CreatePayrollFormulaRuleRequest) bool {
+	if strings.TrimSpace(req.Code) == "" || strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.ComponentCode) == "" {
+		return false
+	}
+	if len(req.Expression) == 0 || len(req.Expression) > 4096 {
+		return false
+	}
+	if _, err := time.Parse("2006-01-02", req.EffectiveFrom); err != nil {
+		return false
+	}
+	return formula.Validate(req.Expression) == nil
+}
+
 func (h *PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http.Request) {
 	if !hasPermission(r, h.Authorizer, "payroll:manage") {
 		writeForbidden(w, r)
@@ -121,16 +134,8 @@ func (h *PayrollHandler) CreatePayrollFormulaRule(w http.ResponseWriter, r *http
 		return
 	}
 	req, err := DecodeJSON[CreatePayrollFormulaRuleRequest](r, 1<<20)
-	if err != nil || strings.TrimSpace(req.Code) == "" || strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.ComponentCode) == "" || len(req.Expression) == 0 || len(req.Expression) > 4096 {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if _, err := time.Parse("2006-01-02", req.EffectiveFrom); err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if err := formula.Validate(req.Expression); err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	if err != nil || !validCreateFormulaRuleRequest(req) {
+		writeValidation(w, r)
 		return
 	}
 	rule, err := h.Repository.CreatePayrollFormulaRule(r.Context(), req, actorID)

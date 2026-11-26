@@ -34,8 +34,9 @@ func (r OrganizationRBACRepository) begin(ctx context.Context) (TxBeginner, erro
 }
 
 func (r OrganizationRBACRepository) withTx(ctx context.Context, fn func(ctx context.Context, tx DBTX) error) error {
-	if r.SystemDB == nil {
-		return errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return err
 	}
 	if tx, ok := r.SystemDB.(pgx.Tx); ok {
 		return fn(ctx, tx)
@@ -46,15 +47,16 @@ func (r OrganizationRBACRepository) withTx(ctx context.Context, fn func(ctx cont
 			return fn(ctx, tx)
 		})
 	}
-	return fn(ctx, r.SystemDB)
+	return fn(ctx, db)
 }
 
 func (r OrganizationRBACRepository) ListMembers(ctx context.Context, page, limit int) ([]api.MemberDetail, int64, error) {
-	if r.SystemDB == nil {
-		return nil, 0, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return nil, 0, err
 	}
 	var total int64
-	err := r.SystemDB.QueryRow(ctx, `SELECT COUNT(*) FROM user_roles ur JOIN users u ON u.id = ur.user_id`).Scan(&total)
+	err = db.QueryRow(ctx, `SELECT COUNT(*) FROM user_roles ur JOIN users u ON u.id = ur.user_id`).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -62,7 +64,7 @@ func (r OrganizationRBACRepository) ListMembers(ctx context.Context, page, limit
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := r.SystemDB.Query(ctx, `
+	rows, err := db.Query(ctx, `
 		SELECT ur.user_id, ur.role_id, u.email, u.full_name, u.avatar_url, t.employee_id
 		FROM user_roles ur
 		JOIN users u ON u.id = ur.user_id
@@ -95,10 +97,11 @@ func (r OrganizationRBACRepository) ListMembers(ctx context.Context, page, limit
 }
 
 func (r OrganizationRBACRepository) ListExtraRoles(ctx context.Context) ([]api.MemberExtraRole, error) {
-	if r.SystemDB == nil {
-		return nil, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return nil, err
 	}
-	rows, err := r.SystemDB.Query(ctx, `SELECT id, user_id, role_id, expires_at, assigned_at FROM user_extra_roles WHERE expires_at > NOW()`)
+	rows, err := db.Query(ctx, `SELECT id, user_id, role_id, expires_at, assigned_at FROM user_extra_roles WHERE expires_at > NOW()`)
 	if err != nil {
 		return nil, err
 	}
@@ -118,11 +121,12 @@ func (r OrganizationRBACRepository) ListExtraRoles(ctx context.Context) ([]api.M
 }
 
 func (r OrganizationRBACRepository) FindUserByEmail(ctx context.Context, email string) (uuid.UUID, error) {
-	if r.SystemDB == nil {
-		return uuid.Nil, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return uuid.Nil, err
 	}
 	var id uuid.UUID
-	err := r.SystemDB.QueryRow(ctx, `SELECT id FROM users WHERE LOWER(email) = LOWER($1)`, email).Scan(&id)
+	err = db.QueryRow(ctx, `SELECT id FROM users WHERE LOWER(email) = LOWER($1)`, email).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, api.ErrRBACUserNotFound
 	}
@@ -130,19 +134,21 @@ func (r OrganizationRBACRepository) FindUserByEmail(ctx context.Context, email s
 }
 
 func (r OrganizationRBACRepository) AddMember(ctx context.Context, user, role uuid.UUID) error {
-	if r.SystemDB == nil {
-		return errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return err
 	}
-	_, err := r.SystemDB.Exec(ctx, `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING`, user, role)
+	_, err = db.Exec(ctx, `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING`, user, role)
 	return mapConstraintError(err)
 }
 
 func (r OrganizationRBACRepository) FindPrimaryRole(ctx context.Context, user uuid.UUID) (*uuid.UUID, error) {
-	if r.SystemDB == nil {
-		return nil, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return nil, err
 	}
 	var role uuid.UUID
-	err := r.SystemDB.QueryRow(ctx, `SELECT role_id FROM user_roles WHERE user_id = $1`, user).Scan(&role)
+	err = db.QueryRow(ctx, `SELECT role_id FROM user_roles WHERE user_id = $1`, user).Scan(&role)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -153,9 +159,6 @@ func (r OrganizationRBACRepository) FindPrimaryRole(ctx context.Context, user uu
 }
 
 func (r OrganizationRBACRepository) UpdateMemberRole(ctx context.Context, user, role uuid.UUID) error {
-	if r.SystemDB == nil {
-		return errors.New("nil system db")
-	}
 	return r.withTx(ctx, func(ctx context.Context, tx DBTX) error {
 		var newScope, newName string
 		err := tx.QueryRow(ctx, `SELECT scope_type, name FROM roles WHERE id = $1`, role).Scan(&newScope, &newName)
@@ -213,9 +216,6 @@ func (r OrganizationRBACRepository) UpdateMemberRole(ctx context.Context, user, 
 }
 
 func (r OrganizationRBACRepository) RemoveMember(ctx context.Context, user uuid.UUID) error {
-	if r.SystemDB == nil {
-		return errors.New("nil system db")
-	}
 	return r.withTx(ctx, func(ctx context.Context, tx DBTX) error {
 		var curScope, curName string
 		err := tx.QueryRow(ctx, `SELECT r.scope_type, r.name FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = $1`, user).Scan(&curScope, &curName)
@@ -263,18 +263,19 @@ func (r OrganizationRBACRepository) RemoveMember(ctx context.Context, user uuid.
 }
 
 func (r OrganizationRBACRepository) ListMemberRoles(ctx context.Context, user uuid.UUID) (*api.Role, []api.MemberExtraRole, error) {
-	if r.SystemDB == nil {
-		return nil, nil, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return nil, nil, err
 	}
 	var primary *api.Role
 	var p api.Role
-	err := r.SystemDB.QueryRow(ctx, `SELECT r.id, r.name, r.description, r.color, r.is_system, r.scope_type, r.created_at, r.updated_at FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = $1`, user).Scan(&p.ID, &p.Name, &p.Description, &p.Color, &p.IsSystem, &p.ScopeType, &p.CreatedAt, &p.UpdatedAt)
+	err = db.QueryRow(ctx, `SELECT r.id, r.name, r.description, r.color, r.is_system, r.scope_type, r.created_at, r.updated_at FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = $1`, user).Scan(&p.ID, &p.Name, &p.Description, &p.Color, &p.IsSystem, &p.ScopeType, &p.CreatedAt, &p.UpdatedAt)
 	if err == nil {
 		primary = &p
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, err
 	}
-	rows, err := r.SystemDB.Query(ctx, `SELECT id, user_id, role_id, expires_at, assigned_at FROM user_extra_roles WHERE user_id = $1 AND expires_at > NOW()`, user)
+	rows, err := db.Query(ctx, `SELECT id, user_id, role_id, expires_at, assigned_at FROM user_extra_roles WHERE user_id = $1 AND expires_at > NOW()`, user)
 	if err != nil {
 		return primary, nil, err
 	}
@@ -294,12 +295,13 @@ func (r OrganizationRBACRepository) ListMemberRoles(ctx context.Context, user uu
 }
 
 func (r OrganizationRBACRepository) AssignExtraRole(ctx context.Context, user, role uuid.UUID, expires time.Time) (api.MemberExtraRole, error) {
-	if r.SystemDB == nil {
-		return api.MemberExtraRole{}, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return api.MemberExtraRole{}, err
 	}
 	id := uuid.New()
 	now := time.Now().UTC()
-	_, err := r.SystemDB.Exec(ctx, `INSERT INTO user_extra_roles (id, user_id, role_id, expires_at, assigned_at) VALUES ($1, $2, $3, $4, $5)`, id, user, role, expires, now)
+	_, err = db.Exec(ctx, `INSERT INTO user_extra_roles (id, user_id, role_id, expires_at, assigned_at) VALUES ($1, $2, $3, $4, $5)`, id, user, role, expires, now)
 	if err != nil {
 		return api.MemberExtraRole{}, mapConstraintError(err)
 	}
@@ -307,18 +309,20 @@ func (r OrganizationRBACRepository) AssignExtraRole(ctx context.Context, user, r
 }
 
 func (r OrganizationRBACRepository) RevokeExtraRole(ctx context.Context, extraRoleID uuid.UUID) (int64, error) {
-	if r.SystemDB == nil {
-		return 0, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return 0, err
 	}
-	tag, err := r.SystemDB.Exec(ctx, `DELETE FROM user_extra_roles WHERE id = $1`, extraRoleID)
+	tag, err := db.Exec(ctx, `DELETE FROM user_extra_roles WHERE id = $1`, extraRoleID)
 	return tag.RowsAffected(), err
 }
 
 func (r OrganizationRBACRepository) ListMemberPermissions(ctx context.Context, user uuid.UUID) ([]api.MemberExtraPermission, error) {
-	if r.SystemDB == nil {
-		return nil, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return nil, err
 	}
-	rows, err := r.SystemDB.Query(ctx, `SELECT id, user_id, permission, assigned_at, expires_at, assigned_by FROM user_extra_permissions WHERE user_id = $1 AND expires_at > NOW() ORDER BY assigned_at DESC`, user)
+	rows, err := db.Query(ctx, `SELECT id, user_id, permission, assigned_at, expires_at, assigned_by FROM user_extra_permissions WHERE user_id = $1 AND expires_at > NOW() ORDER BY assigned_at DESC`, user)
 	if err != nil {
 		return nil, err
 	}
@@ -338,8 +342,9 @@ func (r OrganizationRBACRepository) ListMemberPermissions(ctx context.Context, u
 }
 
 func (r OrganizationRBACRepository) AssignExtraPermission(ctx context.Context, user uuid.UUID, perm string, expires time.Time, actor uuid.UUID) (api.MemberExtraPermission, error) {
-	if r.SystemDB == nil {
-		return api.MemberExtraPermission{}, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return api.MemberExtraPermission{}, err
 	}
 	id := uuid.New()
 	now := time.Now().UTC()
@@ -347,7 +352,7 @@ func (r OrganizationRBACRepository) AssignExtraPermission(ctx context.Context, u
 	if actor != uuid.Nil {
 		assignedBy = &actor
 	}
-	_, err := r.SystemDB.Exec(ctx, `INSERT INTO user_extra_permissions (id, user_id, permission, expires_at, assigned_by, assigned_at) VALUES ($1, $2, $3, $4, $5, $6)`, id, user, perm, expires, assignedBy, now)
+	_, err = db.Exec(ctx, `INSERT INTO user_extra_permissions (id, user_id, permission, expires_at, assigned_by, assigned_at) VALUES ($1, $2, $3, $4, $5, $6)`, id, user, perm, expires, assignedBy, now)
 	if err != nil {
 		return api.MemberExtraPermission{}, mapConstraintError(err)
 	}
@@ -448,19 +453,21 @@ func (r OrganizationRBACRepository) UnlinkMemberEmployee(ctx context.Context, ac
 }
 
 func (r OrganizationRBACRepository) RevokeExtraPermission(ctx context.Context, permID uuid.UUID) (int64, error) {
-	if r.SystemDB == nil {
-		return 0, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return 0, err
 	}
-	tag, err := r.SystemDB.Exec(ctx, `DELETE FROM user_extra_permissions WHERE id = $1`, permID)
+	tag, err := db.Exec(ctx, `DELETE FROM user_extra_permissions WHERE id = $1`, permID)
 	return tag.RowsAffected(), err
 }
 
 func (r OrganizationRBACRepository) ListRoles(ctx context.Context, page, limit int) ([]api.Role, int64, error) {
-	if r.SystemDB == nil {
-		return nil, 0, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return nil, 0, err
 	}
 	var total int64
-	err := r.SystemDB.QueryRow(ctx, `SELECT COUNT(*) FROM roles`).Scan(&total)
+	err = db.QueryRow(ctx, `SELECT COUNT(*) FROM roles`).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -468,7 +475,7 @@ func (r OrganizationRBACRepository) ListRoles(ctx context.Context, page, limit i
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := r.SystemDB.Query(ctx, `SELECT id, name, description, color, is_system, scope_type, created_at, updated_at FROM roles ORDER BY is_system DESC, created_at ASC LIMIT $1 OFFSET $2`, limit, offset)
+	rows, err := db.Query(ctx, `SELECT id, name, description, color, is_system, scope_type, created_at, updated_at FROM roles ORDER BY is_system DESC, created_at ASC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -488,8 +495,9 @@ func (r OrganizationRBACRepository) ListRoles(ctx context.Context, page, limit i
 }
 
 func (r OrganizationRBACRepository) CreateRole(ctx context.Context, req api.CreateRoleRequest) (api.Role, error) {
-	if r.SystemDB == nil {
-		return api.Role{}, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return api.Role{}, err
 	}
 	id := uuid.New()
 	now := time.Now().UTC()
@@ -498,13 +506,14 @@ func (r OrganizationRBACRepository) CreateRole(ctx context.Context, req api.Crea
 		scopeType = api.RoleScopeScoped
 	}
 	var res api.Role
-	err := r.SystemDB.QueryRow(ctx, `INSERT INTO roles (id, name, description, color, is_system, scope_type, created_at, updated_at) VALUES ($1, $2, $3, $4, false, $5, $6, $7) RETURNING id, name, description, color, is_system, scope_type, created_at, updated_at`, id, req.Name, req.Description, req.Color, scopeType, now, now).Scan(&res.ID, &res.Name, &res.Description, &res.Color, &res.IsSystem, &res.ScopeType, &res.CreatedAt, &res.UpdatedAt)
+	err = db.QueryRow(ctx, `INSERT INTO roles (id, name, description, color, is_system, scope_type, created_at, updated_at) VALUES ($1, $2, $3, $4, false, $5, $6, $7) RETURNING id, name, description, color, is_system, scope_type, created_at, updated_at`, id, req.Name, req.Description, req.Color, scopeType, now, now).Scan(&res.ID, &res.Name, &res.Description, &res.Color, &res.IsSystem, &res.ScopeType, &res.CreatedAt, &res.UpdatedAt)
 	return res, mapConstraintError(err)
 }
 
 func (r OrganizationRBACRepository) UpdateRole(ctx context.Context, role uuid.UUID, req api.UpdateRoleRequest) (api.Role, error) {
-	if r.SystemDB == nil {
-		return api.Role{}, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return api.Role{}, err
 	}
 	sets := []string{}
 	args := []any{}
@@ -525,10 +534,10 @@ func (r OrganizationRBACRepository) UpdateRole(ctx context.Context, role uuid.UU
 	args = append(args, role)
 	query := fmt.Sprintf(`UPDATE roles SET %s WHERE id = $%d AND is_system = false RETURNING id, name, description, color, is_system, scope_type, created_at, updated_at`, strings.Join(sets, ", "), len(args))
 	var res api.Role
-	err := r.SystemDB.QueryRow(ctx, query, args...).Scan(&res.ID, &res.Name, &res.Description, &res.Color, &res.IsSystem, &res.ScopeType, &res.CreatedAt, &res.UpdatedAt)
+	err = db.QueryRow(ctx, query, args...).Scan(&res.ID, &res.Name, &res.Description, &res.Color, &res.IsSystem, &res.ScopeType, &res.CreatedAt, &res.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		var isSystem bool
-		if checkErr := r.SystemDB.QueryRow(ctx, `SELECT is_system FROM roles WHERE id = $1`, role).Scan(&isSystem); checkErr == nil && isSystem {
+		if checkErr := db.QueryRow(ctx, `SELECT is_system FROM roles WHERE id = $1`, role).Scan(&isSystem); checkErr == nil && isSystem {
 			return api.Role{}, api.ErrRBACProtected
 		}
 		return api.Role{}, api.ErrRBACNotFound
@@ -537,18 +546,20 @@ func (r OrganizationRBACRepository) UpdateRole(ctx context.Context, role uuid.UU
 }
 
 func (r OrganizationRBACRepository) DeleteRole(ctx context.Context, role uuid.UUID) (int64, error) {
-	if r.SystemDB == nil {
-		return 0, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return 0, err
 	}
-	tag, err := r.SystemDB.Exec(ctx, `DELETE FROM roles WHERE id = $1 AND is_system = false`, role)
+	tag, err := db.Exec(ctx, `DELETE FROM roles WHERE id = $1 AND is_system = false`, role)
 	return tag.RowsAffected(), err
 }
 
 func (r OrganizationRBACRepository) RolePermissions(ctx context.Context, role uuid.UUID) ([]string, error) {
-	if r.SystemDB == nil {
-		return nil, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return nil, err
 	}
-	rows, err := r.SystemDB.Query(ctx, `SELECT rp.permission_name FROM role_permissions rp WHERE rp.role_id = $1 ORDER BY rp.permission_name`, role)
+	rows, err := db.Query(ctx, `SELECT rp.permission_name FROM role_permissions rp WHERE rp.role_id = $1 ORDER BY rp.permission_name`, role)
 	if err != nil {
 		return nil, err
 	}
@@ -568,18 +579,16 @@ func (r OrganizationRBACRepository) RolePermissions(ctx context.Context, role uu
 }
 
 func (r OrganizationRBACRepository) RoleIsMutable(ctx context.Context, role uuid.UUID) (bool, error) {
-	if r.SystemDB == nil {
-		return false, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "organization rbac repository")
+	if err != nil {
+		return false, err
 	}
 	var exists bool
-	err := r.SystemDB.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM roles WHERE id = $1 AND is_system = false)`, role).Scan(&exists)
+	err = db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM roles WHERE id = $1 AND is_system = false)`, role).Scan(&exists)
 	return exists, err
 }
 
 func (r OrganizationRBACRepository) SetRolePermissions(ctx context.Context, role uuid.UUID, permissions []string) error {
-	if r.SystemDB == nil {
-		return errors.New("nil system db")
-	}
 	return r.withTx(ctx, func(ctx context.Context, tx DBTX) error {
 		var isSystem bool
 		err := tx.QueryRow(ctx, `SELECT is_system FROM roles WHERE id = $1`, role).Scan(&isSystem)

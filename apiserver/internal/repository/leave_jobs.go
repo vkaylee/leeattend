@@ -67,62 +67,66 @@ func (r LeaveRepository) CreateLeaveImportJob(ctx context.Context, userID uuid.U
 	return job, err
 }
 
+func processLeaveImportRow(ctx context.Context, db DBTX, userID uuid.UUID, row api.LeaveImportRow, autoApprove bool) string {
+	startDate, startErr := time.Parse("2006-01-02", row.StartDate)
+	if startErr != nil {
+		return fmt.Sprintf("line %d: invalid start date", row.LineNumber)
+	}
+	employmentID, resolveErr := resolveImportedEmployment(ctx, db, row.EmployeeCode, startDate)
+	if resolveErr != nil {
+		message := "employee not found"
+		if errors.Is(resolveErr, errAmbiguousImportedEmployment) {
+			message = "employee number is ambiguous for date"
+		}
+		return fmt.Sprintf("line %d: %s", row.LineNumber, message)
+	}
+	var leaveTypeID uuid.UUID
+	if err := db.QueryRow(ctx, `SELECT id FROM leave_types WHERE UPPER(code) = UPPER($1) AND deleted_at IS NULL LIMIT 1`, row.LeaveTypeCode).Scan(&leaveTypeID); err != nil {
+		return fmt.Sprintf("line %d: leave type %s not found", row.LineNumber, row.LeaveTypeCode)
+	}
+	status := "pending"
+	var approvedBy *uuid.UUID
+	if autoApprove {
+		status = "pre_approved"
+		approvedBy = &userID
+	}
+	if _, err := db.Exec(ctx, `INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, reason, status, duration_type, requested_by_user_id, approved_by_user_id, created_at, updated_at) VALUES (gen_random_uuid(), $1, $2, $3::date, $4::date, $5, $6::leave_status_type, $7, $8, $9, NOW(), NOW())`, employmentID, leaveTypeID, row.StartDate, row.EndDate, row.Reason, status, row.DurationType, userID, approvedBy); err != nil {
+		return fmt.Sprintf("line %d: %v", row.LineNumber, err)
+	}
+	return ""
+}
+
+func writeLeaveImportErrorWorkbook(job api.LeaveImportJob, errorLog *string) {
+	if job.FilePath == nil {
+		return
+	}
+	errorPath := filepath.Join(filepath.Dir(*job.FilePath), "error_"+job.ID.String()+".xlsx")
+	if data, genErr := api.BuildErrorWorkbook(job.ID, errorLog); genErr == nil {
+		_ = os.WriteFile(errorPath, data, 0o640)
+	}
+}
+
 func (r LeaveRepository) ProcessLeaveImport(ctx context.Context, userID uuid.UUID, job api.LeaveImportJob, rows []api.LeaveImportRow, autoApprove bool) error {
 	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
 		return err
 	}
 	processed := 0
-	failed := 0
 	var errorLines []string
 	for _, row := range rows {
-		startDate, startErr := time.Parse("2006-01-02", row.StartDate)
-		if startErr != nil {
-			failed++
-			errorLines = append(errorLines, fmt.Sprintf("line %d: invalid start date", row.LineNumber))
-			continue
-		}
-		employmentID, resolveErr := resolveImportedEmployment(ctx, db, row.EmployeeCode, startDate)
-		if resolveErr != nil {
-			failed++
-			message := "employee not found"
-			if errors.Is(resolveErr, errAmbiguousImportedEmployment) {
-				message = "employee number is ambiguous for date"
-			}
-			errorLines = append(errorLines, fmt.Sprintf("line %d: %s", row.LineNumber, message))
-			continue
-		}
-		var leaveTypeID uuid.UUID
-		if err := db.QueryRow(ctx, `SELECT id FROM leave_types WHERE UPPER(code) = UPPER($1) AND deleted_at IS NULL LIMIT 1`, row.LeaveTypeCode).Scan(&leaveTypeID); err != nil {
-			failed++
-			errorLines = append(errorLines, fmt.Sprintf("line %d: leave type %s not found", row.LineNumber, row.LeaveTypeCode))
-			continue
-		}
-		status := "pending"
-		var approvedBy *uuid.UUID
-		if autoApprove {
-			status = "pre_approved"
-			approvedBy = &userID
-		}
-		if _, err := db.Exec(ctx, `INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, reason, status, duration_type, requested_by_user_id, approved_by_user_id, created_at, updated_at) VALUES (gen_random_uuid(), $1, $2, $3::date, $4::date, $5, $6::leave_status_type, $7, $8, $9, NOW(), NOW())`, employmentID, leaveTypeID, row.StartDate, row.EndDate, row.Reason, status, row.DurationType, userID, approvedBy); err != nil {
-			failed++
-			errorLines = append(errorLines, fmt.Sprintf("line %d: %v", row.LineNumber, err))
+		if errMsg := processLeaveImportRow(ctx, db, userID, row, autoApprove); errMsg != "" {
+			errorLines = append(errorLines, errMsg)
 			continue
 		}
 		processed++
 	}
 	finalStatus := "completed"
 	var errorLog *string
-	if failed > 0 {
+	if len(errorLines) > 0 {
 		finalStatus = "partially_failed"
 		message := strings.Join(errorLines, "; ")
 		errorLog = &message
-		if job.FilePath != nil {
-			errorPath := filepath.Join(filepath.Dir(*job.FilePath), "error_"+job.ID.String()+".xlsx")
-			if data, genErr := api.BuildErrorWorkbook(job.ID, errorLog); genErr == nil {
-				_ = os.WriteFile(errorPath, data, 0o640)
-			}
-		}
+		writeLeaveImportErrorWorkbook(job, errorLog)
 	}
 	_, err = db.Exec(ctx, `UPDATE attendance_import_jobs SET status = $1, total_rows = $2, processed_rows = $3, error_log = $4, updated_at = NOW() WHERE id = $5`, finalStatus, len(rows), processed, errorLog, job.ID)
 	return err

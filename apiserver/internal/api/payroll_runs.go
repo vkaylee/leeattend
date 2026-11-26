@@ -371,21 +371,59 @@ func (h *PayrollHandler) ReopenPayrollPeriod(w http.ResponseWriter, r *http.Requ
 	apperror.WriteJSON(w, http.StatusOK, period)
 }
 
-func (h *PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request) {
+func isValidPayrollPeriod(year, month int) bool {
+	return year >= 2000 && year <= 2100 && month >= 1 && month <= 12
+}
 
+func parsePayrollYearMonth(r *http.Request) (int, int, bool) {
+	year, yearErr := strconv.Atoi(r.URL.Query().Get("year"))
+	month, monthErr := strconv.Atoi(r.URL.Query().Get("month"))
+	if yearErr != nil || monthErr != nil || !isValidPayrollPeriod(year, month) {
+		return 0, 0, false
+	}
+	return year, month, true
+}
+
+func parseImpactRunPair(r *http.Request) (uuid.UUID, uuid.UUID, bool) {
+	beforeRunID, beforeErr := uuid.Parse(r.URL.Query().Get("before_run_id"))
+	afterRunID, afterErr := uuid.Parse(r.URL.Query().Get("after_run_id"))
+	if beforeErr != nil || afterErr != nil || beforeRunID == uuid.Nil || afterRunID == uuid.Nil || beforeRunID == afterRunID {
+		return uuid.Nil, uuid.Nil, false
+	}
+	return beforeRunID, afterRunID, true
+}
+
+func validPayrollImpactBatchRequest(req PayrollImpactBatchRequest) bool {
+	if len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 100 || hasDuplicateUUIDs(req.EmploymentIDs) {
+		return false
+	}
+	if !isValidPayrollPeriod(req.Year, req.Month) {
+		return false
+	}
+	return req.BeforeRunID != uuid.Nil && req.AfterRunID != uuid.Nil && req.BeforeRunID != req.AfterRunID
+}
+
+func parseStrictLimitParam(raw string, def, maxVal int) (int, bool) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return def, true
+	}
+	parsed, err := strconv.Atoi(trimmed)
+	if err != nil || parsed < 1 || parsed > maxVal {
+		return 0, false
+	}
+	return parsed, true
+}
+
+func (h *PayrollHandler) CalculatePayroll(w http.ResponseWriter, r *http.Request) {
 	empID, eOK := pathUUID(r, "id")
 	if !eOK || !h.allowedCalculate(r) {
 		writeForbidden(w, r)
 		return
 	}
-	year, err := strconv.Atoi(r.URL.Query().Get("year"))
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	month, err := strconv.Atoi(r.URL.Query().Get("month"))
-	if err != nil || year < 2000 || year > 2100 || month < 1 || month > 12 {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	year, month, ok := parsePayrollYearMonth(r)
+	if !ok {
+		writeValidation(w, r)
 		return
 	}
 	actorID, actorOK := httpinfra.UserIDValueFromContext(r.Context())
@@ -408,15 +446,13 @@ func (h *PayrollHandler) ComparePayrollImpact(w http.ResponseWriter, r *http.Req
 	}
 	employmentID, ok := pathUUID(r, "id")
 	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		writeValidation(w, r)
 		return
 	}
-	year, err := strconv.Atoi(r.URL.Query().Get("year"))
-	month, monthErr := strconv.Atoi(r.URL.Query().Get("month"))
-	beforeRunID, beforeErr := uuid.Parse(r.URL.Query().Get("before_run_id"))
-	afterRunID, afterErr := uuid.Parse(r.URL.Query().Get("after_run_id"))
-	if err != nil || monthErr != nil || beforeErr != nil || afterErr != nil || year < 2000 || year > 2100 || month < 1 || month > 12 || beforeRunID == uuid.Nil || afterRunID == uuid.Nil || beforeRunID == afterRunID {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	year, month, ymOK := parsePayrollYearMonth(r)
+	beforeRunID, afterRunID, runsOK := parseImpactRunPair(r)
+	if !ymOK || !runsOK {
+		writeValidation(w, r)
 		return
 	}
 	result, err := h.Repository.ComparePayrollImpact(r.Context(), ids.EmploymentID(employmentID), year, month, beforeRunID, afterRunID)
@@ -433,8 +469,8 @@ func (h *PayrollHandler) ComparePayrollImpactBatch(w http.ResponseWriter, r *htt
 		return
 	}
 	req, err := DecodeJSON[PayrollImpactBatchRequest](r, 1<<20)
-	if err != nil || len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 100 || hasDuplicateUUIDs(req.EmploymentIDs) || req.Year < 2000 || req.Year > 2100 || req.Month < 1 || req.Month > 12 || req.BeforeRunID == uuid.Nil || req.AfterRunID == uuid.Nil || req.BeforeRunID == req.AfterRunID {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	if err != nil || !validPayrollImpactBatchRequest(req) {
+		writeValidation(w, r)
 		return
 	}
 	result, err := h.Repository.ComparePayrollImpactBatch(r.Context(), req)
@@ -463,23 +499,14 @@ func (h *PayrollHandler) ListPayrollCalculationRuns(w http.ResponseWriter, r *ht
 	}
 	employmentID, ok := pathUUID(r, "id")
 	if !ok {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		writeValidation(w, r)
 		return
 	}
-	year, err := strconv.Atoi(r.URL.Query().Get("year"))
-	month, monthErr := strconv.Atoi(r.URL.Query().Get("month"))
-	if err != nil || monthErr != nil || year < 2000 || year > 2100 || month < 1 || month > 12 {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	year, month, ymOK := parsePayrollYearMonth(r)
+	limit, limitOK := parseStrictLimitParam(r.URL.Query().Get("limit"), 50, 100)
+	if !ymOK || !limitOK {
+		writeValidation(w, r)
 		return
-	}
-	limit := 50
-	if rawLimit := strings.TrimSpace(r.URL.Query().Get("limit")); rawLimit != "" {
-		parsedLimit, limitErr := strconv.Atoi(rawLimit)
-		if limitErr != nil || parsedLimit < 1 || parsedLimit > 100 {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-			return
-		}
-		limit = parsedLimit
 	}
 	runs, err := h.Repository.ListPayrollCalculationRuns(r.Context(), ids.EmploymentID(employmentID), year, month, limit)
 	if err != nil {
@@ -498,14 +525,9 @@ func (h *PayrollHandler) SimulatePayroll(w http.ResponseWriter, r *http.Request)
 		writeForbidden(w, r)
 		return
 	}
-	year, err := strconv.Atoi(r.URL.Query().Get("year"))
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	month, err := strconv.Atoi(r.URL.Query().Get("month"))
-	if err != nil || year < 2000 || year > 2100 || month < 1 || month > 12 {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	year, month, ymOK := parsePayrollYearMonth(r)
+	if !ymOK {
+		writeValidation(w, r)
 		return
 	}
 	actorID, ok := httpinfra.UserIDValueFromContext(r.Context())
@@ -514,10 +536,11 @@ func (h *PayrollHandler) SimulatePayroll(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	var result FullPayslipResponse
+	var err error
 	if rawPolicyVersionID := strings.TrimSpace(r.URL.Query().Get("policy_version_id")); rawPolicyVersionID != "" {
 		policyVersionID, parseErr := uuid.Parse(rawPolicyVersionID)
 		if parseErr != nil {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+			writeValidation(w, r)
 			return
 		}
 		result, err = h.Repository.SimulateEmployeePayrollWithPolicy(r.Context(), ids.EmployeeID(empID), year, month, policyVersionID, actorID)
@@ -531,26 +554,24 @@ func (h *PayrollHandler) SimulatePayroll(w http.ResponseWriter, r *http.Request)
 	apperror.WriteJSON(w, http.StatusOK, result)
 }
 
-func (h *PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Request) {
+func normalizeBatchCalculateRequest(req *BatchCalculatePayrollRequest) bool {
+	if len(req.EmploymentIDs) == 0 && len(req.EmployeeIDs) > 0 {
+		req.EmploymentIDs = req.EmployeeIDs
+	}
+	if len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 500 || hasDuplicateUUIDs(req.EmploymentIDs) {
+		return false
+	}
+	return isValidPayrollPeriod(req.Year, req.Month)
+}
 
+func (h *PayrollHandler) CalculateBatchPayroll(w http.ResponseWriter, r *http.Request) {
 	if !h.allowedCalculate(r) {
 		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[BatchCalculatePayrollRequest](r, 1<<20)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if len(req.EmploymentIDs) == 0 && len(req.EmployeeIDs) > 0 {
-		req.EmploymentIDs = req.EmployeeIDs
-	}
-	if len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 500 || hasDuplicateUUIDs(req.EmploymentIDs) {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if req.Year < 2000 || req.Year > 2100 || req.Month < 1 || req.Month > 12 {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	if err != nil || !normalizeBatchCalculateRequest(&req) {
+		writeValidation(w, r)
 		return
 	}
 	actorID, actorOK := httpinfra.UserIDValueFromContext(r.Context())

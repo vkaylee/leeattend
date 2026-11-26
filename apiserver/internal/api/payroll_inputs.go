@@ -100,16 +100,35 @@ func (h *PayrollHandler) CreatePayrollInputBatch(w http.ResponseWriter, r *http.
 	apperror.WriteJSON(w, http.StatusCreated, batch)
 }
 
-func validPayrollInputRequest(req CreatePayrollInputRequest) bool {
-	if req.PeriodYear < 2000 || req.PeriodYear > 2100 || req.PeriodMonth < 1 || req.PeriodMonth > 12 {
+func validPayrollInputItem(input PayrollInput) bool {
+	if input.EmploymentID == uuid.Nil || input.Value.IsNegative() {
 		return false
 	}
-	if strings.TrimSpace(req.Source) == "" || len(req.Source) > 100 || strings.TrimSpace(req.IdempotencyKey) == "" || len(req.IdempotencyKey) > 200 || len(req.Inputs) == 0 || len(req.Inputs) > 10000 {
+	metric := strings.TrimSpace(input.MetricCode)
+	unit := strings.TrimSpace(input.Unit)
+	return metric != "" && len(input.MetricCode) <= 100 && unit != "" && len(input.Unit) <= 40
+}
+
+func validPayrollInputHeader(req CreatePayrollInputRequest) bool {
+	if !isValidPayrollPeriod(req.PeriodYear, req.PeriodMonth) {
+		return false
+	}
+	if strings.TrimSpace(req.Source) == "" || len(req.Source) > 100 {
+		return false
+	}
+	if strings.TrimSpace(req.IdempotencyKey) == "" || len(req.IdempotencyKey) > 200 {
+		return false
+	}
+	return len(req.Inputs) > 0 && len(req.Inputs) <= 10000
+}
+
+func validPayrollInputRequest(req CreatePayrollInputRequest) bool {
+	if !validPayrollInputHeader(req) {
 		return false
 	}
 	seen := make(map[string]struct{}, len(req.Inputs))
 	for _, input := range req.Inputs {
-		if input.EmploymentID == uuid.Nil || strings.TrimSpace(input.MetricCode) == "" || len(input.MetricCode) > 100 || strings.TrimSpace(input.Unit) == "" || len(input.Unit) > 40 || input.Value.IsNegative() {
+		if !validPayrollInputItem(input) {
 			return false
 		}
 		key := input.EmploymentID.String() + "|" + input.MetricCode

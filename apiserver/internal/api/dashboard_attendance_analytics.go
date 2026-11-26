@@ -165,6 +165,32 @@ func (h *DashboardAnalyticsHandler) AttendanceTrend(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusOK, points)
 }
 
+func parseDepartmentAttendanceRange(r *http.Request, today time.Time, loc *time.Location) (time.Time, time.Time, error) {
+	switch rng := r.URL.Query().Get("range"); rng {
+	case "":
+		return parseDateRange(r.URL.Query().Get("start_date"), r.URL.Query().Get("end_date"), today, loc)
+	case "today":
+		return today, today, nil
+	case "week":
+		return today.AddDate(0, 0, -6), today, nil
+	case "month":
+		return today.AddDate(0, 0, -29), today, nil
+	default:
+		return time.Time{}, time.Time{}, apperror.Validation(apperror.KeyValidation)
+	}
+}
+
+func parseOptionalPositiveInt(raw string) (*int, bool) {
+	if raw == "" {
+		return nil, true
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 {
+		return nil, false
+	}
+	return &n, true
+}
+
 // 5. GET /api/v1/dashboard/department-attendance
 func (h *DashboardAnalyticsHandler) DepartmentAttendance(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
@@ -179,44 +205,21 @@ func (h *DashboardAnalyticsHandler) DepartmentAttendance(w http.ResponseWriter, 
 	now := time.Now().In(loc)
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 
-	var startDate, endDate time.Time
-	if rng := r.URL.Query().Get("range"); rng != "" {
-		switch rng {
-		case "today":
-			startDate, endDate = today, today
-		case "week":
-			startDate, endDate = today.AddDate(0, 0, -6), today
-		case "month":
-			startDate, endDate = today.AddDate(0, 0, -29), today
-		default:
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-			return
-		}
-	} else {
-		s, e, err := parseDateRange(r.URL.Query().Get("start_date"), r.URL.Query().Get("end_date"), today, loc)
-		if err != nil {
-			apperror.WriteError(w, r, err)
-			return
-		}
-		startDate, endDate = s, e
+	startDate, endDate, err := parseDepartmentAttendanceRange(r, today, loc)
+	if err != nil {
+		apperror.WriteError(w, r, err)
+		return
 	}
-
-	var topN *int
-	if rawTop := r.URL.Query().Get("top_n"); rawTop != "" {
-		n, err := strconv.Atoi(rawTop)
-		if err != nil || n < 1 {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-			return
-		}
-		topN = &n
+	topN, validTop := parseOptionalPositiveInt(r.URL.Query().Get("top_n"))
+	if !validTop {
+		writeValidation(w, r)
+		return
 	}
-
 	scopedDeptIDs, err := h.resolveDepartmentScope(r.Context(), userID, nil)
 	if err != nil {
 		apperror.WriteError(w, r, err)
 		return
 	}
-
 	points, err := h.Repository.GetDepartmentAttendance(r.Context(), startDate, endDate, tzName, scopedDeptIDs, topN)
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
@@ -231,22 +234,29 @@ func (h *DashboardAnalyticsHandler) DepartmentAttendance(w http.ResponseWriter, 
 	apperror.WriteJSON(w, http.StatusOK, points)
 }
 
+func (h *DashboardAnalyticsHandler) parseUnexcusedGroupBy(r *http.Request, userID uuid.UUID) (string, *apperror.AppError) {
+	groupBy := r.URL.Query().Get("group_by")
+	if groupBy == "" {
+		return "department", nil
+	}
+	if groupBy != "department" && groupBy != "employee" {
+		return "", apperror.Validation(apperror.KeyValidation)
+	}
+	if groupBy == "employee" && !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionDashboardEmployeeAbsenceRead)) {
+		return "", apperror.Forbidden(apperror.KeyForbidden)
+	}
+	return groupBy, nil
+}
+
 // 6. GET /api/v1/dashboard/unexcused-absences
 func (h *DashboardAnalyticsHandler) UnexcusedAbsences(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.resolveContext(w, r)
 	if !ok {
 		return
 	}
-	groupBy := r.URL.Query().Get("group_by")
-	if groupBy == "" {
-		groupBy = "department"
-	}
-	if groupBy != "department" && groupBy != "employee" {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if groupBy == "employee" && !h.Authorizer.HasPermission(r.Context(), userID, string(auth.PermissionDashboardEmployeeAbsenceRead)) {
-		apperror.WriteError(w, r, apperror.Forbidden(apperror.KeyForbidden))
+	groupBy, appErr := h.parseUnexcusedGroupBy(r, userID)
+	if appErr != nil {
+		apperror.WriteError(w, r, appErr)
 		return
 	}
 

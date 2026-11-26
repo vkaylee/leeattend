@@ -12,11 +12,12 @@ import (
 type StorageConfigRepository struct{ SystemDB DBTX }
 
 func (r StorageConfigRepository) GetStorageConfig(ctx context.Context) (*api.StorageConfigRecord, error) {
-	if r.SystemDB == nil {
-		return nil, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "storage config repository")
+	if err != nil {
+		return nil, err
 	}
 	var rec api.StorageConfigRecord
-	err := r.SystemDB.QueryRow(ctx, `SELECT id, endpoint_url, region, bucket_name, path_prefix, access_key_enc, secret_key_enc, encryption_key_version, use_path_style, presigned_ttl_secs, max_file_size, is_active FROM storage_configs LIMIT 1`).Scan(&rec.ID, &rec.EndpointURL, &rec.Region, &rec.BucketName, &rec.PathPrefix, &rec.AccessKeyEnc, &rec.SecretKeyEnc, &rec.EncryptionKeyVersion, &rec.UsePathStyle, &rec.PresignedTTLSecs, &rec.MaxFileSize, &rec.IsActive)
+	err = db.QueryRow(ctx, `SELECT id, endpoint_url, region, bucket_name, path_prefix, access_key_enc, secret_key_enc, encryption_key_version, use_path_style, presigned_ttl_secs, max_file_size, is_active FROM storage_configs LIMIT 1`).Scan(&rec.ID, &rec.EndpointURL, &rec.Region, &rec.BucketName, &rec.PathPrefix, &rec.AccessKeyEnc, &rec.SecretKeyEnc, &rec.EncryptionKeyVersion, &rec.UsePathStyle, &rec.PresignedTTLSecs, &rec.MaxFileSize, &rec.IsActive)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -27,15 +28,16 @@ func (r StorageConfigRepository) GetStorageConfig(ctx context.Context) (*api.Sto
 }
 
 func (r StorageConfigRepository) UpsertStorageConfig(ctx context.Context, rec api.StorageConfigRecord) (*api.StorageConfigRecord, error) {
-	if r.SystemDB == nil {
-		return nil, errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "storage config repository")
+	if err != nil {
+		return nil, err
 	}
 	id := rec.ID
 	if id == uuid.Nil {
 		id = uuid.New()
 	}
 	var res api.StorageConfigRecord
-	err := r.SystemDB.QueryRow(ctx, `UPDATE storage_configs SET
+	err = db.QueryRow(ctx, `UPDATE storage_configs SET
 endpoint_url = $1,
 region = $2,
 bucket_name = $3,
@@ -57,7 +59,7 @@ RETURNING id, endpoint_url, region, bucket_name, path_prefix, access_key_enc, se
 		return nil, mapConstraintError(err)
 	}
 
-	err = r.SystemDB.QueryRow(ctx, `INSERT INTO storage_configs (id, endpoint_url, region, bucket_name, path_prefix, access_key_enc, secret_key_enc, encryption_key_version, use_path_style, presigned_ttl_secs, max_file_size, is_active, updated_at)
+	err = db.QueryRow(ctx, `INSERT INTO storage_configs (id, endpoint_url, region, bucket_name, path_prefix, access_key_enc, secret_key_enc, encryption_key_version, use_path_style, presigned_ttl_secs, max_file_size, is_active, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
 RETURNING id, endpoint_url, region, bucket_name, path_prefix, access_key_enc, secret_key_enc, encryption_key_version, use_path_style, presigned_ttl_secs, max_file_size, is_active`,
 		id, rec.EndpointURL, rec.Region, rec.BucketName, rec.PathPrefix, rec.AccessKeyEnc, rec.SecretKeyEnc, rec.EncryptionKeyVersion, rec.UsePathStyle, rec.PresignedTTLSecs, rec.MaxFileSize, rec.IsActive).Scan(&res.ID, &res.EndpointURL, &res.Region, &res.BucketName, &res.PathPrefix, &res.AccessKeyEnc, &res.SecretKeyEnc, &res.EncryptionKeyVersion, &res.UsePathStyle, &res.PresignedTTLSecs, &res.MaxFileSize, &res.IsActive)
@@ -68,9 +70,10 @@ RETURNING id, endpoint_url, region, bucket_name, path_prefix, access_key_enc, se
 }
 
 func (r StorageConfigRepository) DeleteStorageConfig(ctx context.Context) error {
-	if r.SystemDB == nil {
-		return errors.New("nil system db")
+	db, err := requireDB(r.SystemDB, "storage config repository")
+	if err != nil {
+		return err
 	}
-	_, err := r.SystemDB.Exec(ctx, `DELETE FROM storage_configs`)
+	_, err = db.Exec(ctx, `DELETE FROM storage_configs`)
 	return err
 }

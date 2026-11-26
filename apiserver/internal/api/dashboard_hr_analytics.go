@@ -246,6 +246,42 @@ type DashboardHRRepository interface {
 	GetRecruitmentEffectiveness(ctx context.Context, query RecruitmentEffectivenessQuery) (RecruitmentEffectivenessAnalytics, error)
 }
 
+func parseHRDateOrDefault(raw string, fallback time.Time, loc *time.Location) (time.Time, error) {
+	if raw == "" {
+		return fallback, nil
+	}
+	parsed, err := time.ParseInLocation("2006-01-02", raw, loc)
+	if err != nil {
+		return time.Time{}, apperror.Validation(apperror.KeyInvalidDateFormat)
+	}
+	return parsed, nil
+}
+
+func parseHRDateAndComparison(r *http.Request, loc *time.Location) (time.Time, time.Time, string, error) {
+	now := time.Now().In(loc)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+
+	startDate, err := parseHRDateOrDefault(r.URL.Query().Get("start"), today.AddDate(0, 0, -180), loc)
+	if err != nil {
+		return time.Time{}, time.Time{}, "", err
+	}
+	endDate, err := parseHRDateOrDefault(r.URL.Query().Get("end"), today, loc)
+	if err != nil {
+		return time.Time{}, time.Time{}, "", err
+	}
+	if err := validateCustomRange(startDate, endDate, today); err != nil {
+		return time.Time{}, time.Time{}, "", err
+	}
+	comp := r.URL.Query().Get("comparison")
+	if comp == "" {
+		comp = "none"
+	}
+	if comp != "none" && comp != "previous_period" && comp != "same_period_last_year" {
+		return time.Time{}, time.Time{}, "", apperror.Validation(apperror.KeyValidation)
+	}
+	return startDate, endDate, comp, nil
+}
+
 func (h *DashboardAnalyticsHandler) TurnoverAnalytics(w http.ResponseWriter, r *http.Request) {
 	_, ok := h.resolveContext(w, r)
 	if !ok {
@@ -256,46 +292,9 @@ func (h *DashboardAnalyticsHandler) TurnoverAnalytics(w http.ResponseWriter, r *
 		apperror.WriteError(w, r, err)
 		return
 	}
-	now := time.Now().In(loc)
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
-
-	startStr := r.URL.Query().Get("start")
-	endStr := r.URL.Query().Get("end")
-
-	var startDate, endDate time.Time
-	if startStr != "" {
-		s, err := time.ParseInLocation("2006-01-02", startStr, loc)
-		if err != nil {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidDateFormat))
-			return
-		}
-		startDate = s
-	} else {
-		startDate = today.AddDate(0, 0, -180)
-	}
-
-	if endStr != "" {
-		e, err := time.ParseInLocation("2006-01-02", endStr, loc)
-		if err != nil {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidDateFormat))
-			return
-		}
-		endDate = e
-	} else {
-		endDate = today
-	}
-
-	if err := validateCustomRange(startDate, endDate, today); err != nil {
+	startDate, endDate, comp, err := parseHRDateAndComparison(r, loc)
+	if err != nil {
 		apperror.WriteError(w, r, err)
-		return
-	}
-
-	comp := r.URL.Query().Get("comparison")
-	if comp == "" {
-		comp = "none"
-	}
-	if comp != "none" && comp != "previous_period" && comp != "same_period_last_year" {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 
@@ -303,20 +302,18 @@ func (h *DashboardAnalyticsHandler) TurnoverAnalytics(w http.ResponseWriter, r *
 	if rawTarget := r.URL.Query().Get("target"); rawTarget != "" {
 		t, err := decimal.NewFromString(rawTarget)
 		if err != nil {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+			writeValidation(w, r)
 			return
 		}
 		target = t
 	}
 
-	query := TurnoverAnalyticsQuery{
+	analytics, err := h.Repository.GetTurnoverAnalytics(r.Context(), TurnoverAnalyticsQuery{
 		StartDate:       startDate,
 		EndDate:         endDate,
 		ComparisonBasis: comp,
 		Target:          target,
-	}
-
-	analytics, err := h.Repository.GetTurnoverAnalytics(r.Context(), query)
+	})
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return
@@ -335,46 +332,9 @@ func (h *DashboardAnalyticsHandler) RecruitmentEffectiveness(w http.ResponseWrit
 		apperror.WriteError(w, r, err)
 		return
 	}
-	now := time.Now().In(loc)
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
-
-	startStr := r.URL.Query().Get("start")
-	endStr := r.URL.Query().Get("end")
-
-	var startDate, endDate time.Time
-	if startStr != "" {
-		s, err := time.ParseInLocation("2006-01-02", startStr, loc)
-		if err != nil {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidDateFormat))
-			return
-		}
-		startDate = s
-	} else {
-		startDate = today.AddDate(0, 0, -180)
-	}
-
-	if endStr != "" {
-		e, err := time.ParseInLocation("2006-01-02", endStr, loc)
-		if err != nil {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyInvalidDateFormat))
-			return
-		}
-		endDate = e
-	} else {
-		endDate = today
-	}
-
-	if err := validateCustomRange(startDate, endDate, today); err != nil {
+	startDate, endDate, comp, err := parseHRDateAndComparison(r, loc)
+	if err != nil {
 		apperror.WriteError(w, r, err)
-		return
-	}
-
-	comp := r.URL.Query().Get("comparison")
-	if comp == "" {
-		comp = "none"
-	}
-	if comp != "none" && comp != "previous_period" && comp != "same_period_last_year" {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
 		return
 	}
 
@@ -385,7 +345,7 @@ func (h *DashboardAnalyticsHandler) RecruitmentEffectiveness(w http.ResponseWrit
 		return
 	}
 
-	query := RecruitmentEffectivenessQuery{
+	analytics, err := h.Repository.GetRecruitmentEffectiveness(r.Context(), RecruitmentEffectivenessQuery{
 		StartDate:       startDate,
 		EndDate:         endDate,
 		ComparisonBasis: comp,
@@ -394,9 +354,7 @@ func (h *DashboardAnalyticsHandler) RecruitmentEffectiveness(w http.ResponseWrit
 		JobRoles:        parseStringList(r.URL.Query()["job_roles"]),
 		SourceTypes:     parseStringList(r.URL.Query()["source_types"]),
 		SourceIDs:       parseUUIDList(r.URL.Query()["source_ids"]),
-	}
-
-	analytics, err := h.Repository.GetRecruitmentEffectiveness(r.Context(), query)
+	})
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
 		return

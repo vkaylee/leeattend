@@ -13,6 +13,46 @@ import (
 	"time"
 )
 
+func (r ScheduleRepository) publishHumanTx(ctx context.Context, tx pgx.Tx, actorID uuid.UUID, idempotencyKey string, request api.SchedulePublishRequest, response *api.SchedulePublicationResponse) error {
+	if err := lockIdempotencyKey(ctx, tx, idempotencyKey); err != nil {
+		return err
+	}
+	requestHash, err := hashJSON(publishHashInput(actorID, request, "", ""))
+	if err != nil {
+		return err
+	}
+	stored, found, err := loadBatchByIdempotency(ctx, tx, idempotencyKey)
+	if err != nil {
+		return err
+	}
+	if found {
+		return replayPublication(actorID, requestHash, stored, response)
+	}
+	preview, err := lockPreview(ctx, tx, actorID, request.PreviewID, "publish", request.PreviewHash)
+	if err != nil {
+		return err
+	}
+	if preview.RequestHash != requestHash {
+		return ErrSchedulePreviewStale
+	}
+	if err := validateHumanPublishPreconditions(ctx, tx, request); err != nil {
+		return err
+	}
+	return publishPreview(ctx, tx, publicationActor{ID: &actorID, Type: "human"}, idempotencyKey, requestHash, request, preview, response)
+}
+
+func validateHumanPublishPreconditions(ctx context.Context, tx pgx.Tx, request api.SchedulePublishRequest) error {
+	if err := ensureMutationPeriodOpenForRange(ctx, tx, request.EmploymentIDs, request.StartDate, request.EndDate); err != nil {
+		return err
+	}
+	if request.Mode != "rotating" {
+		if err := validateHumanOfficeApproval(ctx, tx, request); err != nil {
+			return err
+		}
+	}
+	return verifyFirstPublicationTargets(ctx, tx, request)
+}
+
 func (r ScheduleRepository) Publish(ctx context.Context, actorID uuid.UUID, idempotencyKey string, request api.SchedulePublishRequest) (api.SchedulePublicationResponse, error) {
 	if err := validatePublishInput(idempotencyKey, request); err != nil {
 		return api.SchedulePublicationResponse{}, err
@@ -23,39 +63,7 @@ func (r ScheduleRepository) Publish(ctx context.Context, actorID uuid.UUID, idem
 	}
 	var response api.SchedulePublicationResponse
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
-		if err := lockIdempotencyKey(ctx, tx, idempotencyKey); err != nil {
-			return err
-		}
-		requestHash, err := hashJSON(publishHashInput(actorID, request, "", ""))
-		if err != nil {
-			return err
-		}
-		stored, found, err := loadBatchByIdempotency(ctx, tx, idempotencyKey)
-		if err != nil {
-			return err
-		}
-		if found {
-			return replayPublication(actorID, requestHash, stored, &response)
-		}
-		preview, err := lockPreview(ctx, tx, actorID, request.PreviewID, "publish", request.PreviewHash)
-		if err != nil {
-			return err
-		}
-		if preview.RequestHash != requestHash {
-			return ErrSchedulePreviewStale
-		}
-		if err := ensureMutationPeriodOpenForRange(ctx, tx, request.EmploymentIDs, request.StartDate, request.EndDate); err != nil {
-			return err
-		}
-		if request.Mode != "rotating" {
-			if err := validateHumanOfficeApproval(ctx, tx, request); err != nil {
-				return err
-			}
-		}
-		if err := verifyFirstPublicationTargets(ctx, tx, request); err != nil {
-			return err
-		}
-		return publishPreview(ctx, tx, publicationActor{ID: &actorID, Type: "human"}, idempotencyKey, requestHash, request, preview, &response)
+		return r.publishHumanTx(ctx, tx, actorID, idempotencyKey, request, &response)
 	})
 	if err != nil {
 		return api.SchedulePublicationResponse{}, err
@@ -84,6 +92,106 @@ func validateSystemOfficePublicationAuthority(ctx context.Context, tx DBTX, even
 	return nil
 }
 
+func resolveSystemOfficeDay(ctx context.Context, tx pgx.Tx, event ScheduleOfficeCoverageEvent, request *api.SchedulePublishRequest) (map[string]any, error) {
+	resolution, _, err := resolveScheduleData(ctx, tx, parseScheduleDate(event.BusinessDate), parseScheduleDate(event.BusinessDate), request.EmploymentIDs, 1, 1)
+	if err != nil {
+		return nil, err
+	}
+	if len(resolution.employees) != 1 || len(resolution.employees[0].days) != 1 {
+		return nil, ErrScheduleResolverUnavailable
+	}
+	request.Timezone = resolution.employees[0].days[0].timezone
+	day, err := sanitizedPreviewDay(resolution.employees[0].days[0], resolution.shifts)
+	if err != nil {
+		return nil, err
+	}
+	day["employment_id"] = event.EmploymentID.String()
+	if day["status"] != "work" && day["status"] != "explicit_off" {
+		return nil, ErrScheduleResolverUnavailable
+	}
+	return day, nil
+}
+
+func insertSystemOfficePreview(ctx context.Context, tx pgx.Tx, event ScheduleOfficeCoverageEvent, idempotencyKey string, request api.SchedulePublishRequest, day map[string]any) (lockedPreview, string, error) {
+	result := map[string]any{"operation": "publish", "data": []map[string]any{day}, "resolver_version": lifecycleResolverVersion, "expected_revisions": expectedRevisionList(request.ExpectedRevisions)}
+	resultHash, err := hashJSON(result)
+	if err != nil {
+		return lockedPreview{}, "", err
+	}
+	requestHash, err := hashJSON(map[string]any{"operation": "publish", "actor_type": "system", "actor_name": "schedule-publisher", "job_id": idempotencyKey, "approval_instance_id": event.ApprovalInstanceID.String(), "employment_id": event.EmploymentID.String(), "business_date": event.BusinessDate})
+	if err != nil {
+		return lockedPreview{}, "", err
+	}
+	createdAt := time.Now().UTC()
+	previewID := uuid.New()
+	if _, err := tx.Exec(ctx, `INSERT INTO schedule_previews (id, requested_by, actor_type, actor_name, operation, request_hash, result_hash, scope_snapshot, result_snapshot, resolver_version, expires_at, created_at) VALUES ($1, NULL, 'system', 'schedule-publisher', 'publish', $2, $3, $4, $5, $6, $7, $8)`, previewID, requestHash, resultHash, jsonArg(map[string]any{"employment_ids": request.EmploymentIDs, "start_date": event.BusinessDate, "end_date": event.BusinessDate, "approval_instance_id": event.ApprovalInstanceID}), jsonArg(result), lifecycleResolverVersion, createdAt.Add(previewTTL), createdAt); err != nil {
+		return lockedPreview{}, "", err
+	}
+	return lockedPreview{ID: previewID, RequestHash: requestHash, ResultHash: resultHash, ActorType: "system", ActorName: stringPtr("schedule-publisher"), ExpiresAt: createdAt.Add(previewTTL), ResultSnapshot: jsonArg(result)}, requestHash, nil
+}
+
+func checkSystemOfficeIdempotency(ctx context.Context, tx pgx.Tx, idempotencyKey string) (uuid.UUID, bool, error) {
+	if err := lockIdempotencyKey(ctx, tx, idempotencyKey); err != nil {
+		return uuid.Nil, false, err
+	}
+	stored, found, err := loadBatchByIdempotency(ctx, tx, idempotencyKey)
+	if err != nil || !found {
+		return uuid.Nil, false, err
+	}
+	if stored.ActorType != "system" || stored.ActorName == nil || *stored.ActorName != "schedule-publisher" {
+		return uuid.Nil, false, ErrScheduleIdempotencyConflict
+	}
+	return stored.ID, true, nil
+}
+
+func validateSystemOfficePreconditions(ctx context.Context, tx pgx.Tx, event ScheduleOfficeCoverageEvent, request api.SchedulePublishRequest) (bool, error) {
+	if err := validateSystemOfficePublicationAuthority(ctx, tx, event); err != nil {
+		return false, err
+	}
+	if err := ensureMutationPeriodOpen(ctx, tx, event.EmployerID, event.BusinessDate); err != nil {
+		return false, err
+	}
+	if err := verifyFirstPublicationTargets(ctx, tx, request); err != nil {
+		if errors.Is(err, ErrScheduleAlreadyPublished) {
+			return true, nil
+		}
+		return false, err
+	}
+	return false, nil
+}
+
+func publishSystemOfficeTx(ctx context.Context, tx pgx.Tx, event ScheduleOfficeCoverageEvent, idempotencyKey string) (uuid.UUID, error) {
+	if existingID, found, err := checkSystemOfficeIdempotency(ctx, tx, idempotencyKey); err != nil || found {
+		return existingID, err
+	}
+	request := api.SchedulePublishRequest{
+		EmploymentIDs:      []uuid.UUID{event.EmploymentID},
+		StartDate:          event.BusinessDate,
+		EndDate:            event.BusinessDate,
+		ApprovalInstanceID: &event.ApprovalInstanceID,
+		Reason:             "Approved office policy publication",
+		ExpectedRevisions:  map[string]int64{event.EmploymentID.String() + ":" + event.BusinessDate: 0},
+	}
+	if alreadyPublished, err := validateSystemOfficePreconditions(ctx, tx, event, request); err != nil || alreadyPublished {
+		return uuid.Nil, err
+	}
+	day, err := resolveSystemOfficeDay(ctx, tx, event, &request)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	preview, requestHash, err := insertSystemOfficePreview(ctx, tx, event, idempotencyKey, request, day)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	actorName := "schedule-publisher"
+	if err := publishPreview(ctx, tx, publicationActor{Type: "system", Name: &actorName}, idempotencyKey, requestHash, request, preview, nil); err != nil {
+		return uuid.Nil, err
+	}
+	var batchID uuid.UUID
+	err = tx.QueryRow(ctx, `SELECT id FROM schedule_publication_batches WHERE idempotency_key = $1`, idempotencyKey).Scan(&batchID)
+	return batchID, err
+}
+
 func (r ScheduleRepository) PublishSystemScheduleOffice(ctx context.Context, payload []byte, idempotencyKey string) (string, error) {
 	var event ScheduleOfficeCoverageEvent
 	if err := json.Unmarshal(payload, &event); err != nil {
@@ -98,79 +206,11 @@ func (r ScheduleRepository) PublishSystemScheduleOffice(ctx context.Context, pay
 	}
 	var batchID uuid.UUID
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
-		if err := lockIdempotencyKey(ctx, tx, idempotencyKey); err != nil {
-			return err
-		}
-		stored, found, err := loadBatchByIdempotency(ctx, tx, idempotencyKey)
+		id, err := publishSystemOfficeTx(ctx, tx, event, idempotencyKey)
 		if err != nil {
 			return err
 		}
-		if found {
-			if stored.ActorType != "system" || stored.ActorName == nil || *stored.ActorName != "schedule-publisher" {
-				return ErrScheduleIdempotencyConflict
-			}
-			batchID = stored.ID
-			return nil
-		}
-		if err := validateSystemOfficePublicationAuthority(ctx, tx, event); err != nil {
-			return err
-		}
-		if err := ensureMutationPeriodOpen(ctx, tx, event.EmployerID, event.BusinessDate); err != nil {
-			return err
-		}
-		request := api.SchedulePublishRequest{
-			EmploymentIDs:      []uuid.UUID{event.EmploymentID},
-			StartDate:          event.BusinessDate,
-			EndDate:            event.BusinessDate,
-			ApprovalInstanceID: &event.ApprovalInstanceID,
-			Reason:             "Approved office policy publication",
-			ExpectedRevisions:  map[string]int64{event.EmploymentID.String() + ":" + event.BusinessDate: 0},
-		}
-		if err := verifyFirstPublicationTargets(ctx, tx, request); err != nil {
-			if errors.Is(err, ErrScheduleAlreadyPublished) {
-				return nil
-			}
-			return err
-		}
-		resolution, _, err := resolveScheduleData(ctx, tx, parseScheduleDate(event.BusinessDate), parseScheduleDate(event.BusinessDate), request.EmploymentIDs, 1, 1)
-		if err != nil {
-			return err
-		}
-		if len(resolution.employees) != 1 || len(resolution.employees[0].days) != 1 {
-			return ErrScheduleResolverUnavailable
-		}
-		request.Timezone = resolution.employees[0].days[0].timezone
-		day, err := sanitizedPreviewDay(resolution.employees[0].days[0], resolution.shifts)
-		if err != nil {
-			return err
-		}
-		day["employment_id"] = event.EmploymentID.String()
-		if day["status"] != "work" && day["status"] != "explicit_off" {
-			return ErrScheduleResolverUnavailable
-		}
-		result := map[string]any{"operation": "publish", "data": []map[string]any{day}, "resolver_version": lifecycleResolverVersion, "expected_revisions": expectedRevisionList(request.ExpectedRevisions)}
-		resultHash, err := hashJSON(result)
-		if err != nil {
-			return err
-		}
-		requestHash, err := hashJSON(map[string]any{"operation": "publish", "actor_type": "system", "actor_name": "schedule-publisher", "job_id": idempotencyKey, "approval_instance_id": event.ApprovalInstanceID.String(), "employment_id": event.EmploymentID.String(), "business_date": event.BusinessDate})
-		if err != nil {
-			return err
-		}
-		createdAt := time.Now().UTC()
-		previewID := uuid.New()
-		if _, err := tx.Exec(ctx, `INSERT INTO schedule_previews (id, requested_by, actor_type, actor_name, operation, request_hash, result_hash, scope_snapshot, result_snapshot, resolver_version, expires_at, created_at) VALUES ($1, NULL, 'system', 'schedule-publisher', 'publish', $2, $3, $4, $5, $6, $7, $8)`, previewID, requestHash, resultHash, jsonArg(map[string]any{"employment_ids": request.EmploymentIDs, "start_date": event.BusinessDate, "end_date": event.BusinessDate, "approval_instance_id": event.ApprovalInstanceID}), jsonArg(result), lifecycleResolverVersion, createdAt.Add(previewTTL), createdAt); err != nil {
-			return err
-		}
-		preview := lockedPreview{ID: previewID, RequestHash: requestHash, ResultHash: resultHash, ActorType: "system", ActorName: stringPtr("schedule-publisher"), ExpiresAt: createdAt.Add(previewTTL), ResultSnapshot: jsonArg(result)}
-		actorName := "schedule-publisher"
-		actor := publicationActor{Type: "system", Name: &actorName}
-		if err := publishPreview(ctx, tx, actor, idempotencyKey, requestHash, request, preview, nil); err != nil {
-			return err
-		}
-		if err := tx.QueryRow(ctx, `SELECT id FROM schedule_publication_batches WHERE idempotency_key = $1`, idempotencyKey).Scan(&batchID); err != nil {
-			return err
-		}
+		batchID = id
 		return nil
 	})
 	if err != nil {
@@ -238,51 +278,23 @@ func rejectConcreteScheduleOverlaps(ctx context.Context, tx DBTX, days []map[str
 	return nil
 }
 
-func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idempotencyKey, requestHash string, request api.SchedulePublishRequest, preview lockedPreview, response *api.SchedulePublicationResponse) error {
-	var snapshot struct {
-		Data []map[string]any `json:"data"`
-	}
-	if err := json.Unmarshal(preview.ResultSnapshot, &snapshot); err != nil || len(snapshot.Data) == 0 {
-		return ErrScheduleResolverUnavailable
-	}
-	keys := make([]scheduleRevisionLockKey, 0, len(snapshot.Data))
-	for _, day := range snapshot.Data {
+func extractPreviewLockKeys(days []map[string]any) ([]scheduleRevisionLockKey, error) {
+	keys := make([]scheduleRevisionLockKey, 0, len(days))
+	for _, day := range days {
 		employmentID, err := uuidFromMap(day, "employment_id")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		businessDate, ok := day["business_date"].(string)
 		if !ok || businessDate == "" {
-			return ErrSchedulePreviewScope
+			return nil, ErrSchedulePreviewScope
 		}
 		keys = append(keys, scheduleRevisionLockKey{employmentID: employmentID, businessDate: businessDate})
 	}
-	if err := lockScheduleRevisionTargets(ctx, tx, keys); err != nil {
-		return err
-	}
-	if err := rejectConcreteScheduleOverlaps(ctx, tx, snapshot.Data); err != nil {
-		return err
-	}
-	batchID := uuid.New()
-	publishedAt := time.Now().UTC()
-	mode := request.Mode
-	if mode == "" {
-		mode = "office"
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, actor_type, actor_name, approval_instance_id, reason, timezone, range_start, range_end, published_at, affected_days) VALUES ($1, $2, $3, $4, 'published', $5, 'publish', '{}'::jsonb, $6, $7, $8, $9, $10, $11::date, $12::date, $13, $14)`, batchID, idempotencyKey, requestHash, mode, actor.ID, actor.Type, actor.Name, request.ApprovalInstanceID, strings.TrimSpace(request.Reason), request.Timezone, request.StartDate, request.EndDate, publishedAt, len(snapshot.Data)); err != nil {
-		return err
-	}
-	if _, err := tx.Exec(ctx, `SELECT set_config('schedule.lifecycle_publication', 'on', true)`); err != nil {
-		return err
-	}
-	revisionIDs := make([]uuid.UUID, 0, len(snapshot.Data))
-	for _, day := range snapshot.Data {
-		revisionID, err := insertPublishedDay(ctx, tx, batchID, actor, request.Reason, request.Timezone, day, publishedAt, nil)
-		if err != nil {
-			return err
-		}
-		revisionIDs = append(revisionIDs, revisionID)
-	}
+	return keys, nil
+}
+
+func finalizePublicationBatch(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, actor publicationActor, publishedAt time.Time, revisionIDs []uuid.UUID, response *api.SchedulePublicationResponse) error {
 	publicationResponse := api.SchedulePublicationResponse{BatchID: batchID, Status: "published", PublishedAt: publishedAt, RevisionIDs: revisionIDs, AffectedDays: len(revisionIDs)}
 	if response != nil {
 		*response = publicationResponse
@@ -294,28 +306,92 @@ func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idem
 	if _, err := tx.Exec(ctx, `UPDATE schedule_publication_batches SET response_snapshot = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, batchID, responseJSON); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, created_at, actor_type, actor_name) VALUES ($1, $2, 'schedule.published', $3, CURRENT_TIMESTAMP, $4, $5)`, actor.ID, batchID, jsonArg(map[string]any{"batch_id": batchID.String(), "revision_ids": revisionIDs, "affected_days": len(revisionIDs)}), actor.Type, actor.Name); err != nil {
+	_, err = tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, created_at, actor_type, actor_name) VALUES ($1, $2, 'schedule.published', $3, CURRENT_TIMESTAMP, $4, $5)`, actor.ID, batchID, jsonArg(map[string]any{"batch_id": batchID.String(), "revision_ids": revisionIDs, "affected_days": len(revisionIDs)}), actor.Type, actor.Name)
+	return err
+}
+
+func preparePublicationBatch(ctx context.Context, tx pgx.Tx, actor publicationActor, idempotencyKey, requestHash string, request api.SchedulePublishRequest, days []map[string]any) (uuid.UUID, time.Time, error) {
+	keys, err := extractPreviewLockKeys(days)
+	if err != nil {
+		return uuid.Nil, time.Time{}, err
+	}
+	if err := lockScheduleRevisionTargets(ctx, tx, keys); err != nil {
+		return uuid.Nil, time.Time{}, err
+	}
+	if err := rejectConcreteScheduleOverlaps(ctx, tx, days); err != nil {
+		return uuid.Nil, time.Time{}, err
+	}
+	batchID := uuid.New()
+	publishedAt := time.Now().UTC()
+	mode := request.Mode
+	if mode == "" {
+		mode = "office"
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO schedule_publication_batches (id, idempotency_key, request_hash, mode, status, requested_by, operation, response_snapshot, actor_type, actor_name, approval_instance_id, reason, timezone, range_start, range_end, published_at, affected_days) VALUES ($1, $2, $3, $4, 'published', $5, 'publish', '{}'::jsonb, $6, $7, $8, $9, $10, $11::date, $12::date, $13, $14)`, batchID, idempotencyKey, requestHash, mode, actor.ID, actor.Type, actor.Name, request.ApprovalInstanceID, strings.TrimSpace(request.Reason), request.Timezone, request.StartDate, request.EndDate, publishedAt, len(days)); err != nil {
+		return uuid.Nil, time.Time{}, err
+	}
+	if _, err := tx.Exec(ctx, `SELECT set_config('schedule.lifecycle_publication', 'on', true)`); err != nil {
+		return uuid.Nil, time.Time{}, err
+	}
+	return batchID, publishedAt, nil
+}
+
+func publishPreview(ctx context.Context, tx pgx.Tx, actor publicationActor, idempotencyKey, requestHash string, request api.SchedulePublishRequest, preview lockedPreview, response *api.SchedulePublicationResponse) error {
+	var snapshot struct {
+		Data []map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(preview.ResultSnapshot, &snapshot); err != nil || len(snapshot.Data) == 0 {
+		return ErrScheduleResolverUnavailable
+	}
+	batchID, publishedAt, err := preparePublicationBatch(ctx, tx, actor, idempotencyKey, requestHash, request, snapshot.Data)
+	if err != nil {
 		return err
+	}
+	revisionIDs := make([]uuid.UUID, 0, len(snapshot.Data))
+	for _, day := range snapshot.Data {
+		revisionID, err := insertPublishedDay(ctx, tx, batchID, actor, request.Reason, request.Timezone, day, publishedAt, nil)
+		if err != nil {
+			return err
+		}
+		revisionIDs = append(revisionIDs, revisionID)
+	}
+	return finalizePublicationBatch(ctx, tx, batchID, actor, publishedAt, revisionIDs, response)
+}
+
+func parsePublishedDayMeta(day map[string]any) (uuid.UUID, string, string, string, error) {
+	employmentID, err := uuidFromMap(day, "employment_id")
+	if err != nil {
+		return uuid.Nil, "", "", "", err
+	}
+	businessDate, ok := day["business_date"].(string)
+	if !ok || businessDate == "" {
+		return uuid.Nil, "", "", "", errors.New("schedule lifecycle preview has invalid business date")
+	}
+	status, _ := day["status"].(string)
+	source, _ := day["source"].(string)
+	if status != "work" && status != "explicit_off" {
+		return uuid.Nil, "", "", "", ErrScheduleResolverUnavailable
+	}
+	if source == "" {
+		return uuid.Nil, "", "", "", errors.New("schedule lifecycle preview has no source")
+	}
+	return employmentID, businessDate, status, source, nil
+}
+
+func insertPublishedWorkSegments(ctx context.Context, tx pgx.Tx, employmentID, revisionID uuid.UUID, businessDate, source string, intervals []normalizedInterval) error {
+	groupKey := fmt.Sprintf("%s:%s", employmentID, businessDate)
+	for _, interval := range intervals {
+		if _, err := tx.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, source, source_detail, schedule_revision_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot, start_day_offset, end_day_offset, shift_group_key, start_utc_offset_minutes, end_utc_offset_minutes) SELECT $1, $2, $3::date, sv.template_id, NULL, $4, $5::time, $6::time, 'work', 'scheduled', $7, '{}'::jsonb, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17 FROM shift_versions sv WHERE sv.id = $9`, uuid.New(), employmentID, businessDate, interval.SortOrder, interval.StartLocal, interval.EndLocal, source, revisionID, interval.ShiftVersionID, interval.StartAt, interval.EndAt, jsonArg(interval.Breaks), interval.StartDayOffset, interval.EndDayOffset, groupKey, interval.StartUTCOffsetMinutes, interval.EndUTCOffsetMinutes); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func insertPublishedDay(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, actor publicationActor, reason, timezone string, day map[string]any, publishedAt time.Time, previousRevisionID *uuid.UUID) (uuid.UUID, error) {
-	employmentID, err := uuidFromMap(day, "employment_id")
+	employmentID, businessDate, status, source, err := parsePublishedDayMeta(day)
 	if err != nil {
 		return uuid.Nil, err
-	}
-	businessDate, ok := day["business_date"].(string)
-	if !ok || businessDate == "" {
-		return uuid.Nil, errors.New("schedule lifecycle preview has invalid business date")
-	}
-	status, _ := day["status"].(string)
-	source, _ := day["source"].(string)
-	if status != "work" && status != "explicit_off" {
-		return uuid.Nil, ErrScheduleResolverUnavailable
-	}
-	if source == "" {
-		return uuid.Nil, errors.New("schedule lifecycle preview has no source")
 	}
 	revisionID := uuid.New()
 	var revisionNumber int64
@@ -326,17 +402,12 @@ func insertPublishedDay(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, actor
 	if _, err := tx.Exec(ctx, `INSERT INTO schedule_day_revisions (id, employment_id, employer_id, business_date, timezone, revision_number, state, publication_batch_id, source, source_snapshot, resolver_version, reason, published_by, published_actor_type, published_actor_name, published_at, previous_revision_id) SELECT $1, e.id, e.employer_id, $2::date, $3, $4, 'draft', $5, $6, $7, $8, $9, $10, $11, $12, NULL, $13 FROM employments e WHERE e.id = $14`, revisionID, businessDate, timezone, revisionNumber, batchID, source, sourceSnapshot, lifecycleResolverVersion, strings.TrimSpace(reason), actor.ID, actor.Type, actor.Name, previousRevisionID, employmentID); err != nil {
 		return uuid.Nil, err
 	}
-	intervals := []normalizedInterval(nil)
 	if status == "work" {
-		var err error
-		intervals, err = dayIntervals(day, timezone, businessDate)
+		intervals, err := dayIntervals(day, timezone, businessDate)
 		if err != nil {
 			return uuid.Nil, err
 		}
-	}
-	groupKey := fmt.Sprintf("%s:%s", employmentID, businessDate)
-	for _, interval := range intervals {
-		if _, err := tx.Exec(ctx, `INSERT INTO work_segments (id, employment_id, date, template_id, interval_id, sort_order, scheduled_start, scheduled_end, segment_type, segment_status, source, source_detail, schedule_revision_id, selected_shift_version_id, scheduled_start_at, scheduled_end_at, breaks_snapshot, start_day_offset, end_day_offset, shift_group_key, start_utc_offset_minutes, end_utc_offset_minutes) SELECT $1, $2, $3::date, sv.template_id, NULL, $4, $5::time, $6::time, 'work', 'scheduled', $7, '{}'::jsonb, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17 FROM shift_versions sv WHERE sv.id = $9`, uuid.New(), employmentID, businessDate, interval.SortOrder, interval.StartLocal, interval.EndLocal, source, revisionID, interval.ShiftVersionID, interval.StartAt, interval.EndAt, jsonArg(interval.Breaks), interval.StartDayOffset, interval.EndDayOffset, groupKey, interval.StartUTCOffsetMinutes, interval.EndUTCOffsetMinutes); err != nil {
+		if err := insertPublishedWorkSegments(ctx, tx, employmentID, revisionID, businessDate, source, intervals); err != nil {
 			return uuid.Nil, err
 		}
 	}

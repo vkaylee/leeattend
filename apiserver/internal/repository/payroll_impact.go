@@ -52,39 +52,87 @@ func hasDuplicatePayrollImpactEmploymentIDs(values []uuid.UUID) bool {
 	return false
 }
 
+type payrollSnapshotRun struct {
+	formulaID *uuid.UUID
+	input     []byte
+	output    []byte
+}
+
+func validPayrollImpactBatchReq(req api.PayrollImpactBatchRequest) bool {
+	if len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 100 || hasDuplicatePayrollImpactEmploymentIDs(req.EmploymentIDs) {
+		return false
+	}
+	return req.BeforeRunID != uuid.Nil && req.AfterRunID != uuid.Nil && req.BeforeRunID != req.AfterRunID
+}
+
+func loadImpactBatchRuns(ctx context.Context, db DBTX, req api.PayrollImpactBatchRequest) (map[uuid.UUID]map[uuid.UUID]payrollSnapshotRun, error) {
+	rows, err := db.Query(ctx, `SELECT employment_id, id, formula_version_id, input_snapshot, output_snapshot
+FROM payroll_calculation_runs
+WHERE employment_id = ANY($1::uuid[]) AND period_year = $2 AND period_month = $3 AND id = ANY($4::uuid[])
+ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID{req.BeforeRunID, req.AfterRunID})
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	runs := make(map[uuid.UUID]map[uuid.UUID]payrollSnapshotRun)
+	for rows.Next() {
+		var employmentID, runID uuid.UUID
+		var item payrollSnapshotRun
+		if err := rows.Scan(&employmentID, &runID, &item.formulaID, &item.input, &item.output); err != nil {
+			return nil, err
+		}
+		if runs[employmentID] == nil {
+			runs[employmentID] = make(map[uuid.UUID]payrollSnapshotRun, 2)
+		}
+		runs[employmentID][runID] = item
+	}
+	return runs, rows.Err()
+}
+
+func impactDeltaAffected(delta payroll.ImpactDelta) bool {
+	return !delta.BasePayDelta.IsZero() || !delta.OvertimePayDelta.IsZero() || !delta.DeductionsDelta.IsZero() || !delta.NetPayDelta.IsZero() || delta.StandardUnitsDelta != 0 || delta.OvertimeUnitsDelta != 0
+}
+
+func evaluateImpactBatchItem(employmentID uuid.UUID, req api.PayrollImpactBatchRequest, empRuns map[uuid.UUID]payrollSnapshotRun, currentPolicies []uuid.UUID, evaluatedAt string) (api.PayrollImpactBatchItem, bool) {
+	item := api.PayrollImpactBatchItem{EmploymentID: employmentID}
+	before, beforeOK := empRuns[req.BeforeRunID]
+	after, afterOK := empRuns[req.AfterRunID]
+	if !beforeOK || !afterOK || before.formulaID != nil || after.formulaID != nil {
+		item.Reason = "calculation runs are incomplete or formula-linked"
+		return item, false
+	}
+	delta, compareErr := payroll.CompareImpactSnapshots(before.input, before.output, after.input, after.output)
+	if compareErr != nil {
+		item.Reason = compareErr.Error()
+		return item, false
+	}
+	item.Computed = true
+	if stale, reasons := impactStalenessForPolicy(currentPolicies, after.input); stale {
+		item.Stale = true
+		item.StaleReasons = reasons
+	}
+	item.InputFingerprint = delta.InputFingerprint
+	item.Delta = &api.PayrollImpactResponse{
+		EmploymentID: employmentID, InputFingerprint: delta.InputFingerprint, EvaluatedAt: evaluatedAt,
+		PeriodYear: req.Year, PeriodMonth: req.Month, BeforeRunID: req.BeforeRunID, AfterRunID: req.AfterRunID,
+		Computed: true, Stale: item.Stale, StaleReasons: item.StaleReasons,
+		BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta,
+		DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta,
+		StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta,
+	}
+	return item, impactDeltaAffected(delta)
+}
+
 func (r PayrollRepository) ComparePayrollImpactBatch(ctx context.Context, req api.PayrollImpactBatchRequest) (api.PayrollImpactBatchResponse, error) {
-	if len(req.EmploymentIDs) == 0 || len(req.EmploymentIDs) > 100 || hasDuplicatePayrollImpactEmploymentIDs(req.EmploymentIDs) || req.BeforeRunID == uuid.Nil || req.AfterRunID == uuid.Nil || req.BeforeRunID == req.AfterRunID {
+	if !validPayrollImpactBatchReq(req) {
 		return api.PayrollImpactBatchResponse{}, api.ErrPayrollImpactValidation
 	}
 	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
 		return api.PayrollImpactBatchResponse{}, err
 	}
-	rows, err := db.Query(ctx, `SELECT employment_id, id, formula_version_id, input_snapshot, output_snapshot
-FROM payroll_calculation_runs
-WHERE employment_id = ANY($1::uuid[]) AND period_year = $2 AND period_month = $3 AND id = ANY($4::uuid[])
-ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID{req.BeforeRunID, req.AfterRunID})
+	runs, err := loadImpactBatchRuns(ctx, db, req)
 	if err != nil {
-		return api.PayrollImpactBatchResponse{}, err
-	}
-	defer rows.Close()
-	type run struct {
-		formulaID     *uuid.UUID
-		input, output []byte
-	}
-	runs := make(map[uuid.UUID]map[uuid.UUID]run)
-	for rows.Next() {
-		var employmentID, runID uuid.UUID
-		var item run
-		if err := rows.Scan(&employmentID, &runID, &item.formulaID, &item.input, &item.output); err != nil {
-			return api.PayrollImpactBatchResponse{}, err
-		}
-		if runs[employmentID] == nil {
-			runs[employmentID] = make(map[uuid.UUID]run, 2)
-		}
-		runs[employmentID][runID] = item
-	}
-	if err := rows.Err(); err != nil {
 		return api.PayrollImpactBatchResponse{}, err
 	}
 	currentPolicies, err := currentImpactPolicies(ctx, db, req.EmploymentIDs, req.Year, req.Month)
@@ -94,35 +142,21 @@ ORDER BY employment_id, id`, req.EmploymentIDs, req.Year, req.Month, []uuid.UUID
 	evaluated := time.Now().UTC()
 	evaluatedAt := evaluated.Format(time.RFC3339)
 	expiresAt := evaluated.Add(payroll.ImpactFreshnessTTL).Format(time.RFC3339)
-	result := api.PayrollImpactBatchResponse{Total: len(req.EmploymentIDs), EvaluatedAt: evaluatedAt, ExpiresAt: expiresAt, StaleAfterSeconds: int(payroll.ImpactFreshnessTTL / time.Second), Items: make([]api.PayrollImpactBatchItem, 0, len(req.EmploymentIDs))}
+	result := api.PayrollImpactBatchResponse{
+		Total: len(req.EmploymentIDs), EvaluatedAt: evaluatedAt, ExpiresAt: expiresAt,
+		StaleAfterSeconds: int(payroll.ImpactFreshnessTTL / time.Second),
+		Items:             make([]api.PayrollImpactBatchItem, 0, len(req.EmploymentIDs)),
+	}
 	for _, employmentID := range req.EmploymentIDs {
-		item := api.PayrollImpactBatchItem{EmploymentID: employmentID}
-		before, beforeOK := runs[employmentID][req.BeforeRunID]
-		after, afterOK := runs[employmentID][req.AfterRunID]
-		if !beforeOK || !afterOK || before.formulaID != nil || after.formulaID != nil {
-			item.Reason = "calculation runs are incomplete or formula-linked"
+		item, affected := evaluateImpactBatchItem(employmentID, req, runs[employmentID], currentPolicies[employmentID], evaluatedAt)
+		if !item.Computed {
 			result.Uncomputable++
-			result.Items = append(result.Items, item)
-			continue
+		} else {
+			result.Computed++
+			if affected {
+				result.Affected++
+			}
 		}
-		delta, compareErr := payroll.CompareImpactSnapshots(before.input, before.output, after.input, after.output)
-		if compareErr != nil {
-			item.Reason = compareErr.Error()
-			result.Uncomputable++
-			result.Items = append(result.Items, item)
-			continue
-		}
-		item.Computed = true
-		if stale, reasons := impactStalenessForPolicy(currentPolicies[employmentID], after.input); stale {
-			item.Stale = true
-			item.StaleReasons = reasons
-		}
-		item.InputFingerprint = delta.InputFingerprint
-		item.Delta = &api.PayrollImpactResponse{EmploymentID: employmentID, InputFingerprint: delta.InputFingerprint, EvaluatedAt: evaluatedAt, PeriodYear: req.Year, PeriodMonth: req.Month, BeforeRunID: req.BeforeRunID, AfterRunID: req.AfterRunID, Computed: true, Stale: item.Stale, StaleReasons: item.StaleReasons, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta, DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta, StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta}
-		if !delta.BasePayDelta.IsZero() || !delta.OvertimePayDelta.IsZero() || !delta.DeductionsDelta.IsZero() || !delta.NetPayDelta.IsZero() || delta.StandardUnitsDelta != 0 || delta.OvertimeUnitsDelta != 0 {
-			result.Affected++
-		}
-		result.Computed++
 		result.Items = append(result.Items, item)
 	}
 	return result, nil
@@ -204,58 +238,69 @@ func impactStalenessForPolicy(currentIDs []uuid.UUID, input []byte) (bool, []str
 	return comparePolicyVersionSets(currentIDs, []string{payload.Policy.VersionID})
 }
 
+func validSingleImpactParams(year, month int, beforeRunID, afterRunID uuid.UUID) bool {
+	return beforeRunID != uuid.Nil && afterRunID != uuid.Nil && beforeRunID != afterRunID && year >= 2000 && year <= 2100 && month >= 1 && month <= 12
+}
+
+func loadSingleImpactRuns(ctx context.Context, db DBTX, employmentID ids.EmploymentID, year, month int, beforeRunID, afterRunID uuid.UUID) (payrollSnapshotRun, payrollSnapshotRun, error) {
+	rows, err := db.Query(ctx, `SELECT id, formula_version_id, input_snapshot, output_snapshot
+FROM payroll_calculation_runs
+WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY($4::uuid[])`, uuid.UUID(employmentID), year, month, []uuid.UUID{beforeRunID, afterRunID})
+	if err != nil {
+		return payrollSnapshotRun{}, payrollSnapshotRun{}, err
+	}
+	defer rows.Close()
+	runs := make(map[uuid.UUID]payrollSnapshotRun, 2)
+	for rows.Next() {
+		var id uuid.UUID
+		var run payrollSnapshotRun
+		if err := rows.Scan(&id, &run.formulaID, &run.input, &run.output); err != nil {
+			return payrollSnapshotRun{}, payrollSnapshotRun{}, err
+		}
+		runs[id] = run
+	}
+	if err := rows.Err(); err != nil {
+		return payrollSnapshotRun{}, payrollSnapshotRun{}, err
+	}
+	before, beforeOK := runs[beforeRunID]
+	after, afterOK := runs[afterRunID]
+	if !beforeOK || !afterOK {
+		return payrollSnapshotRun{}, payrollSnapshotRun{}, api.ErrPayrollImpactNotFound
+	}
+	if before.formulaID != nil || after.formulaID != nil {
+		return payrollSnapshotRun{}, payrollSnapshotRun{}, api.ErrPayrollImpactValidation
+	}
+	return before, after, nil
+}
+
 func (r PayrollRepository) ComparePayrollImpact(ctx context.Context, employmentID ids.EmploymentID, year, month int, beforeRunID, afterRunID uuid.UUID) (api.PayrollImpactResponse, error) {
 	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
 		return api.PayrollImpactResponse{}, err
 	}
-	if beforeRunID == uuid.Nil || afterRunID == uuid.Nil || beforeRunID == afterRunID || year < 2000 || year > 2100 || month < 1 || month > 12 {
+	if !validSingleImpactParams(year, month, beforeRunID, afterRunID) {
 		return api.PayrollImpactResponse{}, api.ErrPayrollImpactValidation
 	}
-	rows, err := db.Query(ctx, `SELECT id, formula_version_id, input_snapshot, output_snapshot
-FROM payroll_calculation_runs
-WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY($4::uuid[])`, uuid.UUID(employmentID), year, month, []uuid.UUID{beforeRunID, afterRunID})
+	before, after, err := loadSingleImpactRuns(ctx, db, employmentID, year, month, beforeRunID, afterRunID)
 	if err != nil {
 		return api.PayrollImpactResponse{}, err
-	}
-	defer rows.Close()
-	type snapshotRun struct {
-		formulaID *uuid.UUID
-		input     []byte
-		output    []byte
-	}
-	runs := make(map[uuid.UUID]snapshotRun, 2)
-	for rows.Next() {
-		var id uuid.UUID
-		var run snapshotRun
-		if err := rows.Scan(&id, &run.formulaID, &run.input, &run.output); err != nil {
-			return api.PayrollImpactResponse{}, err
-		}
-		runs[id] = run
-	}
-	if err := rows.Err(); err != nil {
-		return api.PayrollImpactResponse{}, err
-	}
-	before, beforeOK := runs[beforeRunID]
-	after, afterOK := runs[afterRunID]
-	if !beforeOK || !afterOK {
-		return api.PayrollImpactResponse{}, api.ErrPayrollImpactNotFound
-	}
-	if before.formulaID != nil || after.formulaID != nil {
-		return api.PayrollImpactResponse{}, api.ErrPayrollImpactValidation
 	}
 	stale, staleReason, err := impactSnapshotStaleness(ctx, db, employmentID, year, month, after.input)
 	if err != nil {
 		return api.PayrollImpactResponse{}, err
 	}
 	delta, err := payroll.CompareImpactSnapshots(before.input, before.output, after.input, after.output)
+	evaluated := time.Now().UTC()
+	baseResp := api.PayrollImpactResponse{
+		EmploymentID: uuid.UUID(employmentID), EvaluatedAt: evaluated.Format(time.RFC3339),
+		ExpiresAt:         evaluated.Add(payroll.ImpactFreshnessTTL).Format(time.RFC3339),
+		StaleAfterSeconds: int(payroll.ImpactFreshnessTTL / time.Second),
+		PeriodYear:        year, PeriodMonth: month, BeforeRunID: beforeRunID, AfterRunID: afterRunID,
+		Stale: stale, StaleReasons: staleReason,
+	}
 	if errors.Is(err, payroll.ErrImpactSnapshotIncomplete) {
-		evaluated := time.Now().UTC()
-		return api.PayrollImpactResponse{
-			EmploymentID: uuid.UUID(employmentID), EvaluatedAt: evaluated.Format(time.RFC3339), ExpiresAt: evaluated.Add(payroll.ImpactFreshnessTTL).Format(time.RFC3339), StaleAfterSeconds: int(payroll.ImpactFreshnessTTL / time.Second), PeriodYear: year, PeriodMonth: month,
-			BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: false, Stale: stale, StaleReasons: staleReason,
-			Reason: "calculation output is incomplete",
-		}, nil
+		baseResp.Reason = "calculation output is incomplete"
+		return baseResp, nil
 	}
 	if errors.Is(err, payroll.ErrImpactInputMismatch) {
 		return api.PayrollImpactResponse{}, api.ErrPayrollImpactValidation
@@ -263,14 +308,16 @@ WHERE employment_id = $1 AND period_year = $2 AND period_month = $3 AND id = ANY
 	if err != nil {
 		return api.PayrollImpactResponse{}, err
 	}
-	evaluated := time.Now().UTC()
-	return api.PayrollImpactResponse{
-		EmploymentID: uuid.UUID(employmentID), InputFingerprint: delta.InputFingerprint, EvaluatedAt: evaluated.Format(time.RFC3339), ExpiresAt: evaluated.Add(payroll.ImpactFreshnessTTL).Format(time.RFC3339), StaleAfterSeconds: int(payroll.ImpactFreshnessTTL / time.Second), PeriodYear: year, PeriodMonth: month,
-		BeforeRunID: beforeRunID, AfterRunID: afterRunID, Computed: delta.Complete, Stale: stale, StaleReasons: staleReason,
-		Reason: delta.Reason, BasePayDelta: delta.BasePayDelta, OvertimePayDelta: delta.OvertimePayDelta,
-		DeductionsDelta: delta.DeductionsDelta, NetPayDelta: delta.NetPayDelta,
-		StandardUnitsDelta: delta.StandardUnitsDelta, OvertimeUnitsDelta: delta.OvertimeUnitsDelta,
-	}, nil
+	baseResp.InputFingerprint = delta.InputFingerprint
+	baseResp.Computed = delta.Complete
+	baseResp.Reason = delta.Reason
+	baseResp.BasePayDelta = delta.BasePayDelta
+	baseResp.OvertimePayDelta = delta.OvertimePayDelta
+	baseResp.DeductionsDelta = delta.DeductionsDelta
+	baseResp.NetPayDelta = delta.NetPayDelta
+	baseResp.StandardUnitsDelta = delta.StandardUnitsDelta
+	baseResp.OvertimeUnitsDelta = delta.OvertimeUnitsDelta
+	return baseResp, nil
 }
 
 func impactSnapshotStaleness(ctx context.Context, db DBTX, employmentID ids.EmploymentID, year, month int, input []byte) (bool, []string, error) {

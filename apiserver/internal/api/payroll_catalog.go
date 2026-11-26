@@ -418,36 +418,40 @@ func (h *PayrollHandler) ListPayrollRuleAssignments(w http.ResponseWriter, r *ht
 	apperror.WriteJSON(w, http.StatusOK, assignments)
 }
 
-func (h *PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request) {
+func normalizePayrollRuleAssignment(req *AssignPayrollRuleRequest) bool {
+	switch req.AssigneeType {
+	case "organization":
+		req.AssigneeID = nil
+	case "department", "employee":
+		if req.AssigneeID == nil {
+			return false
+		}
+	default:
+		return false
+	}
+	effFrom, err := time.Parse("2006-01-02", req.EffectiveFrom)
+	if err != nil {
+		return false
+	}
+	if req.EffectiveTo != nil {
+		effTo, err := time.Parse("2006-01-02", *req.EffectiveTo)
+		if err != nil || effTo.Before(effFrom) {
+			return false
+		}
+	}
+	return true
+}
 
+func (h *PayrollHandler) AssignPayrollRule(w http.ResponseWriter, r *http.Request) {
 	ruleID, rOK := pathUUID(r, "rule_id")
 	if !rOK || !h.allowedMember(r) {
 		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[AssignPayrollRuleRequest](r, 1<<20)
-	if err != nil || (req.AssigneeType != "organization" && req.AssigneeType != "department" && req.AssigneeType != "employee") {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	if err != nil || !normalizePayrollRuleAssignment(&req) {
+		writeValidation(w, r)
 		return
-	}
-	if req.AssigneeType != "organization" && req.AssigneeID == nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if req.AssigneeType == "organization" {
-		req.AssigneeID = nil
-	}
-	effFrom, err := time.Parse("2006-01-02", req.EffectiveFrom)
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if req.EffectiveTo != nil {
-		effTo, err := time.Parse("2006-01-02", *req.EffectiveTo)
-		if err != nil || effTo.Before(effFrom) {
-			apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-			return
-		}
 	}
 	assignment, err := h.Repository.AssignPayrollRule(r.Context(), ids.PayrollRuleID(ruleID), req)
 	if err != nil {

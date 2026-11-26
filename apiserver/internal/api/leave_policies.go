@@ -278,19 +278,34 @@ func (h *LeaveHandler) DeletePolicy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *LeaveHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
+func validAssignLeavePolicyRequest(req AssignLeavePolicyRequest) bool {
+	if req.PolicyID == uuid.Nil {
+		return false
+	}
+	switch req.AssigneeType {
+	case "organization":
+		if req.AssigneeID != nil {
+			return false
+		}
+	case "department", "employee", "user":
+		if req.AssigneeID == nil {
+			return false
+		}
+	default:
+		return false
+	}
+	_, err := time.Parse("2006-01-02", req.EffectiveFrom)
+	return err == nil
+}
 
+func (h *LeaveHandler) AssignPolicy(w http.ResponseWriter, r *http.Request) {
 	if !hasPermission(r, h.Authorizer, "leave:policies:manage") {
 		writeForbidden(w, r)
 		return
 	}
 	req, err := DecodeJSON[AssignLeavePolicyRequest](r, 1<<20)
-	if err != nil || (req.AssigneeType != "organization" && req.AssigneeType != "department" && req.AssigneeType != "employee" && req.AssigneeType != "user") || req.PolicyID == uuid.Nil || (req.AssigneeType == "organization" && req.AssigneeID != nil) || (req.AssigneeType != "organization" && req.AssigneeID == nil) {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
-	if _, err = time.Parse("2006-01-02", req.EffectiveFrom); err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+	if err != nil || !validAssignLeavePolicyRequest(req) {
+		writeValidation(w, r)
 		return
 	}
 	data, err := h.Repository.AssignLeavePolicy(r.Context(), req)

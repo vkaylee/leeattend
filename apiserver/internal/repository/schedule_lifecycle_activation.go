@@ -9,8 +9,13 @@ import (
 	"strings"
 )
 
+func validScheduleActivationParams(employerID, actorID uuid.UUID, startDate, endDate, reason string) bool {
+	trimmed := strings.TrimSpace(reason)
+	return employerID != uuid.Nil && actorID != uuid.Nil && trimmed != "" && len(trimmed) <= 2000 && startDate != "" && endDate != "" && startDate <= endDate
+}
+
 func (r ScheduleRepository) ActivateScheduleEmployer(ctx context.Context, employerID uuid.UUID, startDate, endDate, reason string, actorID uuid.UUID) error {
-	if employerID == uuid.Nil || actorID == uuid.Nil || strings.TrimSpace(reason) == "" || len(strings.TrimSpace(reason)) > 2000 || startDate == "" || endDate == "" || startDate > endDate {
+	if !validScheduleActivationParams(employerID, actorID, startDate, endDate, reason) {
 		return api.ErrScheduleActivationNotReady
 	}
 	beginner, err := r.beginLifecycle(ctx)
@@ -47,7 +52,7 @@ func (r ScheduleRepository) ActivateScheduleEmployer(ctx context.Context, employ
 }
 
 func (r ScheduleRepository) DeactivateScheduleEmployer(ctx context.Context, employerID uuid.UUID, startDate, endDate, reason string, actorID uuid.UUID) error {
-	if employerID == uuid.Nil || actorID == uuid.Nil || strings.TrimSpace(reason) == "" || len(strings.TrimSpace(reason)) > 2000 || startDate == "" || endDate == "" || startDate > endDate {
+	if !validScheduleActivationParams(employerID, actorID, startDate, endDate, reason) {
 		return api.ErrScheduleActivationNotReady
 	}
 	beginner, err := r.beginLifecycle(ctx)

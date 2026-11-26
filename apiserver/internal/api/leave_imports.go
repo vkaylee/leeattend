@@ -104,47 +104,23 @@ func (h *LeaveHandler) JobStatus(w http.ResponseWriter, r *http.Request) {
 	apperror.WriteJSON(w, http.StatusOK, status)
 }
 
-func (h *LeaveHandler) UploadExcel(w http.ResponseWriter, r *http.Request) {
-
-	user, userOK := httpinfra.UserIDFromContext(r.Context())
-	if !userOK || !hasPermission(r, h.Authorizer, "leave:requests:submit") {
-		writeForbidden(w, r)
-		return
-	}
-	name, content, err := readAttendanceMultipart(r, false)
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	dir := h.StorageDir
+func saveLeaveImportFile(storageDir, name string, content []byte) (uuid.UUID, string, error) {
+	dir := storageDir
 	if dir == "" {
 		dir = "storage"
 	}
-	if err = os.MkdirAll(filepath.Join(dir, "imports"), 0o750); err != nil {
-		h.writeError(w, r, err)
-		return
+	if err := os.MkdirAll(filepath.Join(dir, "imports"), 0o750); err != nil {
+		return uuid.Nil, "", err
 	}
 	jobID := uuid.New()
 	path := filepath.Join(dir, "imports", jobID.String()+"_"+filepath.Base(name))
-	if err = os.WriteFile(path, content, 0o640); err != nil {
-		h.writeError(w, r, err)
-		return
+	if err := os.WriteFile(path, content, 0o640); err != nil {
+		return uuid.Nil, "", err
 	}
-	ir := h.importRepo()
-	if ir == nil {
-		apperror.WriteJSON(w, http.StatusOK, map[string]any{"job_id": jobID, "status": "enqueued"})
-		return
-	}
-	job, err := ir.CreateLeaveImportJob(r.Context(), user, path)
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	workbook, err := parseEmployeeWorkbook(content, []string{"employee_code", "leave_type_code", "start_date", "end_date"})
-	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
-		return
-	}
+	return jobID, path, nil
+}
+
+func parseLeaveImportRows(workbook []map[string]string) []LeaveImportRow {
 	rows := make([]LeaveImportRow, 0, len(workbook))
 	for _, row := range workbook {
 		empCode := strings.TrimSpace(row["employee_code"])
@@ -155,8 +131,7 @@ func (h *LeaveHandler) UploadExcel(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		var reason *string
-		if rVal, hasR := row["reason"]; hasR && strings.TrimSpace(rVal) != "" {
-			trimmed := strings.TrimSpace(rVal)
+		if trimmed := strings.TrimSpace(row["reason"]); trimmed != "" {
 			reason = &trimmed
 		}
 		duration := strings.TrimSpace(row["duration_type"])
@@ -173,8 +148,42 @@ func (h *LeaveHandler) UploadExcel(w http.ResponseWriter, r *http.Request) {
 			DurationType:  duration,
 		})
 	}
+	return rows
+}
+
+func (h *LeaveHandler) UploadExcel(w http.ResponseWriter, r *http.Request) {
+	user, userOK := httpinfra.UserIDFromContext(r.Context())
+	if !userOK || !hasPermission(r, h.Authorizer, "leave:requests:submit") {
+		writeForbidden(w, r)
+		return
+	}
+	name, content, err := readAttendanceMultipart(r, false)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	jobID, path, err := saveLeaveImportFile(h.StorageDir, name, content)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	ir := h.importRepo()
+	if ir == nil {
+		apperror.WriteJSON(w, http.StatusOK, map[string]any{"job_id": jobID, "status": "enqueued"})
+		return
+	}
+	job, err := ir.CreateLeaveImportJob(r.Context(), user, path)
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	workbook, err := parseEmployeeWorkbook(content, []string{"employee_code", "leave_type_code", "start_date", "end_date"})
+	if err != nil {
+		writeValidation(w, r)
+		return
+	}
 	autoApprove := hasAnyPermission(r, h.Authorizer, "leave:requests:approve", "leave:approve:l1", "leave:approve:l2")
-	if err = ir.ProcessLeaveImport(r.Context(), user, job, rows, autoApprove); err != nil {
+	if err = ir.ProcessLeaveImport(r.Context(), user, job, parseLeaveImportRows(workbook), autoApprove); err != nil {
 		h.writeError(w, r, err)
 		return
 	}

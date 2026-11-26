@@ -17,6 +17,146 @@ import (
 	"time"
 )
 
+func findIdempotentPayrollInputBatch(ctx context.Context, tx pgx.Tx, idempotencyKey, requestHash string) (api.PayrollInputBatch, bool, error) {
+	var existingHash string
+	var existingID uuid.UUID
+	err := tx.QueryRow(ctx, `SELECT id, request_hash FROM payroll_input_batches WHERE idempotency_key = $1 FOR UPDATE`, idempotencyKey).Scan(&existingID, &existingHash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return api.PayrollInputBatch{}, false, nil
+	}
+	if err != nil {
+		return api.PayrollInputBatch{}, false, err
+	}
+	if existingHash != requestHash {
+		return api.PayrollInputBatch{}, false, api.ErrPayrollInputConflict
+	}
+	batch, scanErr := scanPayrollInputBatch(tx.QueryRow(ctx, `SELECT b.id, b.period_year, b.period_month, b.source, b.idempotency_key, b.status, count(i.id), b.submitted_by, b.approved_by, b.locked_by, b.created_at
+		FROM payroll_input_batches b LEFT JOIN payroll_inputs i ON i.batch_id = b.id
+		WHERE b.id = $1 GROUP BY b.id`, existingID))
+	return batch, scanErr == nil, scanErr
+}
+
+func validatePayrollInputMetrics(ctx context.Context, tx pgx.Tx, inputs []api.PayrollInput, metricCodes []string) error {
+	rows, err := tx.Query(ctx, `SELECT code, unit FROM payroll_metric_definitions WHERE code = ANY($1) AND is_active = true`, metricCodes)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	metricUnits := make(map[string]string, len(metricCodes))
+	for rows.Next() {
+		var code, unit string
+		if err := rows.Scan(&code, &unit); err != nil {
+			return err
+		}
+		metricUnits[code] = unit
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, input := range inputs {
+		if unit, exists := metricUnits[input.MetricCode]; !exists || unit != input.Unit {
+			return api.ErrPayrollValidation
+		}
+	}
+	return nil
+}
+
+func validatePayrollInputEmployments(ctx context.Context, tx pgx.Tx, employmentIDs []uuid.UUID) error {
+	rows, err := tx.Query(ctx, `SELECT id FROM employments WHERE id = ANY($1) AND deleted_at IS NULL`, employmentIDs)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	valid := make(map[uuid.UUID]struct{}, len(employmentIDs))
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+		valid[id] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if len(valid) != len(uniqueUUIDs(employmentIDs)) {
+		return api.ErrEmploymentNotFound
+	}
+	return nil
+}
+
+func ensurePayrollInputPeriodsUnlocked(ctx context.Context, tx pgx.Tx, employmentIDs []uuid.UUID, year, month int) error {
+	var locked bool
+	err := tx.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1 FROM payroll_periods p
+		JOIN employments e ON e.employer_id = p.employer_id
+		WHERE e.id = ANY($1) AND p.period_year = $2 AND p.period_month = $3 AND p.status = 'locked'
+	)`, employmentIDs, year, month).Scan(&locked)
+	if err != nil {
+		return err
+	}
+	if locked {
+		return api.ErrPayrollInputConflict
+	}
+	return nil
+}
+
+func insertPayrollInputRows(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, inputs []api.PayrollInput) error {
+	valueArgs := make([]any, 0, len(inputs)*8)
+	valueParts := make([]string, 0, len(inputs))
+	for index, input := range inputs {
+		base := index*8 + 1
+		var ref any
+		if input.SourceReference != nil {
+			ref = *input.SourceReference
+		}
+		status, validationMessage := payrollInputRowStatus(input.Value)
+		valueParts = append(valueParts, fmt.Sprintf("($%d, $%d, (SELECT id FROM payroll_metric_definitions WHERE code = $%d), $%d, $%d, $%d, $%d, $%d)", base, base+1, base+2, base+3, base+4, base+5, base+6, base+7))
+		valueArgs = append(valueArgs, batchID, input.EmploymentID, input.MetricCode, input.Value.String(), input.Unit, ref, status, validationMessage)
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO payroll_inputs (batch_id, employment_id, metric_definition_id, value, unit, source_reference, status, validation_message) VALUES `+strings.Join(valueParts, ", "), valueArgs...)
+	return err
+}
+
+func createPayrollInputBatchTx(ctx context.Context, tx pgx.Tx, req api.CreatePayrollInputRequest, actorID ids.UserID, requestHash string) (api.PayrollInputBatch, error) {
+	existing, found, err := findIdempotentPayrollInputBatch(ctx, tx, req.IdempotencyKey, requestHash)
+	if err != nil || found {
+		return existing, err
+	}
+
+	metricCodes := make([]string, 0, len(req.Inputs))
+	employmentIDs := make([]uuid.UUID, 0, len(req.Inputs))
+	for _, input := range req.Inputs {
+		metricCodes = append(metricCodes, input.MetricCode)
+		employmentIDs = append(employmentIDs, input.EmploymentID)
+	}
+	if err := validatePayrollInputMetrics(ctx, tx, req.Inputs, metricCodes); err != nil {
+		return api.PayrollInputBatch{}, err
+	}
+	if err := validatePayrollInputEmployments(ctx, tx, employmentIDs); err != nil {
+		return api.PayrollInputBatch{}, err
+	}
+	if err := ensurePayrollInputPeriodsUnlocked(ctx, tx, employmentIDs, req.PeriodYear, req.PeriodMonth); err != nil {
+		return api.PayrollInputBatch{}, err
+	}
+
+	var result api.PayrollInputBatch
+	batchID := uuid.New()
+	if err := tx.QueryRow(ctx, `INSERT INTO payroll_input_batches (id, period_year, period_month, source, idempotency_key, request_hash, status, submitted_by)
+		VALUES ($1, $2, $3, $4, $5, $6, 'submitted', $7)
+		RETURNING id, period_year, period_month, source, idempotency_key, status, 0, submitted_by, approved_by, locked_by, created_at`, batchID, req.PeriodYear, req.PeriodMonth, strings.TrimSpace(req.Source), req.IdempotencyKey, requestHash, uuid.UUID(actorID)).Scan(
+		&result.ID, &result.PeriodYear, &result.PeriodMonth, &result.Source, &result.IdempotencyKey, &result.Status, &result.InputCount, &result.SubmittedBy, &result.ApprovedBy, &result.LockedBy, &result.CreatedAt); err != nil {
+		if isConflictError(err) {
+			return api.PayrollInputBatch{}, api.ErrPayrollInputConflict
+		}
+		return api.PayrollInputBatch{}, err
+	}
+	if err := insertPayrollInputRows(ctx, tx, batchID, req.Inputs); err != nil {
+		return api.PayrollInputBatch{}, err
+	}
+	result.InputCount = len(req.Inputs)
+	return result, nil
+}
+
 func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.CreatePayrollInputRequest, actorID ids.UserID) (api.PayrollInputBatch, error) {
 	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
@@ -33,121 +173,11 @@ func (r PayrollRepository) CreatePayrollInputBatch(ctx context.Context, req api.
 
 	var result api.PayrollInputBatch
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
-		var existingHash string
-		var existingID uuid.UUID
-		err := tx.QueryRow(ctx, `SELECT id, request_hash FROM payroll_input_batches WHERE idempotency_key = $1 FOR UPDATE`, req.IdempotencyKey).Scan(&existingID, &existingHash)
-		if err == nil {
-			if existingHash != requestHash {
-				return api.ErrPayrollInputConflict
-			}
-			batch, scanErr := scanPayrollInputBatch(tx.QueryRow(ctx, `SELECT b.id, b.period_year, b.period_month, b.source, b.idempotency_key, b.status, count(i.id), b.submitted_by, b.approved_by, b.locked_by, b.created_at
-				FROM payroll_input_batches b LEFT JOIN payroll_inputs i ON i.batch_id = b.id
-				WHERE b.id = $1 GROUP BY b.id`, existingID))
-			if scanErr != nil {
-				return scanErr
-			}
-			result = batch
-			return nil
-		}
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
-
-		metricCodes := make([]string, 0, len(req.Inputs))
-		employmentIDs := make([]uuid.UUID, 0, len(req.Inputs))
-		for _, input := range req.Inputs {
-			metricCodes = append(metricCodes, input.MetricCode)
-			employmentIDs = append(employmentIDs, input.EmploymentID)
-		}
-
-		metricRows, err := tx.Query(ctx, `SELECT code, unit FROM payroll_metric_definitions WHERE code = ANY($1) AND is_active = true`, metricCodes)
+		batch, err := createPayrollInputBatchTx(ctx, tx, req, actorID, requestHash)
 		if err != nil {
 			return err
 		}
-		metricUnits := make(map[string]string, len(metricCodes))
-		for metricRows.Next() {
-			var code, unit string
-			if err := metricRows.Scan(&code, &unit); err != nil {
-				metricRows.Close()
-				return err
-			}
-			metricUnits[code] = unit
-		}
-		if err := metricRows.Err(); err != nil {
-			metricRows.Close()
-			return err
-		}
-		metricRows.Close()
-		for _, input := range req.Inputs {
-			unit, exists := metricUnits[input.MetricCode]
-			if !exists || unit != input.Unit {
-				return api.ErrPayrollValidation
-			}
-		}
-
-		employmentRows, err := tx.Query(ctx, `SELECT id FROM employments WHERE id = ANY($1) AND deleted_at IS NULL`, employmentIDs)
-		if err != nil {
-			return err
-		}
-		validEmployments := make(map[uuid.UUID]struct{}, len(employmentIDs))
-		for employmentRows.Next() {
-			var id uuid.UUID
-			if err := employmentRows.Scan(&id); err != nil {
-				employmentRows.Close()
-				return err
-			}
-			validEmployments[id] = struct{}{}
-		}
-		if err := employmentRows.Err(); err != nil {
-			employmentRows.Close()
-			return err
-		}
-		employmentRows.Close()
-		if len(validEmployments) != len(uniqueUUIDs(employmentIDs)) {
-			return api.ErrEmploymentNotFound
-		}
-
-		var locked bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (
-			SELECT 1 FROM payroll_periods p
-			JOIN employments e ON e.employer_id = p.employer_id
-			WHERE e.id = ANY($1) AND p.period_year = $2 AND p.period_month = $3 AND p.status = 'locked'
-		)`, employmentIDs, req.PeriodYear, req.PeriodMonth).Scan(&locked); err != nil {
-			return err
-		}
-		if locked {
-			return api.ErrPayrollInputConflict
-		}
-
-		batchID := uuid.New()
-		if err := tx.QueryRow(ctx, `INSERT INTO payroll_input_batches (id, period_year, period_month, source, idempotency_key, request_hash, status, submitted_by)
-			VALUES ($1, $2, $3, $4, $5, $6, 'submitted', $7)
-			RETURNING id, period_year, period_month, source, idempotency_key, status, 0, submitted_by, approved_by, locked_by, created_at`, batchID, req.PeriodYear, req.PeriodMonth, strings.TrimSpace(req.Source), req.IdempotencyKey, requestHash, uuid.UUID(actorID)).Scan(
-			&result.ID, &result.PeriodYear, &result.PeriodMonth, &result.Source, &result.IdempotencyKey, &result.Status, &result.InputCount, &result.SubmittedBy, &result.ApprovedBy, &result.LockedBy, &result.CreatedAt); err != nil {
-			if isConflictError(err) {
-				return api.ErrPayrollInputConflict
-			}
-			return err
-		}
-
-		valueArgs := make([]any, 0, len(req.Inputs)*6)
-		valueParts := make([]string, 0, len(req.Inputs))
-		for index, input := range req.Inputs {
-			base := index*8 + 1
-			ref := any(nil)
-			if input.SourceReference != nil {
-				ref = *input.SourceReference
-			}
-			status, validationMessage := payrollInputRowStatus(input.Value)
-
-			valueParts = append(valueParts, fmt.Sprintf("($%d, $%d, (SELECT id FROM payroll_metric_definitions WHERE code = $%d), $%d, $%d, $%d, $%d, $%d)", base, base+1, base+2, base+3, base+4, base+5, base+6, base+7))
-			valueArgs = append(valueArgs, batchID, input.EmploymentID, input.MetricCode, input.Value.String(), input.Unit, ref, status, validationMessage)
-		}
-		_, err = tx.Exec(ctx, `INSERT INTO payroll_inputs (batch_id, employment_id, metric_definition_id, value, unit, source_reference, status, validation_message) VALUES `+strings.Join(valueParts, ", "), valueArgs...)
-		if err != nil {
-			return err
-		}
-		result.InputCount = len(req.Inputs)
+		result = batch
 		return nil
 	})
 	if err != nil {

@@ -13,6 +13,67 @@ import (
 	"time"
 )
 
+func persistReplanPreview(ctx context.Context, tx pgx.Tx, actorID, employmentID uuid.UUID, businessDate string, request api.ScheduleReplanPreviewRequest, current lifecycleRevision, before, replacement map[string]any) (api.ScheduleReplanPreviewResponse, error) {
+	diff := map[string]any{"before": before, "after": replacement}
+	diffHash, err := hashJSON(map[string]any{
+		"original_revision_id": current.ID.String(),
+		"expected_revision":    request.ExpectedRevision,
+		"diff":                 diff,
+	})
+	if err != nil {
+		return api.ScheduleReplanPreviewResponse{}, err
+	}
+	scope := map[string]any{"employment_id": employmentID.String(), "business_date": businessDate, "timezone": current.Timezone}
+	result := map[string]any{
+		"operation": "replan", "original_revision_id": current.ID.String(),
+		"expected_revision": request.ExpectedRevision, "replacement": replacement,
+		"diff": diff, "diff_hash": diffHash,
+	}
+	requestHash, err := hashJSON(replanHashInput(actorID, employmentID, businessDate, request, "", "", ""))
+	if err != nil {
+		return api.ScheduleReplanPreviewResponse{}, err
+	}
+	resultHash, err := hashJSON(result)
+	if err != nil {
+		return api.ScheduleReplanPreviewResponse{}, err
+	}
+	previewID := uuid.New()
+	createdAt := time.Now().UTC()
+	expiresAt := createdAt.Add(previewTTL)
+	if _, err := tx.Exec(ctx, `INSERT INTO schedule_previews (id, requested_by, actor_type, operation, request_hash, result_hash, scope_snapshot, result_snapshot, resolver_version, expires_at, created_at) VALUES ($1, $2, 'human', 'replan', $3, $4, $5, $6, $7, $8, $9)`, previewID, actorID, requestHash, resultHash, jsonArg(scope), jsonArg(result), lifecycleResolverVersion, expiresAt, createdAt); err != nil {
+		return api.ScheduleReplanPreviewResponse{}, err
+	}
+	return api.ScheduleReplanPreviewResponse{
+		PreviewID: previewID, PreviewHash: resultHash, ExpiresAt: expiresAt,
+		OriginalRevisionID: current.ID, Replacement: replacement, Diff: diff, DiffHash: diffHash,
+	}, nil
+}
+
+func previewReplanTx(ctx context.Context, tx pgx.Tx, actorID, employmentID uuid.UUID, businessDate string, request api.ScheduleReplanPreviewRequest) (api.ScheduleReplanPreviewResponse, error) {
+	if _, err := tx.Exec(ctx, `SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`); err != nil {
+		return api.ScheduleReplanPreviewResponse{}, err
+	}
+	current, err := loadCurrentRevision(ctx, tx, employmentID, businessDate, false)
+	if err != nil {
+		return api.ScheduleReplanPreviewResponse{}, err
+	}
+	if current.RevisionNumber != request.ExpectedRevision {
+		return api.ScheduleReplanPreviewResponse{}, ErrScheduleRevisionStale
+	}
+	if err := ensureMutationPeriodOpen(ctx, tx, current.EmployerID, businessDate); err != nil {
+		return api.ScheduleReplanPreviewResponse{}, err
+	}
+	before, err := loadRevisionDocument(ctx, tx, current)
+	if err != nil {
+		return api.ScheduleReplanPreviewResponse{}, err
+	}
+	replacement, err := normalizeReplacement(request.Replacement, current.Timezone, businessDate, employmentID)
+	if err != nil {
+		return api.ScheduleReplanPreviewResponse{}, err
+	}
+	return persistReplanPreview(ctx, tx, actorID, employmentID, businessDate, request, current, before, replacement)
+}
+
 func (r ScheduleRepository) PreviewReplan(ctx context.Context, actorID, employmentID uuid.UUID, businessDate string, request api.ScheduleReplanPreviewRequest) (api.ScheduleReplanPreviewResponse, error) {
 	if err := validateReplanInput(employmentID, businessDate, request); err != nil {
 		return api.ScheduleReplanPreviewResponse{}, err
@@ -21,81 +82,78 @@ func (r ScheduleRepository) PreviewReplan(ctx context.Context, actorID, employme
 	if err != nil {
 		return api.ScheduleReplanPreviewResponse{}, err
 	}
-
 	var response api.ScheduleReplanPreviewResponse
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`); err != nil {
-			return err
-		}
-		current, err := loadCurrentRevision(ctx, tx, employmentID, businessDate, false)
+		resp, err := previewReplanTx(ctx, tx, actorID, employmentID, businessDate, request)
 		if err != nil {
 			return err
 		}
-		if current.RevisionNumber != request.ExpectedRevision {
-			return ErrScheduleRevisionStale
-		}
-		if err := ensureMutationPeriodOpen(ctx, tx, current.EmployerID, businessDate); err != nil {
-			return err
-		}
-		before, err := loadRevisionDocument(ctx, tx, current)
-		if err != nil {
-			return err
-		}
-		replacement, err := normalizeReplacement(request.Replacement, current.Timezone, businessDate, employmentID)
-		if err != nil {
-			return err
-		}
-		diff := map[string]any{"before": before, "after": replacement}
-		diffHash, err := hashJSON(map[string]any{
-			"original_revision_id": current.ID.String(),
-			"expected_revision":    request.ExpectedRevision,
-			"diff":                 diff,
-		})
-		if err != nil {
-			return err
-		}
-		scope := map[string]any{
-			"employment_id": employmentID.String(),
-			"business_date": businessDate,
-			"timezone":      current.Timezone,
-		}
-		result := map[string]any{
-			"operation":            "replan",
-			"original_revision_id": current.ID.String(),
-			"expected_revision":    request.ExpectedRevision,
-			"replacement":          replacement,
-			"diff":                 diff,
-			"diff_hash":            diffHash,
-		}
-		requestHash, err := hashJSON(replanHashInput(actorID, employmentID, businessDate, request, "", "", ""))
-		if err != nil {
-			return err
-		}
-		resultHash, err := hashJSON(result)
-		if err != nil {
-			return err
-		}
-		previewID := uuid.New()
-		createdAt := time.Now().UTC()
-		expiresAt := createdAt.Add(previewTTL)
-		if _, err := tx.Exec(ctx, `INSERT INTO schedule_previews (id, requested_by, actor_type, operation, request_hash, result_hash, scope_snapshot, result_snapshot, resolver_version, expires_at, created_at) VALUES ($1, $2, 'human', 'replan', $3, $4, $5, $6, $7, $8, $9)`, previewID, actorID, requestHash, resultHash, jsonArg(scope), jsonArg(result), lifecycleResolverVersion, expiresAt, createdAt); err != nil {
-			return err
-		}
-		response = api.ScheduleReplanPreviewResponse{
-			PreviewID:          previewID,
-			PreviewHash:        resultHash,
-			ExpiresAt:          expiresAt,
-			OriginalRevisionID: current.ID,
-			Replacement:        replacement,
-			Diff:               diff,
-			DiffHash:           diffHash,
-		}
+		response = resp
 		return nil
 	})
 	if err != nil {
 		return api.ScheduleReplanPreviewResponse{}, err
 	}
 	return response, nil
+}
+
+func validateReplanPreviewMatch(preview lockedPreview, current lifecycleRevision, businessDate string, employmentID uuid.UUID, request api.ScheduleReplanRequest) (replanResult, error) {
+	result, err := decodeReplanResult(preview.ResultSnapshot)
+	if err != nil {
+		return replanResult{}, err
+	}
+	storedReplacementHash := canonicalStoredReplacementHash(result.Replacement, current.Timezone, businessDate, employmentID)
+	if result.DiffHash != request.ConfirmDiffHash || storedReplacementHash == "" || storedReplacementHash != replacementHash(request.Replacement, current.Timezone, businessDate, employmentID) {
+		return replanResult{}, ErrSchedulePreviewStale
+	}
+	return result, nil
+}
+
+func lockAndLoadReplanTarget(ctx context.Context, tx pgx.Tx, employmentID uuid.UUID, businessDate string, expectedRevision int64) (lifecycleRevision, error) {
+	if err := lockScheduleRevisionTargets(ctx, tx, []scheduleRevisionLockKey{{employmentID: employmentID, businessDate: businessDate}}); err != nil {
+		return lifecycleRevision{}, err
+	}
+	current, err := loadCurrentRevision(ctx, tx, employmentID, businessDate, true)
+	if err != nil {
+		return lifecycleRevision{}, err
+	}
+	if current.RevisionNumber != expectedRevision {
+		return lifecycleRevision{}, ErrScheduleRevisionStale
+	}
+	if err := ensureMutationPeriodOpen(ctx, tx, current.EmployerID, businessDate); err != nil {
+		return lifecycleRevision{}, err
+	}
+	return current, nil
+}
+
+func commitReplanTx(ctx context.Context, tx pgx.Tx, actorID, employmentID uuid.UUID, businessDate, idempotencyKey string, request api.ScheduleReplanRequest, response *api.ScheduleReplanResponse) error {
+	if err := lockIdempotencyKey(ctx, tx, idempotencyKey); err != nil {
+		return err
+	}
+	requestHash, err := hashJSON(replanHashInput(actorID, employmentID, businessDate, api.ScheduleReplanPreviewRequest{ExpectedRevision: request.ExpectedRevision, Reason: request.Reason, Replacement: request.Replacement}, request.PreviewID.String(), request.PreviewHash, request.ConfirmDiffHash))
+	if err != nil {
+		return err
+	}
+	stored, found, err := loadBatchByIdempotency(ctx, tx, idempotencyKey)
+	if err != nil {
+		return err
+	}
+	if found {
+		return replayReplan(actorID, requestHash, stored, response)
+	}
+	preview, err := lockPreview(ctx, tx, actorID, request.PreviewID, "replan", request.PreviewHash)
+	if err != nil {
+		return err
+	}
+	current, err := lockAndLoadReplanTarget(ctx, tx, employmentID, businessDate, request.ExpectedRevision)
+	if err != nil {
+		return err
+	}
+	result, err := validateReplanPreviewMatch(preview, current, businessDate, employmentID, request)
+	if err != nil {
+		return err
+	}
+	return commitReplan(ctx, tx, actorID, idempotencyKey, requestHash, request, current, result, response)
 }
 
 func (r ScheduleRepository) CommitReplan(ctx context.Context, actorID, employmentID uuid.UUID, businessDate, idempotencyKey string, request api.ScheduleReplanRequest) (api.ScheduleReplanResponse, error) {
@@ -108,46 +166,7 @@ func (r ScheduleRepository) CommitReplan(ctx context.Context, actorID, employmen
 	}
 	var response api.ScheduleReplanResponse
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
-		if err := lockIdempotencyKey(ctx, tx, idempotencyKey); err != nil {
-			return err
-		}
-		requestHash, err := hashJSON(replanHashInput(actorID, employmentID, businessDate, api.ScheduleReplanPreviewRequest{ExpectedRevision: request.ExpectedRevision, Reason: request.Reason, Replacement: request.Replacement}, request.PreviewID.String(), request.PreviewHash, request.ConfirmDiffHash))
-		if err != nil {
-			return err
-		}
-		stored, found, err := loadBatchByIdempotency(ctx, tx, idempotencyKey)
-		if err != nil {
-			return err
-		}
-		if found {
-			return replayReplan(actorID, requestHash, stored, &response)
-		}
-		preview, err := lockPreview(ctx, tx, actorID, request.PreviewID, "replan", request.PreviewHash)
-		if err != nil {
-			return err
-		}
-		if err := lockScheduleRevisionTargets(ctx, tx, []scheduleRevisionLockKey{{employmentID: employmentID, businessDate: businessDate}}); err != nil {
-			return err
-		}
-		current, err := loadCurrentRevision(ctx, tx, employmentID, businessDate, true)
-		if err != nil {
-			return err
-		}
-		if current.RevisionNumber != request.ExpectedRevision {
-			return ErrScheduleRevisionStale
-		}
-		if err := ensureMutationPeriodOpen(ctx, tx, current.EmployerID, businessDate); err != nil {
-			return err
-		}
-		result, err := decodeReplanResult(preview.ResultSnapshot)
-		if err != nil {
-			return err
-		}
-		storedReplacementHash := canonicalStoredReplacementHash(result.Replacement, current.Timezone, businessDate, employmentID)
-		if result.DiffHash != request.ConfirmDiffHash || storedReplacementHash == "" || storedReplacementHash != replacementHash(request.Replacement, current.Timezone, businessDate, employmentID) {
-			return ErrSchedulePreviewStale
-		}
-		return commitReplan(ctx, tx, actorID, idempotencyKey, requestHash, request, current, result, &response)
+		return commitReplanTx(ctx, tx, actorID, employmentID, businessDate, idempotencyKey, request, &response)
 	})
 	if err != nil {
 		return api.ScheduleReplanResponse{}, err
@@ -170,23 +189,27 @@ type normalizedInterval struct {
 	BreakPunchMode        string           `json:"break_punch_mode"`
 }
 
+func matchesWallClock(inLocation, date, clock time.Time) bool {
+	return inLocation.Year() == date.Year() && inLocation.Month() == date.Month() && inLocation.Day() == date.Day() &&
+		inLocation.Hour() == clock.Hour() && inLocation.Minute() == clock.Minute() && inLocation.Second() == clock.Second()
+}
+
+func appendUniqueInstant(candidates []time.Time, instant time.Time) []time.Time {
+	for _, candidate := range candidates {
+		if candidate.Equal(instant) {
+			return candidates
+		}
+	}
+	return append(candidates, instant)
+}
+
 func localDateTime(date time.Time, clock time.Time, explicitOffset *int) (time.Time, error) {
 	loc := date.Location()
 	candidates := make([]time.Time, 0, 2)
 	for offset := -14 * 60; offset <= 14*60; offset += 15 {
 		instant := time.Date(date.Year(), date.Month(), date.Day(), clock.Hour(), clock.Minute(), clock.Second(), 0, time.FixedZone("candidate", offset*60))
-		inLocation := instant.In(loc)
-		if inLocation.Year() == date.Year() && inLocation.Month() == date.Month() && inLocation.Day() == date.Day() && inLocation.Hour() == clock.Hour() && inLocation.Minute() == clock.Minute() && inLocation.Second() == clock.Second() {
-			found := false
-			for _, candidate := range candidates {
-				if candidate.Equal(instant) {
-					found = true
-					break
-				}
-			}
-			if !found {
-				candidates = append(candidates, instant)
-			}
+		if matchesWallClock(instant.In(loc), date, clock) {
+			candidates = appendUniqueInstant(candidates, instant)
 		}
 	}
 	if len(candidates) == 0 {
@@ -194,8 +217,7 @@ func localDateTime(date time.Time, clock time.Time, explicitOffset *int) (time.T
 	}
 	if explicitOffset != nil {
 		for _, candidate := range candidates {
-			_, offset := candidate.In(loc).Zone()
-			if offset == *explicitOffset*60 {
+			if _, offset := candidate.In(loc).Zone(); offset == *explicitOffset*60 {
 				return candidate.In(loc), nil
 			}
 		}
@@ -205,6 +227,43 @@ func localDateTime(date time.Time, clock time.Time, explicitOffset *int) (time.T
 		return time.Time{}, errors.New("schedule local time is ambiguous; explicit UTC offset required")
 	}
 	return candidates[0].In(loc), nil
+}
+
+func normalizeReplacementInterval(item api.ScheduleReplanInterval, shiftVersionID uuid.UUID, businessDate string, loc *time.Location) (normalizedInterval, error) {
+	start, err := parseLocalTime(item.Start)
+	if err != nil {
+		return normalizedInterval{}, err
+	}
+	end, err := parseLocalTime(item.End)
+	if err != nil {
+		return normalizedInterval{}, err
+	}
+	if item.StartDayOffset < 0 || item.EndDayOffset < item.StartDayOffset {
+		return normalizedInterval{}, errors.New("schedule replacement day offsets are invalid")
+	}
+	year, month, day := parseDateParts(businessDate)
+	startAt, err := localDateTime(time.Date(year, month, day+item.StartDayOffset, 0, 0, 0, 0, loc), start, item.StartUTCOffsetMinutes)
+	if err != nil {
+		return normalizedInterval{}, err
+	}
+	endAt, err := localDateTime(time.Date(year, month, day+item.EndDayOffset, 0, 0, 0, 0, loc), end, item.EndUTCOffsetMinutes)
+	if err != nil {
+		return normalizedInterval{}, err
+	}
+	if !endAt.After(startAt) {
+		return normalizedInterval{}, errors.New("schedule lifecycle replacement interval ends before it starts")
+	}
+	breaks, err := normalizeBreaks(item.Breaks, startAt, loc)
+	if err != nil {
+		return normalizedInterval{}, err
+	}
+	return normalizedInterval{
+		SortOrder: item.SortOrder, StartLocal: start.Format("15:04:05"), EndLocal: end.Format("15:04:05"),
+		StartDayOffset: item.StartDayOffset, EndDayOffset: item.EndDayOffset,
+		StartUTCOffsetMinutes: item.StartUTCOffsetMinutes, EndUTCOffsetMinutes: item.EndUTCOffsetMinutes,
+		StartAt: startAt, EndAt: endAt, ShiftVersionID: shiftVersionID,
+		Breaks: breaks, BreakPunchMode: valueOrDefault(&item.BreakPunchMode, "none"),
+	}, nil
 }
 
 func normalizeReplacement(replacement api.ScheduleReplanReplacement, timezone, businessDate string, employmentID uuid.UUID) (map[string]any, error) {
@@ -219,39 +278,11 @@ func normalizeReplacement(replacement api.ScheduleReplanReplacement, timezone, b
 			return nil, errors.New("schedule lifecycle replacement has duplicate interval sort order")
 		}
 		seen[item.SortOrder] = struct{}{}
-		start, err := parseLocalTime(item.Start)
+		normalized, err := normalizeReplacementInterval(item, *replacement.ShiftVersionID, businessDate, loc)
 		if err != nil {
 			return nil, err
 		}
-		end, err := parseLocalTime(item.End)
-		if err != nil {
-			return nil, err
-		}
-		year, month, day := parseDateParts(businessDate)
-		if item.StartDayOffset < 0 || item.EndDayOffset < item.StartDayOffset {
-			return nil, errors.New("schedule replacement day offsets are invalid")
-		}
-		startDate := time.Date(year, month, day+item.StartDayOffset, 0, 0, 0, 0, loc)
-		endDate := time.Date(year, month, day+item.EndDayOffset, 0, 0, 0, 0, loc)
-		startAt, err := localDateTime(startDate, start, item.StartUTCOffsetMinutes)
-		if err != nil {
-			return nil, err
-		}
-		endAt, err := localDateTime(endDate, end, item.EndUTCOffsetMinutes)
-		if err != nil {
-			return nil, err
-		}
-		if !endAt.After(startAt) {
-			return nil, errors.New("schedule lifecycle replacement interval ends before it starts")
-		}
-		if !endAt.After(startAt) {
-			return nil, errors.New("schedule lifecycle replacement interval ends before it starts")
-		}
-		breaks, err := normalizeBreaks(item.Breaks, startAt, loc)
-		if err != nil {
-			return nil, err
-		}
-		intervals = append(intervals, normalizedInterval{SortOrder: item.SortOrder, StartLocal: start.Format("15:04:05"), EndLocal: end.Format("15:04:05"), StartDayOffset: item.StartDayOffset, EndDayOffset: item.EndDayOffset, StartUTCOffsetMinutes: item.StartUTCOffsetMinutes, EndUTCOffsetMinutes: item.EndUTCOffsetMinutes, StartAt: startAt, EndAt: endAt, ShiftVersionID: *replacement.ShiftVersionID, Breaks: breaks, BreakPunchMode: valueOrDefault(&item.BreakPunchMode, "none")})
+		intervals = append(intervals, normalized)
 	}
 	sort.Slice(intervals, func(i, j int) bool { return intervals[i].SortOrder < intervals[j].SortOrder })
 	for i := 1; i < len(intervals); i++ {
@@ -399,17 +430,93 @@ func replacementHash(replacement api.ScheduleReplanReplacement, timezone, busine
 	return hashMap(value)
 }
 
-func (r ScheduleRepository) MarkBreakWorked(ctx context.Context, actorID, employmentID uuid.UUID, businessDate string, request api.MarkBreakWorkedRequest) (api.MarkBreakWorkedResponse, error) {
+func parseBreakWorkedRequest(actorID, employmentID uuid.UUID, request api.MarkBreakWorkedRequest) (time.Time, time.Time, error) {
 	if actorID == uuid.Nil || employmentID == uuid.Nil || request.SegmentID == uuid.Nil || strings.TrimSpace(request.Reason) == "" {
-		return api.MarkBreakWorkedResponse{}, api.ErrScheduleBreakOverrideInvalid
+		return time.Time{}, time.Time{}, api.ErrScheduleBreakOverrideInvalid
 	}
 	start, err := time.Parse(time.RFC3339, request.Start)
 	if err != nil {
-		return api.MarkBreakWorkedResponse{}, api.ErrScheduleBreakOverrideInvalid
+		return time.Time{}, time.Time{}, api.ErrScheduleBreakOverrideInvalid
 	}
 	end, err := time.Parse(time.RFC3339, request.End)
 	if err != nil || !end.After(start) {
+		return time.Time{}, time.Time{}, api.ErrScheduleBreakOverrideInvalid
+	}
+	return start, end, nil
+}
+
+type scheduledBreakInterval struct {
+	StartAt time.Time `json:"start_at"`
+	EndAt   time.Time `json:"end_at"`
+}
+
+func matchesScheduledBreakWindow(breakItems []scheduledBreakInterval, start, end time.Time) bool {
+	for _, item := range breakItems {
+		if item.EndAt.After(item.StartAt) && start.Before(item.EndAt) && end.After(item.StartAt) {
+			return !start.Before(item.StartAt) && !end.After(item.EndAt)
+		}
+	}
+	return false
+}
+
+func validateBreakWorkedWindow(breaks []byte, scheduledStart, scheduledEnd, start, end time.Time) error {
+	if scheduledStart.IsZero() || scheduledEnd.IsZero() || !scheduledEnd.After(scheduledStart) {
+		return api.ErrScheduleBreakOverrideInvalid
+	}
+	if start.Before(scheduledStart) || end.After(scheduledEnd) {
+		return api.ErrScheduleBreakOverrideInvalid
+	}
+	if err := json.Unmarshal(breaks, &[]map[string]any{}); err != nil {
+		return api.ErrScheduleBreakOverrideInvalid
+	}
+	var breakItems []scheduledBreakInterval
+	if err := json.Unmarshal(breaks, &breakItems); err != nil {
+		return api.ErrScheduleBreakOverrideInvalid
+	}
+	if !matchesScheduledBreakWindow(breakItems, start, end) {
+		return api.ErrScheduleBreakOverrideInvalid
+	}
+	return nil
+}
+
+func markBreakWorkedTx(ctx context.Context, tx pgx.Tx, actorID, employmentID uuid.UUID, businessDate string, request api.MarkBreakWorkedRequest, start, end time.Time) (api.MarkBreakWorkedResponse, error) {
+	var employerID uuid.UUID
+	var scheduledStart, scheduledEnd time.Time
+	var breaks []byte
+	if err := tx.QueryRow(ctx, `SELECT e.employer_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot FROM work_segments ws JOIN employments e ON e.id = ws.employment_id WHERE ws.id = $1::uuid AND ws.employment_id = $2::uuid AND ws.date = $3::date FOR UPDATE`, request.SegmentID, employmentID, businessDate).Scan(&employerID, &scheduledStart, &scheduledEnd, &breaks); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.MarkBreakWorkedResponse{}, api.ErrScheduleBreakOverrideInvalid
+		}
+		return api.MarkBreakWorkedResponse{}, err
+	}
+	if err := ensureMutationPeriodOpen(ctx, tx, employerID, businessDate); err != nil {
+		return api.MarkBreakWorkedResponse{}, err
+	}
+	if err := validateBreakWorkedWindow(breaks, scheduledStart, scheduledEnd, start, end); err != nil {
+		return api.MarkBreakWorkedResponse{}, err
+	}
+	var overlap bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM schedule_day_overrides WHERE employment_id = $1::uuid AND business_date = $2::date AND status IN ('approved', 'pending') AND start_at < $4::timestamptz AND end_at > $3::timestamptz)`, employmentID, businessDate, start, end).Scan(&overlap); err != nil {
+		return api.MarkBreakWorkedResponse{}, err
+	}
+	if overlap {
 		return api.MarkBreakWorkedResponse{}, api.ErrScheduleBreakOverrideInvalid
+	}
+	minutes := int(end.Sub(start).Minutes())
+	id := uuid.New()
+	if _, err := tx.Exec(ctx, `INSERT INTO schedule_day_overrides (id, employment_id, business_date, work_segment_id, override_type, start_at, end_at, minutes, reason, status, created_by, created_at) VALUES ($1::uuid, $2::uuid, $3::date, $4::uuid, 'break_worked', $5::timestamptz, $6::timestamptz, $7::integer, $8::text, 'approved', $9::uuid, CURRENT_TIMESTAMP)`, id, employmentID, businessDate, request.SegmentID, start, end, minutes, strings.TrimSpace(request.Reason), actorID); err != nil {
+		return api.MarkBreakWorkedResponse{}, err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at) VALUES ($1, $2, 'schedule.break_worked.marked', jsonb_build_object('employment_id', $3::uuid, 'business_date', $4::text, 'segment_id', $5::uuid, 'start', $6::timestamptz, 'end', $7::timestamptz, 'minutes', $8::integer, 'reason', $9::text), 'human', CURRENT_TIMESTAMP)`, actorID, id, employmentID, businessDate, request.SegmentID, start, end, minutes, strings.TrimSpace(request.Reason)); err != nil {
+		return api.MarkBreakWorkedResponse{}, err
+	}
+	return api.MarkBreakWorkedResponse{ID: id, EmploymentID: employmentID, BusinessDate: businessDate, SegmentID: request.SegmentID, Start: start, End: end, Minutes: minutes, Status: "approved"}, nil
+}
+
+func (r ScheduleRepository) MarkBreakWorked(ctx context.Context, actorID, employmentID uuid.UUID, businessDate string, request api.MarkBreakWorkedRequest) (api.MarkBreakWorkedResponse, error) {
+	start, end, err := parseBreakWorkedRequest(actorID, employmentID, request)
+	if err != nil {
+		return api.MarkBreakWorkedResponse{}, err
 	}
 	beginner, err := r.beginLifecycle(ctx)
 	if err != nil {
@@ -417,60 +524,11 @@ func (r ScheduleRepository) MarkBreakWorked(ctx context.Context, actorID, employ
 	}
 	var response api.MarkBreakWorkedResponse
 	err = service.WithTx(ctx, beginner, func(ctx context.Context, tx pgx.Tx) error {
-		var employerID uuid.UUID
-		var scheduledStart, scheduledEnd time.Time
-		var breaks []byte
-		if err := tx.QueryRow(ctx, `SELECT e.employer_id, ws.scheduled_start_at, ws.scheduled_end_at, ws.breaks_snapshot FROM work_segments ws JOIN employments e ON e.id = ws.employment_id WHERE ws.id = $1::uuid AND ws.employment_id = $2::uuid AND ws.date = $3::date FOR UPDATE`, request.SegmentID, employmentID, businessDate).Scan(&employerID, &scheduledStart, &scheduledEnd, &breaks); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return api.ErrScheduleBreakOverrideInvalid
-			}
+		resp, err := markBreakWorkedTx(ctx, tx, actorID, employmentID, businessDate, request, start, end)
+		if err != nil {
 			return err
 		}
-		if err := ensureMutationPeriodOpen(ctx, tx, employerID, businessDate); err != nil {
-			return err
-		}
-		if scheduledStart.IsZero() || scheduledEnd.IsZero() || !scheduledEnd.After(scheduledStart) {
-			return api.ErrScheduleBreakOverrideInvalid
-		}
-		if err := json.Unmarshal(breaks, &[]map[string]any{}); err != nil {
-			return api.ErrScheduleBreakOverrideInvalid
-		}
-		var breakFound bool
-		var breakItems []struct {
-			StartAt time.Time `json:"start_at"`
-			EndAt   time.Time `json:"end_at"`
-		}
-		if err := json.Unmarshal(breaks, &breakItems); err != nil {
-			return api.ErrScheduleBreakOverrideInvalid
-		}
-		for _, item := range breakItems {
-			if item.EndAt.After(item.StartAt) && start.Before(item.EndAt) && end.After(item.StartAt) {
-				if start.Before(item.StartAt) || end.After(item.EndAt) {
-					return api.ErrScheduleBreakOverrideInvalid
-				}
-				breakFound = true
-				break
-			}
-		}
-		if !breakFound || start.Before(scheduledStart) || end.After(scheduledEnd) {
-			return api.ErrScheduleBreakOverrideInvalid
-		}
-		var overlap bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM schedule_day_overrides WHERE employment_id = $1::uuid AND business_date = $2::date AND status IN ('approved', 'pending') AND start_at < $4::timestamptz AND end_at > $3::timestamptz)`, employmentID, businessDate, start, end).Scan(&overlap); err != nil {
-			return err
-		}
-		if overlap {
-			return api.ErrScheduleBreakOverrideInvalid
-		}
-		minutes := int(end.Sub(start).Minutes())
-		id := uuid.New()
-		if _, err := tx.Exec(ctx, `INSERT INTO schedule_day_overrides (id, employment_id, business_date, work_segment_id, override_type, start_at, end_at, minutes, reason, status, created_by, created_at) VALUES ($1::uuid, $2::uuid, $3::date, $4::uuid, 'break_worked', $5::timestamptz, $6::timestamptz, $7::integer, $8::text, 'approved', $9::uuid, CURRENT_TIMESTAMP)`, id, employmentID, businessDate, request.SegmentID, start, end, minutes, strings.TrimSpace(request.Reason), actorID); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO audit_logs (actor_id, target_resource_id, action, details, actor_type, created_at) VALUES ($1, $2, 'schedule.break_worked.marked', jsonb_build_object('employment_id', $3::uuid, 'business_date', $4::text, 'segment_id', $5::uuid, 'start', $6::timestamptz, 'end', $7::timestamptz, 'minutes', $8::integer, 'reason', $9::text), 'human', CURRENT_TIMESTAMP)`, actorID, id, employmentID, businessDate, request.SegmentID, start, end, minutes, strings.TrimSpace(request.Reason)); err != nil {
-			return err
-		}
-		response = api.MarkBreakWorkedResponse{ID: id, EmploymentID: employmentID, BusinessDate: businessDate, SegmentID: request.SegmentID, Start: start, End: end, Minutes: minutes, Status: "approved"}
+		response = resp
 		return nil
 	})
 	if err != nil {

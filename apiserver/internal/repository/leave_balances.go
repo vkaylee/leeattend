@@ -437,6 +437,105 @@ func loadLeaveScheduleContext(ctx context.Context, db DBTX, employmentIDs []uuid
 	return schedules, holidays, err
 }
 
+const orgLeaveBalancesCountSQL = `
+	SELECT COUNT(*)
+	FROM employees e
+	CROSS JOIN leave_types lt
+	LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
+	WHERE e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.deleted_at IS NULL
+	  AND ($1 = '' OR e.full_name ILIKE '%' || $1 || '%' OR EXISTS (SELECT 1 FROM employee_tenures search_t WHERE search_t.employee_id = e.id AND search_t.deleted_at IS NULL AND search_t.employee_number ILIKE '%' || $1 || '%') OR lt.name ILIKE '%' || $1 || '%' OR lt.code ILIKE '%' || $1 || '%')
+`
+
+var orgLeaveBalancesDataSQL = `
+	WITH leave_usage AS (
+		SELECT
+			emp_usage.employee_id,
+			lr.leave_type_id,
+			COALESCE(ROUND(SUM(
+				(SELECT COALESCE(SUM(
+					CASE
+						WHEN EXISTS (SELECT 1 FROM holidays h WHERE h.date = d::date AND h.holiday_type <> 'half_day') THEN 0::numeric
+						WHEN lr.duration_type IN ('first_half', 'second_half') THEN 0.5::numeric
+						WHEN EXISTS (SELECT 1 FROM holidays h WHERE h.date = d::date AND h.holiday_type = 'half_day') THEN 0.5::numeric
+						ELSE 1::numeric
+					END
+				), 0)
+				FROM generate_series(lr.start_date, lr.end_date, '1 day'::interval) d
+				JOIN schedule_day_revisions sdr
+				  ON sdr.employment_id = lr.employment_id
+				 AND sdr.business_date = d::date
+				 AND sdr.state = 'published')
+			)), 0)::INT as used_days
+		FROM leave_requests lr
+		JOIN employments emp_usage ON lr.employment_id = emp_usage.id
+		WHERE lr.status IN ('approved', 'pre_approved')
+		  AND EXTRACT(YEAR FROM lr.start_date)::INT = $1
+		GROUP BY emp_usage.employee_id, lr.leave_type_id
+	),
+	best_policy AS (
+		SELECT DISTINCT ON (lt_id, emp_id)
+			d.leave_type_id as lt_id,
+			e_inner.id as emp_id,
+			d.name as policy_name,
+			a.assignee_type as assignment_type
+		FROM leave_policy_assignments a
+		JOIN leave_policy_definitions d ON a.policy_id = d.id
+		CROSS JOIN employees e_inner
+		WHERE e_inner.deleted_at IS NULL
+		  AND (
+			(a.assignee_type = 'user' AND a.assignee_id = (
+				SELECT t.user_id FROM employee_tenures t
+				WHERE t.employee_id = e_inner.id
+				  AND t.deleted_at IS NULL
+				  AND t.start_date <= ` + orgTodaySQL + `
+				  AND (t.end_date IS NULL OR t.end_date >= ` + orgTodaySQL + `)
+				ORDER BY t.start_date DESC, t.id DESC LIMIT 1
+			)) OR
+			(a.assignee_type = 'employee' AND a.assignee_id = e_inner.id) OR
+			(a.assignee_type = 'department' AND a.assignee_id = (
+				SELECT department_id FROM employments
+				WHERE employee_id = e_inner.id AND deleted_at IS NULL
+				ORDER BY start_date DESC, id DESC LIMIT 1
+			)) OR
+			(a.assignee_type = 'organization')
+		  )
+		  AND a.effective_from <= NOW()
+		  AND (a.effective_to IS NULL OR a.effective_to > NOW())
+		  AND a.deleted_at IS NULL
+		  AND d.deleted_at IS NULL
+		ORDER BY lt_id, emp_id,
+		  CASE a.assignee_type
+			WHEN 'user' THEN 1
+			WHEN 'employee' THEN 2
+			WHEN 'department' THEN 3
+			WHEN 'organization' THEN 4
+		  END ASC
+	)
+	SELECT
+		e.id as employee_id,
+		e.full_name as employee_name,
+		lt.id as leave_type_id,
+		lt.code as leave_type_code,
+		lt.name as leave_type_name,
+		lt.is_paid as is_paid,
+		COALESCE(lb.entitlement, 12) as entitlement,
+		COALESCE(lb.accrued_amount::text, '0.00') as accrued_amount,
+		COALESCE(lb.carried_over, 0) as carried_over,
+		COALESCE(lu.used_days, 0) as used,
+		bp.policy_name,
+		bp.assignment_type
+	FROM employees e
+	CROSS JOIN leave_types lt
+	LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
+	LEFT JOIN leave_balances lb ON emp.id = lb.employment_id AND lt.id = lb.leave_type_id AND lb.year = $1
+	LEFT JOIN leave_usage lu ON e.id = lu.employee_id AND lt.id = lu.leave_type_id
+	LEFT JOIN best_policy bp ON e.id = bp.emp_id AND lt.id = bp.lt_id
+	WHERE e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.deleted_at IS NULL
+	  AND ($2 = '' OR e.full_name ILIKE '%' || $2 || '%' OR EXISTS (SELECT 1 FROM employee_tenures search_t WHERE search_t.employee_id = e.id AND search_t.deleted_at IS NULL AND search_t.employee_number ILIKE '%' || $2 || '%') OR lt.name ILIKE '%' || $2 || '%' OR lt.code ILIKE '%' || $2 || '%')
+	ORDER BY e.full_name ASC, lt.name ASC
+	LIMIT $3 OFFSET $4
+`
+
 func (r LeaveRepository) GetOrganizationLeaveBalances(ctx context.Context, year, page, limit int, q string) ([]api.OrganizationLeaveBalance, int64, error) {
 	db, err := requireDB(r.DB, "leave repository")
 	if err != nil {
@@ -451,109 +550,11 @@ func (r LeaveRepository) GetOrganizationLeaveBalances(ctx context.Context, year,
 	offset := (page - 1) * limit
 	searchTerm := strings.TrimSpace(q)
 
-	countSQL := `
-		SELECT COUNT(*)
-		FROM employees e
-		CROSS JOIN leave_types lt
-		LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
-		WHERE e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.deleted_at IS NULL
-		  AND ($1 = '' OR e.full_name ILIKE '%' || $1 || '%' OR EXISTS (SELECT 1 FROM employee_tenures search_t WHERE search_t.employee_id = e.id AND search_t.deleted_at IS NULL AND search_t.employee_number ILIKE '%' || $1 || '%') OR lt.name ILIKE '%' || $1 || '%' OR lt.code ILIKE '%' || $1 || '%')
-	`
 	var total int64
-	if err := db.QueryRow(ctx, countSQL, searchTerm).Scan(&total); err != nil {
+	if err := db.QueryRow(ctx, orgLeaveBalancesCountSQL, searchTerm).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-
-	dataSQL := `
-		WITH leave_usage AS (
-			SELECT
-				emp_usage.employee_id,
-				lr.leave_type_id,
-				COALESCE(ROUND(SUM(
-					(SELECT COALESCE(SUM(
-						CASE
-							WHEN EXISTS (SELECT 1 FROM holidays h WHERE h.date = d::date AND h.holiday_type <> 'half_day') THEN 0::numeric
-							WHEN lr.duration_type IN ('first_half', 'second_half') THEN 0.5::numeric
-							WHEN EXISTS (SELECT 1 FROM holidays h WHERE h.date = d::date AND h.holiday_type = 'half_day') THEN 0.5::numeric
-							ELSE 1::numeric
-						END
-					), 0)
-					FROM generate_series(lr.start_date, lr.end_date, '1 day'::interval) d
-					JOIN schedule_day_revisions sdr
-					  ON sdr.employment_id = lr.employment_id
-					 AND sdr.business_date = d::date
-					 AND sdr.state = 'published')
-				)), 0)::INT as used_days
-			FROM leave_requests lr
-			JOIN employments emp_usage ON lr.employment_id = emp_usage.id
-			WHERE lr.status IN ('approved', 'pre_approved')
-			  AND EXTRACT(YEAR FROM lr.start_date)::INT = $1
-			GROUP BY emp_usage.employee_id, lr.leave_type_id
-		),
-		best_policy AS (
-			SELECT DISTINCT ON (lt_id, emp_id)
-				d.leave_type_id as lt_id,
-				e_inner.id as emp_id,
-				d.name as policy_name,
-				a.assignee_type as assignment_type
-			FROM leave_policy_assignments a
-			JOIN leave_policy_definitions d ON a.policy_id = d.id
-			CROSS JOIN employees e_inner
-			WHERE e_inner.deleted_at IS NULL
-			  AND (
-				(a.assignee_type = 'user' AND a.assignee_id = (
-					SELECT t.user_id FROM employee_tenures t
-					WHERE t.employee_id = e_inner.id
-					  AND t.deleted_at IS NULL
-					  AND t.start_date <= ` + orgTodaySQL + `
-					  AND (t.end_date IS NULL OR t.end_date >= ` + orgTodaySQL + `)
-					ORDER BY t.start_date DESC, t.id DESC LIMIT 1
-				)) OR
-				(a.assignee_type = 'employee' AND a.assignee_id = e_inner.id) OR
-				(a.assignee_type = 'department' AND a.assignee_id = (
-					SELECT department_id FROM employments
-					WHERE employee_id = e_inner.id AND deleted_at IS NULL
-					ORDER BY start_date DESC, id DESC LIMIT 1
-				)) OR
-				(a.assignee_type = 'organization')
-			  )
-			  AND a.effective_from <= NOW()
-			  AND (a.effective_to IS NULL OR a.effective_to > NOW())
-			  AND a.deleted_at IS NULL
-			  AND d.deleted_at IS NULL
-			ORDER BY lt_id, emp_id,
-			  CASE a.assignee_type
-				WHEN 'user' THEN 1
-				WHEN 'employee' THEN 2
-				WHEN 'department' THEN 3
-				WHEN 'organization' THEN 4
-			  END ASC
-		)
-		SELECT
-			e.id as employee_id,
-			e.full_name as employee_name,
-			lt.id as leave_type_id,
-			lt.code as leave_type_code,
-			lt.name as leave_type_name,
-			lt.is_paid as is_paid,
-			COALESCE(lb.entitlement, 12) as entitlement,
-			COALESCE(lb.accrued_amount::text, '0.00') as accrued_amount,
-			COALESCE(lb.carried_over, 0) as carried_over,
-			COALESCE(lu.used_days, 0) as used,
-			bp.policy_name,
-			bp.assignment_type
-		FROM employees e
-		CROSS JOIN leave_types lt
-		LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.deleted_at IS NULL AND emp.status = 'active'
-		LEFT JOIN leave_balances lb ON emp.id = lb.employment_id AND lt.id = lb.leave_type_id AND lb.year = $1
-		LEFT JOIN leave_usage lu ON e.id = lu.employee_id AND lt.id = lu.leave_type_id
-		LEFT JOIN best_policy bp ON e.id = bp.emp_id AND lt.id = bp.lt_id
-		WHERE e.deleted_at IS NULL AND emp.id IS NOT NULL AND lt.deleted_at IS NULL
-		  AND ($2 = '' OR e.full_name ILIKE '%' || $2 || '%' OR EXISTS (SELECT 1 FROM employee_tenures search_t WHERE search_t.employee_id = e.id AND search_t.deleted_at IS NULL AND search_t.employee_number ILIKE '%' || $2 || '%') OR lt.name ILIKE '%' || $2 || '%' OR lt.code ILIKE '%' || $2 || '%')
-		ORDER BY e.full_name ASC, lt.name ASC
-		LIMIT $3 OFFSET $4
-	`
-	rows, err := db.Query(ctx, dataSQL, year, searchTerm, limit, offset)
+	rows, err := db.Query(ctx, orgLeaveBalancesDataSQL, year, searchTerm, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -574,11 +575,7 @@ func (r LeaveRepository) GetOrganizationLeaveBalances(ctx context.Context, year,
 	return balances, total, rows.Err()
 }
 
-func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, employeeID uuid.UUID, year int, leaveTypeID *uuid.UUID) ([]api.LeaveHistoryItem, error) {
-	db, err := requireDB(r.DB, "leave repository")
-	if err != nil {
-		return nil, err
-	}
+func loadEmployeeLeaveAccrualHistory(ctx context.Context, db DBTX, employeeID uuid.UUID, year int, leaveTypeID *uuid.UUID) ([]api.LeaveHistoryItem, error) {
 	logRows, err := db.Query(ctx, `
 		SELECT lal.id, lal.accrual_date::text, lal.amount::text, lal.notes, lal.policy_assignment_id, lal.created_at
 		FROM leave_accrual_logs lal
@@ -617,10 +614,17 @@ func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, employeeID
 			CreatedAt:       createdAt.UTC().Format(time.RFC3339),
 		})
 	}
-	if err := logRows.Err(); err != nil {
-		return nil, err
-	}
+	return items, logRows.Err()
+}
 
+type fetchedLeaveHistoryReq struct {
+	id        uuid.UUID
+	usageReq  leaveUsageRequest
+	reason    *string
+	createdAt time.Time
+}
+
+func queryEmployeeApprovedLeaveRequests(ctx context.Context, db DBTX, employeeID uuid.UUID, year int, leaveTypeID *uuid.UUID) ([]fetchedLeaveHistoryReq, []uuid.UUID, string, string, error) {
 	reqRows, err := db.Query(ctx, `
 		SELECT lr.id, lr.employment_id, lr.start_date::text, lr.end_date::text, lr.duration_type, lr.start_time::text, lr.end_time::text, lr.reason, lr.created_at
 		FROM leave_requests lr
@@ -631,33 +635,20 @@ func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, employeeID
 		  AND ($3::uuid IS NULL OR lr.leave_type_id = $3)
 	`, employeeID, year, leaveTypeID)
 	if err != nil {
-		return nil, err
+		return nil, nil, "", "", err
 	}
 	defer reqRows.Close()
 
-	type fetchedLeaveReq struct {
-		id        uuid.UUID
-		usageReq  leaveUsageRequest
-		reason    *string
-		createdAt time.Time
-	}
-	fetched := make([]fetchedLeaveReq, 0)
+	fetched := make([]fetchedLeaveHistoryReq, 0)
 	empSet := make(map[uuid.UUID]struct{})
 	minDate, maxDate := "", ""
 	for reqRows.Next() {
-		var item fetchedLeaveReq
+		var item fetchedLeaveHistoryReq
 		if err := reqRows.Scan(
-			&item.id,
-			&item.usageReq.EmploymentID,
-			&item.usageReq.StartDate,
-			&item.usageReq.EndDate,
-			&item.usageReq.DurationType,
-			&item.usageReq.StartTime,
-			&item.usageReq.EndTime,
-			&item.reason,
-			&item.createdAt,
+			&item.id, &item.usageReq.EmploymentID, &item.usageReq.StartDate, &item.usageReq.EndDate,
+			&item.usageReq.DurationType, &item.usageReq.StartTime, &item.usageReq.EndTime, &item.reason, &item.createdAt,
 		); err != nil {
-			return nil, err
+			return nil, nil, "", "", err
 		}
 		fetched = append(fetched, item)
 		empSet[item.usageReq.EmploymentID] = struct{}{}
@@ -669,12 +660,27 @@ func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, employeeID
 		}
 	}
 	if err := reqRows.Err(); err != nil {
-		return nil, err
+		return nil, nil, "", "", err
 	}
-
 	empIDs := make([]uuid.UUID, 0, len(empSet))
 	for id := range empSet {
 		empIDs = append(empIDs, id)
+	}
+	return fetched, empIDs, minDate, maxDate, nil
+}
+
+func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, employeeID uuid.UUID, year int, leaveTypeID *uuid.UUID) ([]api.LeaveHistoryItem, error) {
+	db, err := requireDB(r.DB, "leave repository")
+	if err != nil {
+		return nil, err
+	}
+	items, err := loadEmployeeLeaveAccrualHistory(ctx, db, employeeID, year, leaveTypeID)
+	if err != nil {
+		return nil, err
+	}
+	fetched, empIDs, minDate, maxDate, err := queryEmployeeApprovedLeaveRequests(ctx, db, employeeID, year, leaveTypeID)
+	if err != nil {
+		return nil, err
 	}
 	schedulesByEmp, holidaysByDate, err := loadLeaveScheduleContext(ctx, db, empIDs, minDate, maxDate)
 	if err != nil {
@@ -693,7 +699,6 @@ func (r LeaveRepository) GetEmployeeLeaveHistory(ctx context.Context, employeeID
 			CreatedAt:       item.createdAt.UTC().Format(time.RFC3339),
 		})
 	}
-
 	sort.Slice(items, func(i, j int) bool {
 		if items[i].Date != items[j].Date {
 			return items[i].Date > items[j].Date

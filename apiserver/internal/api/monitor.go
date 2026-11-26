@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -356,6 +357,101 @@ type redisOperationalData struct {
 	recentJobs     []MonitorJob
 }
 
+func parseMonitorLimit(raw string, def, maxVal int) int {
+	if raw == "" {
+		return def
+	}
+	parsed, err := strconv.Atoi(raw)
+	if err != nil || parsed <= 0 {
+		return def
+	}
+	if parsed > maxVal {
+		return maxVal
+	}
+	return parsed
+}
+
+func optionalTrimmedParam(raw string) *string {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+func optionalRFC3339Param(raw string) *time.Time {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return nil
+	}
+	return &t
+}
+
+func (h *MonitorHandler) collectRedisWorkers(ctx context.Context, observedAt time.Time) []WorkerHeartbeat {
+	workers := make([]WorkerHeartbeat, 0)
+	keys, _ := h.Redis.Keys(ctx, "monitor:worker:*")
+	for _, k := range keys {
+		val, found, err := h.Redis.GetString(ctx, k)
+		if err != nil || !found {
+			continue
+		}
+		var hb struct {
+			ID              uuid.UUID `json:"id"`
+			Host            string    `json:"host"`
+			Status          string    `json:"status"`
+			CurrentTaskType *string   `json:"current_task_type"`
+			LastSeenAt      time.Time `json:"last_seen_at"`
+		}
+		if json.Unmarshal([]byte(val), &hb) != nil {
+			continue
+		}
+		ageSecs := uint64(0)
+		if observedAt.After(hb.LastSeenAt) {
+			ageSecs = uint64(observedAt.Sub(hb.LastSeenAt).Seconds())
+		}
+		workers = append(workers, WorkerHeartbeat{
+			ID:                  hb.ID,
+			Host:                hb.Host,
+			Status:              hb.Status,
+			CurrentTaskType:     hb.CurrentTaskType,
+			LastSeenAt:          hb.LastSeenAt,
+			Liveness:            workerLiveness(ageSecs),
+			HeartbeatAgeSeconds: ageSecs,
+		})
+	}
+	return workers
+}
+
+func workerLiveness(ageSecs uint64) string {
+	switch {
+	case ageSecs > 60:
+		return "offline"
+	case ageSecs > 15:
+		return "stale"
+	default:
+		return "live"
+	}
+}
+
+func (h *MonitorHandler) collectRedisRecentJobs(ctx context.Context, observedAt time.Time) []MonitorJob {
+	recentJobs := make([]MonitorJob, 0)
+	jobIDs, _ := h.Redis.ZRevRange(ctx, "report:job_list", 0, 9)
+	for _, jid := range jobIDs {
+		metaStr, found, err := h.Redis.GetString(ctx, fmt.Sprintf("report:meta:%s", jid))
+		if err != nil || !found {
+			continue
+		}
+		if job, ok := decodeMonitorJob(metaStr, observedAt); ok {
+			recentJobs = append(recentJobs, job)
+		}
+	}
+	return recentJobs
+}
+
 func (h *MonitorHandler) collectRedisSnapshot(ctx context.Context, observedAt time.Time) redisOperationalData {
 	res := redisOperationalData{
 		workers:    make([]WorkerHeartbeat, 0),
@@ -382,54 +478,8 @@ func (h *MonitorHandler) collectRedisSnapshot(ctx context.Context, observedAt ti
 	if v, err := h.Redis.GetUint64(ctx, fmt.Sprintf("stats:failed:%s", today)); err == nil {
 		res.failedToday = v
 	}
-
-	keys, _ := h.Redis.Keys(ctx, "monitor:worker:*")
-	for _, k := range keys {
-		val, found, err := h.Redis.GetString(ctx, k)
-		if err != nil || !found {
-			continue
-		}
-		var hb struct {
-			ID              uuid.UUID `json:"id"`
-			Host            string    `json:"host"`
-			Status          string    `json:"status"`
-			CurrentTaskType *string   `json:"current_task_type"`
-			LastSeenAt      time.Time `json:"last_seen_at"`
-		}
-		if json.Unmarshal([]byte(val), &hb) != nil {
-			continue
-		}
-		ageSecs := uint64(0)
-		if observedAt.After(hb.LastSeenAt) {
-			ageSecs = uint64(observedAt.Sub(hb.LastSeenAt).Seconds())
-		}
-		liveness := "live"
-		if ageSecs > 60 {
-			liveness = "offline"
-		} else if ageSecs > 15 {
-			liveness = "stale"
-		}
-		res.workers = append(res.workers, WorkerHeartbeat{
-			ID:                  hb.ID,
-			Host:                hb.Host,
-			Status:              hb.Status,
-			CurrentTaskType:     hb.CurrentTaskType,
-			LastSeenAt:          hb.LastSeenAt,
-			Liveness:            liveness,
-			HeartbeatAgeSeconds: ageSecs,
-		})
-	}
-
-	jobIDs, _ := h.Redis.ZRevRange(ctx, "report:job_list", 0, 9)
-	for _, jid := range jobIDs {
-		metaStr, found, err := h.Redis.GetString(ctx, fmt.Sprintf("report:meta:%s", jid))
-		if err != nil || !found {
-			continue
-		}
-		if job, ok := decodeMonitorJob(metaStr, observedAt); ok {
-			res.recentJobs = append(res.recentJobs, job)
-		}
-	}
+	res.workers = h.collectRedisWorkers(ctx, observedAt)
+	res.recentJobs = h.collectRedisRecentJobs(ctx, observedAt)
 	return res
 }
 
@@ -537,52 +587,87 @@ func buildMonitorDependencies(redisAvailable bool, redisStatus string, observedA
 	}
 }
 
+func countWorkerStates(workers []WorkerHeartbeat) (active, idle uint64) {
+	for _, w := range workers {
+		if strings.EqualFold(w.Status, "PROCESSING") {
+			active++
+		} else if strings.EqualFold(w.Status, "IDLE") {
+			idle++
+		}
+	}
+	return active, idle
+}
+
+func defaultMonitorThresholds() MonitorOperationalThresholds {
+	return MonitorOperationalThresholds{
+		QueuePressure: MonitorQueueThresholds{
+			MediumAt:   100,
+			HighAt:     500,
+			CriticalAt: 1000,
+			Source:     "backend_default",
+		},
+		WorkerUtilization: MonitorUtilizationThresholds{
+			ScaleDownBelowPercent: 20,
+			WarningAtPercent:      70,
+			CriticalAtPercent:     90,
+			Source:                "backend_default",
+		},
+		LiveAfterSeconds:  15,
+		StaleAfterSeconds: 60,
+		Source:            "backend_default",
+	}
+}
+
+func buildMonitorQuality(redisStatus string) MonitorQuality {
+	return MonitorQuality{
+		DataQuality:      "partial",
+		Freshness:        "fresh",
+		SnapshotSequence: uuid.NewString(),
+		UnknownFields: []string{
+			"dependencies.outbox_sweeper",
+			"dependencies.cpu",
+			"dependencies.memory",
+			"dependencies.disk",
+		},
+		Redis:            MonitorSourceHealth{Status: redisStatus},
+		DurableDB:        MonitorSourceHealth{Status: "available"},
+		WorkerHeartbeats: MonitorSourceHealth{Status: "available"},
+	}
+}
+
+func (h *MonitorHandler) fetchDurableJobsSection(ctx context.Context, params ListDurableJobsParams) MonitorDurableJobsSection {
+	section := MonitorDurableJobsSection{
+		Status: "available",
+		Jobs:   make([]MonitorInfraJobRecord, 0),
+		Limit:  params.Limit,
+	}
+	if h.Repo == nil {
+		return section
+	}
+	dj, nextTok, err := h.Repo.ListDurableJobs(ctx, params)
+	if err != nil {
+		section.Status = "degraded"
+		errCode := "DURABLE_JOBS_UNAVAILABLE"
+		section.ErrorCode = &errCode
+		return section
+	}
+	section.Jobs = dj
+	section.NextCursorToken = nextTok
+	return section
+}
+
 func (h *MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorOperationalSnapshot, error) {
 	observedAt := time.Now().UTC()
 	redisData := h.collectRedisSnapshot(ctx, observedAt)
 
 	totalWorkers := uint64(len(redisData.workers))
-	var activeWorkers, idleWorkers uint64
-	for _, w := range redisData.workers {
-		if strings.EqualFold(w.Status, "PROCESSING") {
-			activeWorkers++
-		} else if strings.EqualFold(w.Status, "IDLE") {
-			idleWorkers++
-		}
-	}
-
-	pendingHigh := redisData.pendingHigh
-	pendingNormal := redisData.pendingNormal
-	pendingLow := redisData.pendingLow
-	completedToday := redisData.completedToday
-	failedToday := redisData.failedToday
+	activeWorkers, idleWorkers := countWorkerStates(redisData.workers)
+	pendingHigh, pendingNormal, pendingLow := redisData.pendingHigh, redisData.pendingNormal, redisData.pendingLow
+	completedToday, failedToday := redisData.completedToday, redisData.failedToday
 	pendingTasks := pendingHigh + pendingNormal + pendingLow
 
-	durableJobs := MonitorDurableJobsSection{
-		Status:          "available",
-		ErrorCode:       nil,
-		Jobs:            make([]MonitorInfraJobRecord, 0),
-		NextCursorToken: nil,
-		Limit:           10,
-		EventsTruncated: false,
-	}
-	if h.Repo != nil {
-		dj, nextTok, err := h.Repo.ListDurableJobs(ctx, ListDurableJobsParams{Limit: 10})
-		if err == nil {
-			durableJobs.Jobs = dj
-			durableJobs.NextCursorToken = nextTok
-		} else {
-			durableJobs.Status = "degraded"
-			errCode := "DURABLE_JOBS_UNAVAILABLE"
-			durableJobs.ErrorCode = &errCode
-		}
-	}
-
-	window := MonitorMetricWindow{
-		Start:           observedAt.Add(-5 * time.Minute),
-		End:             observedAt,
-		DurationSeconds: 300,
-	}
+	durableJobs := h.fetchDurableJobsSection(ctx, ListDurableJobsParams{Limit: 10})
+	window := MonitorMetricWindow{Start: observedAt.Add(-5 * time.Minute), End: observedAt, DurationSeconds: 300}
 	redisStatus := "unavailable"
 	if redisData.available {
 		redisStatus = "available"
@@ -606,38 +691,9 @@ func (h *MonitorHandler) buildOperationalSnapshot(ctx context.Context) (MonitorO
 		DurableJobs:        durableJobs,
 		QueueHealth:        buildMonitorQueueHealth(pendingHigh, pendingNormal, pendingLow, pendingTasks, window, observedAt),
 		Reliability:        buildMonitorReliability(completedToday, failedToday, window, observedAt),
-		Thresholds: MonitorOperationalThresholds{
-			QueuePressure: MonitorQueueThresholds{
-				MediumAt:   100,
-				HighAt:     500,
-				CriticalAt: 1000,
-				Source:     "backend_default",
-			},
-			WorkerUtilization: MonitorUtilizationThresholds{
-				ScaleDownBelowPercent: 20,
-				WarningAtPercent:      70,
-				CriticalAtPercent:     90,
-				Source:                "backend_default",
-			},
-			LiveAfterSeconds:  15,
-			StaleAfterSeconds: 60,
-			Source:            "backend_default",
-		},
-		Dependencies: buildMonitorDependencies(redisData.available, redisStatus, observedAt),
-		Quality: MonitorQuality{
-			DataQuality:      "partial",
-			Freshness:        "fresh",
-			SnapshotSequence: uuid.NewString(),
-			UnknownFields: []string{
-				"dependencies.outbox_sweeper",
-				"dependencies.cpu",
-				"dependencies.memory",
-				"dependencies.disk",
-			},
-			Redis:            MonitorSourceHealth{Status: redisStatus},
-			DurableDB:        MonitorSourceHealth{Status: "available"},
-			WorkerHeartbeats: MonitorSourceHealth{Status: "available"},
-		},
+		Thresholds:         defaultMonitorThresholds(),
+		Dependencies:       buildMonitorDependencies(redisData.available, redisStatus, observedAt),
+		Quality:            buildMonitorQuality(redisStatus),
 	}, nil
 }
 

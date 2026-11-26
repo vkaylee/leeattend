@@ -37,22 +37,28 @@ func TestRequireDB(t *testing.T) {
 }
 
 func TestPGConflictHelpers(t *testing.T) {
-	uniqueErr := &pgconn.PgError{Code: "23505"}
-	exclusionErr := &pgconn.PgError{Code: "23P01"}
-	fkErr := &pgconn.PgError{Code: "23503"}
-	wrappedUnique := fmt.Errorf("wrap: %w", uniqueErr)
-	wrappedExclusion := fmt.Errorf("wrap: %w", exclusionErr)
-
-	if !isUniqueViolation(uniqueErr) || !isUniqueViolation(wrappedUnique) {
-		t.Fatal("expected 23505 to match isUniqueViolation")
-	}
-	if isUniqueViolation(exclusionErr) || isUniqueViolation(fkErr) || isUniqueViolation(errors.New("other")) {
-		t.Fatal("unexpected match in isUniqueViolation")
-	}
-	if !isConflictError(uniqueErr) || !isConflictError(wrappedUnique) || !isConflictError(exclusionErr) || !isConflictError(wrappedExclusion) {
-		t.Fatal("expected 23505 and 23P01 to match isConflictError")
-	}
-	if isConflictError(fkErr) || isConflictError(errors.New("other")) {
-		t.Fatal("unexpected match in isConflictError")
+	unique := &pgconn.PgError{Code: "23505"}
+	exclusion := &pgconn.PgError{Code: "23P01"}
+	for _, tc := range []struct {
+		name             string
+		err              error
+		unique, conflict bool
+	}{
+		{"nil", nil, false, false},
+		{"unique", unique, true, true},
+		{"wrapped unique", fmt.Errorf("wrap: %w", unique), true, true},
+		{"exclusion", exclusion, false, true},
+		{"wrapped exclusion", fmt.Errorf("wrap: %w", exclusion), false, true},
+		{"foreign key", &pgconn.PgError{Code: "23503"}, false, false},
+		{"other", errors.New("other"), false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := isUniqueViolation(tc.err); got != tc.unique {
+				t.Errorf("unique = %v, want %v", got, tc.unique)
+			}
+			if got := isConflictError(tc.err); got != tc.conflict {
+				t.Errorf("conflict = %v, want %v", got, tc.conflict)
+			}
+		})
 	}
 }

@@ -13,6 +13,29 @@ import (
 	"time"
 )
 
+func loadIncentiveTiersMap(ctx context.Context, db DBTX, policyIDs []uuid.UUID) (map[uuid.UUID][]api.IncentiveTier, error) {
+	tierRows, err := db.Query(ctx, `SELECT id, policy_id, priority, payout_amount::text, rule_config
+FROM payroll_incentive_tiers
+WHERE policy_id = ANY($1)
+ORDER BY priority ASC`, policyIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer tierRows.Close()
+
+	tiersMap := make(map[uuid.UUID][]api.IncentiveTier)
+	for tierRows.Next() {
+		var t api.IncentiveTier
+		var payoutStr string
+		if err := tierRows.Scan(&t.ID, &t.PolicyID, &t.Priority, &payoutStr, &t.RuleConfig); err != nil {
+			return nil, err
+		}
+		t.PayoutAmount, _ = decimal.NewFromString(payoutStr)
+		tiersMap[t.PolicyID] = append(tiersMap[t.PolicyID], t)
+	}
+	return tiersMap, tierRows.Err()
+}
+
 func (r PayrollRepository) GetIncentivePolicies(ctx context.Context) ([]api.PayrollIncentivePolicyResponse, error) {
 	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
@@ -50,26 +73,8 @@ ORDER BY created_at ASC`)
 		return []api.PayrollIncentivePolicyResponse{}, nil
 	}
 
-	tierRows, err := db.Query(ctx, `SELECT id, policy_id, priority, payout_amount::text, rule_config
-FROM payroll_incentive_tiers
-WHERE policy_id = ANY($1)
-ORDER BY priority ASC`, policyIDs)
+	tiersMap, err := loadIncentiveTiersMap(ctx, db, policyIDs)
 	if err != nil {
-		return nil, err
-	}
-	defer tierRows.Close()
-
-	tiersMap := make(map[uuid.UUID][]api.IncentiveTier)
-	for tierRows.Next() {
-		var t api.IncentiveTier
-		var payoutStr string
-		if err := tierRows.Scan(&t.ID, &t.PolicyID, &t.Priority, &payoutStr, &t.RuleConfig); err != nil {
-			return nil, err
-		}
-		t.PayoutAmount, _ = decimal.NewFromString(payoutStr)
-		tiersMap[t.PolicyID] = append(tiersMap[t.PolicyID], t)
-	}
-	if err := tierRows.Err(); err != nil {
 		return nil, err
 	}
 
@@ -139,6 +144,36 @@ func (r PayrollRepository) DeleteIncentivePolicy(ctx context.Context, policyID i
 	return err
 }
 
+type incentiveTierClone struct {
+	priority int
+	payout   decimal.Decimal
+	config   []byte
+}
+
+func loadPolicyTiersToClone(ctx context.Context, db DBTX, policyID uuid.UUID) ([]incentiveTierClone, error) {
+	tierRows, err := db.Query(ctx, `SELECT priority, payout_amount::text, rule_config
+FROM payroll_incentive_tiers
+WHERE policy_id = $1
+ORDER BY priority ASC`, policyID)
+	if err != nil {
+		return nil, err
+	}
+	defer tierRows.Close()
+
+	var origTiers []incentiveTierClone
+	for tierRows.Next() {
+		var priority int
+		var payoutStr string
+		var cfg []byte
+		if err := tierRows.Scan(&priority, &payoutStr, &cfg); err != nil {
+			return nil, err
+		}
+		payout, _ := decimal.NewFromString(payoutStr)
+		origTiers = append(origTiers, incentiveTierClone{priority: priority, payout: payout, config: cfg})
+	}
+	return origTiers, tierRows.Err()
+}
+
 func (r PayrollRepository) CloneIncentivePolicy(ctx context.Context, policyID ids.PayrollIncentivePolicyID) (api.PayrollIncentivePolicy, error) {
 	db, err := requireDB(r.DB, "payroll repository")
 	if err != nil {
@@ -156,32 +191,8 @@ WHERE id = $1 AND deleted_at IS NULL`, uuid.UUID(policyID)).Scan(&origName, &ori
 	}
 	origBase, _ := decimal.NewFromString(origBaseStr)
 
-	tierRows, err := db.Query(ctx, `SELECT priority, payout_amount::text, rule_config
-FROM payroll_incentive_tiers
-WHERE policy_id = $1
-ORDER BY priority ASC`, uuid.UUID(policyID))
+	origTiers, err := loadPolicyTiersToClone(ctx, db, uuid.UUID(policyID))
 	if err != nil {
-		return api.PayrollIncentivePolicy{}, err
-	}
-	defer tierRows.Close()
-
-	type tierToClone struct {
-		priority int
-		payout   decimal.Decimal
-		config   []byte
-	}
-	var origTiers []tierToClone
-	for tierRows.Next() {
-		var priority int
-		var payoutStr string
-		var cfg []byte
-		if err := tierRows.Scan(&priority, &payoutStr, &cfg); err != nil {
-			return api.PayrollIncentivePolicy{}, err
-		}
-		payout, _ := decimal.NewFromString(payoutStr)
-		origTiers = append(origTiers, tierToClone{priority: priority, payout: payout, config: cfg})
-	}
-	if err := tierRows.Err(); err != nil {
 		return api.PayrollIncentivePolicy{}, err
 	}
 
@@ -197,14 +208,12 @@ RETURNING created_at, effective_from::text`, newPolicyID, newName, origBase.Inex
 	}
 
 	for _, t := range origTiers {
-		tierID := uuid.New()
 		cfg := t.config
 		if len(cfg) == 0 {
 			cfg = []byte("{}")
 		}
-		_, err = db.Exec(ctx, `INSERT INTO payroll_incentive_tiers (id, policy_id, priority, payout_amount, rule_config)
-VALUES ($1, $2, $3, $4, $5)`, tierID, newPolicyID, t.priority, t.payout.InexactFloat64(), cfg)
-		if err != nil {
+		if _, err = db.Exec(ctx, `INSERT INTO payroll_incentive_tiers (id, policy_id, priority, payout_amount, rule_config)
+VALUES ($1, $2, $3, $4, $5)`, uuid.New(), newPolicyID, t.priority, t.payout.InexactFloat64(), cfg); err != nil {
 			return api.PayrollIncentivePolicy{}, err
 		}
 	}

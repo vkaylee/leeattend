@@ -78,6 +78,16 @@ func (r *rbacTestRows) Values() ([]any, error) { return nil, nil }
 func (r *rbacTestRows) RawValues() [][]byte    { return nil }
 func (r *rbacTestRows) Conn() *pgx.Conn        { return nil }
 
+func TestOrganizationRBACRepository_TransactionNoRowsMapping(t *testing.T) {
+	repo := OrganizationRBACRepository{SystemDB: &fakeDBTX{}}
+	err := repo.withTx(context.Background(), func(ctx context.Context, db DBTX) error {
+		return db.QueryRow(ctx, "SELECT 1").Scan()
+	})
+	if !errors.Is(err, pgx.ErrNoRows) || !errors.Is(err, api.ErrNotFound) {
+		t.Fatalf("expected both no-rows errors, got %v", err)
+	}
+}
+
 func TestOrganizationRBACRepository_RequiresDatabase(t *testing.T) {
 	repo := OrganizationRBACRepository{}
 	ctx := context.Background()

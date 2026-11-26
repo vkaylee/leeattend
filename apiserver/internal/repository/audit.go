@@ -15,8 +15,9 @@ type AuditLogWriter struct {
 }
 
 func (w AuditLogWriter) Emit(ctx context.Context, event audit.Event) error {
-	if w.DB == nil {
-		return fmt.Errorf("audit log writer: database is not configured")
+	db, err := requireDB(w.DB, "audit log writer")
+	if err != nil {
+		return err
 	}
 	actorID, err := uuid.Parse(event.ActorID)
 	if err != nil {
@@ -26,7 +27,7 @@ func (w AuditLogWriter) Emit(ctx context.Context, event audit.Event) error {
 	if err != nil {
 		return fmt.Errorf("audit log writer: marshal details: %w", err)
 	}
-	_, err = w.DB.Exec(ctx, `
+	_, err = db.Exec(ctx, `
 		INSERT INTO audit_logs (actor_id, action, details, created_at)
 		VALUES ($1, $2, $3, COALESCE(NULLIF($4::timestamptz, 'epoch'::timestamptz), CURRENT_TIMESTAMP))
 	`, actorID, event.Name, details, event.At)

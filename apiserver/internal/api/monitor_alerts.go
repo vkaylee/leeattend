@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -65,36 +64,16 @@ func (h *MonitorHandler) ListAlerts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	q := r.URL.Query()
-	limit := 20
-	if l := q.Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			if parsed > 100 {
-				parsed = 100
-			}
-			limit = parsed
-		}
-	}
-
-	var statusPtr *string
-	if s := strings.TrimSpace(q.Get("status")); s != "" {
-		statusPtr = &s
-	}
-	var severityPtr *string
-	if s := strings.TrimSpace(q.Get("severity")); s != "" {
-		severityPtr = &s
-	}
-	var cursorPtr *string
-	if c := strings.TrimSpace(q.Get("cursor")); c != "" {
-		cursorPtr = &c
-	}
+	limit := parseMonitorLimit(q.Get("limit"), 20, 100)
+	statusPtr := optionalTrimmedParam(q.Get("status"))
+	severityPtr := optionalTrimmedParam(q.Get("severity"))
+	cursorPtr := optionalTrimmedParam(q.Get("cursor"))
 
 	if h.Repo == nil {
 		apperror.WriteJSON(w, http.StatusOK, MonitorAlertsResponse{
-			Data:       make([]MonitorAlertResponse, 0),
-			Total:      0,
-			Page:       1,
-			Limit:      int64(limit),
-			NextCursor: nil,
+			Data:  make([]MonitorAlertResponse, 0),
+			Page:  1,
+			Limit: int64(limit),
 		})
 		return
 	}
@@ -163,6 +142,17 @@ func (h *MonitorHandler) ResolveAlert(w http.ResponseWriter, r *http.Request) {
 	h.mutateAlert(w, r, "resolve")
 }
 
+func mapMonitorAlertError(err error) *apperror.AppError {
+	switch {
+	case errors.Is(err, ErrMonitorNotFound):
+		return apperror.NotFound(apperror.KeyNotFound)
+	case errors.Is(err, ErrMonitorConflict):
+		return apperror.Conflict(apperror.KeyConflict)
+	default:
+		return nil
+	}
+}
+
 func (h *MonitorHandler) mutateAlert(w http.ResponseWriter, r *http.Request, action string) {
 	userID, appErr := h.requireInfraMonitor(r)
 	if appErr != nil {
@@ -172,18 +162,18 @@ func (h *MonitorHandler) mutateAlert(w http.ResponseWriter, r *http.Request, act
 
 	alertID, err := uuid.Parse(r.PathValue("alert_id"))
 	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		writeValidation(w, r)
 		return
 	}
 
 	req, err := DecodeJSON[MonitorAlertMutationRequest](r, 1<<20)
 	if err != nil {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		writeValidation(w, r)
 		return
 	}
 	reason := strings.TrimSpace(req.Reason)
 	if reason == "" || len([]rune(reason)) > 500 {
-		apperror.WriteError(w, r, apperror.Validation(apperror.KeyValidation))
+		writeValidation(w, r)
 		return
 	}
 	reason = sanitizeSummary(reason)
@@ -195,16 +185,7 @@ func (h *MonitorHandler) mutateAlert(w http.ResponseWriter, r *http.Request, act
 
 	alert, err := h.Repo.MutateAlert(r.Context(), alertID, action, reason, userID)
 	if err != nil {
-		writeMappedError(w, r, err, func(err error) *apperror.AppError {
-			switch {
-			case errors.Is(err, ErrMonitorNotFound):
-				return apperror.NotFound(apperror.KeyNotFound)
-			case errors.Is(err, ErrMonitorConflict):
-				return apperror.Conflict(apperror.KeyConflict)
-			default:
-				return nil
-			}
-		})
+		writeMappedError(w, r, err, mapMonitorAlertError)
 		return
 	}
 
