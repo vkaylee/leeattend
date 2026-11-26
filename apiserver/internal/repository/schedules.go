@@ -378,51 +378,6 @@ func (r ScheduleRepository) GetOfficialSchedulesWithCoverage(ctx context.Context
 	return result, nil
 }
 
-func (r ScheduleRepository) GetOrganizationSchedules(ctx context.Context, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (api.PaginatedEmployeeSchedules, error) {
-	db, err := requireDB(r.DB, "schedule repository")
-	if err != nil {
-		return api.PaginatedEmployeeSchedules{}, err
-	}
-	resolution, total, err := resolveScheduleData(ctx, db, startDate, endDate, employmentIDs, page, limit)
-	if err != nil {
-		return api.PaginatedEmployeeSchedules{}, err
-	}
-	result := make([]api.EmployeeSchedule, 0, len(resolution.employees))
-	for _, employee := range resolution.employees {
-		dailyList := make([]api.EffectiveSchedule, 0)
-		for _, day := range employee.days {
-			for _, shiftID := range day.shiftIDs {
-				status := "missing"
-				if day.source == "conflict" {
-					status = "conflict"
-				} else if shiftID == nil && (day.source == "roster" || day.source == "pattern") {
-					status = "explicit_off"
-				} else if shiftID != nil {
-					status = "work"
-				}
-				zone := day.timezone
-				effective := api.EffectiveSchedule{Date: day.date, Source: day.source, ScheduleStatus: status, Provisional: true, Timezone: &zone, ShiftID: shiftID, BreakWorkedOverrides: day.breakWorkedOverrides, Traces: day.traces, IsHoliday: day.isHoliday, IsHolidayPaid: day.holidayPaid, HolidayName: day.holidayName}
-				if shiftID != nil {
-					if meta, ok := resolution.shifts[*shiftID]; ok {
-						effective.ShiftName = &meta.name
-						if version, selected, _ := selectEffectiveShiftVersion(resolution.shifts, *shiftID, parseScheduleDate(day.date)); selected {
-							effective.ShiftSymbol = version.reportSymbol
-							if interval := primaryShiftInterval(version); interval != nil {
-								effective.StartTime, effective.EndTime = interval.startTime, interval.endTime
-								effective.BreakDurationMinutes, effective.BreakStart, effective.BreakEnd = interval.breakDurationMinutes, interval.breakStart, interval.breakEnd
-								effective.BreakPunchMode = interval.breakPunchMode
-							}
-						}
-					}
-				}
-				dailyList = append(dailyList, effective)
-			}
-		}
-		result = append(result, api.EmployeeSchedule{EmploymentID: employee.employmentID, EmployeeID: employee.employeeID, EmployeeIDNumber: employee.employeeIDNumber, FullName: employee.fullName, Schedules: dailyList})
-	}
-	return api.PaginatedEmployeeSchedules{Data: result, Total: total, Page: normalizedPage(page), Limit: normalizedLimit(limit)}, nil
-}
-
 func resolveScheduleData(ctx context.Context, db DBTX, startDate, endDate time.Time, employmentIDs []uuid.UUID, page, limit int) (scheduleResolution, int64, error) {
 	page, limit = normalizedPage(page), normalizedLimit(limit)
 	offset := (page - 1) * limit

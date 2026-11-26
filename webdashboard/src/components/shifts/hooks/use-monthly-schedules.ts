@@ -63,8 +63,15 @@ export function useMonthlySchedules({
     return list;
   }, [employees, selectedEmployeeIds, selectedEmployees]);
 
-  const combinedSchedules = useMemo(() => {
-    if (!employees) return [];
+  const combinedSchedules = useMemo<ScheduleRow[]>(() => {
+    if (!employees || employees.length === 0) {
+      return (monthSchedules ?? []).map((schedule): ScheduleRow => ({
+        ...schedule,
+        employee_id: schedule.employee_id ?? schedule.employment_id,
+        employee_id_number: schedule.employee_id_number ?? "",
+        department_name: undefined,
+      }));
+    }
     const list = [...employees];
     selectedEmployees.forEach((selectedEmp) => {
       if (!list.some((e) => e.id === selectedEmp.id)) {
@@ -98,8 +105,12 @@ export function useMonthlySchedules({
   }, [coverageFilter, employees, monthSchedules, selectedEmployees]);
 
   const filteredSchedules = useMemo(
-    () => orderSchedulesBySelection(combinedSchedules, selectedEmployeeIds),
-    [combinedSchedules, selectedEmployeeIds],
+    () => (
+      selectedEmployeeIds.length === 0 && (!employees || employees.length === 0)
+        ? combinedSchedules
+        : orderSchedulesBySelection(combinedSchedules, selectedEmployeeIds)
+    ),
+    [combinedSchedules, employees, selectedEmployeeIds],
   );
 
   return { selectedEmployeesMeta, combinedSchedules, filteredSchedules };

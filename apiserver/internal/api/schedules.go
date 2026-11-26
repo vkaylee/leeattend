@@ -271,10 +271,6 @@ type PaginatedEmployeeSchedules struct {
 }
 
 type ScheduleRepository interface {
-	GetOrganizationSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error)
-}
-
-type OfficialScheduleRepository interface {
 	GetOfficialSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error)
 	GetOfficialSchedulesWithCoverage(context.Context, time.Time, time.Time, []uuid.UUID, int, int, string) (PaginatedEmployeeSchedules, error)
 }
@@ -882,19 +878,10 @@ func (h *ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
 		query.employmentIDs = scopedIDs
 	}
 	var result PaginatedEmployeeSchedules
-	if query.view == "official" {
-		official, ok := h.Repository.(OfficialScheduleRepository)
-		if !ok {
-			apperror.WriteError(w, r, apperror.ServiceUnavailable(apperror.KeyServiceUnavailable))
-			return
-		}
-		if query.coverage == "all" {
-			result, err = official.GetOfficialSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
-		} else {
-			result, err = official.GetOfficialSchedulesWithCoverage(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit, query.coverage)
-		}
+	if query.coverage == "all" {
+		result, err = h.Repository.GetOfficialSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
 	} else {
-		result, err = h.Repository.GetOrganizationSchedules(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit)
+		result, err = h.Repository.GetOfficialSchedulesWithCoverage(r.Context(), query.start, query.end, query.employmentIDs, query.page, query.limit, query.coverage)
 	}
 	if err != nil {
 		apperror.WriteError(w, r, apperror.Internal(err))
@@ -933,7 +920,7 @@ func parseOrganizationSchedulesQuery(r *http.Request) (parsedOrganizationSchedul
 	if view == "" {
 		view = "official"
 	}
-	if view != "legacy" && view != "official" {
+	if view != "official" {
 		return parsedOrganizationSchedulesQuery{}, errors.New("unsupported schedule view")
 	}
 	coverage := strings.TrimSpace(values.Get("coverage"))

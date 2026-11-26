@@ -47,6 +47,7 @@ export function useShiftData({
 }: UseShiftDataProps) {
   const { hasPermission } = useMyPermissions();
   const canReadEmployees = hasPermission("employees:read");
+  const canReadSchedules = hasPermission("schedules:read");
   const { data: shifts } = useQuery<Shift[]>({
     queryKey: createQueryKey("shifts"),
     queryFn: () => fetchShifts(),
@@ -106,7 +107,7 @@ export function useShiftData({
       selectedEmploymentIds.length > 0 ? selectedEmploymentIds : undefined,
       coverageFilter);
     },
-    enabled: viewMode === "month" && !!monthStart && !!monthEnd && selectedEmploymentIds.length > 0,
+    enabled: viewMode === "month" && !!monthStart && !!monthEnd && canReadSchedules && (!canReadEmployees || selectedEmploymentIds.length > 0),
   });
 
   const { data: history } = useQuery<AssignmentHistory[]>({

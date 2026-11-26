@@ -47,7 +47,7 @@ func (m *officialScheduleRepositoryMock) GetOfficialSchedules(_ context.Context,
 	return PaginatedEmployeeSchedules{Data: []EmployeeSchedule{{Schedules: []EffectiveSchedule{{Date: "2026-10-20", RevisionID: new(uuid.UUID), ScheduleStatus: "missing", Provisional: false}}}}, Page: page, Limit: limit}, nil
 }
 
-func (m *mockScheduleRepository) GetOrganizationSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
+func (m *mockScheduleRepository) GetOfficialSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
 	m.called = true
 	return PaginatedEmployeeSchedules{
 		Data: []EmployeeSchedule{
@@ -58,11 +58,12 @@ func (m *mockScheduleRepository) GetOrganizationSchedules(_ context.Context, _, 
 				FullName:         "Test Employee",
 				Schedules: []EffectiveSchedule{
 					{
-						Date:      "2026-10-20",
-						ShiftID:   nil,
-						Source:    "none",
-						Traces:    []ScheduleTrace{},
-						IsHoliday: false,
+						Date:           "2026-10-20",
+						ShiftID:        nil,
+						Source:         "none",
+						ScheduleStatus: "missing",
+						Traces:         []ScheduleTrace{},
+						IsHoliday:      false,
 					},
 				},
 			},
@@ -71,6 +72,11 @@ func (m *mockScheduleRepository) GetOrganizationSchedules(_ context.Context, _, 
 		Page:  page,
 		Limit: limit,
 	}, nil
+}
+
+func (m *mockScheduleRepository) GetOfficialSchedulesWithCoverage(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int, _ string) (PaginatedEmployeeSchedules, error) {
+	m.called = true
+	return PaginatedEmployeeSchedules{Page: page, Limit: limit}, nil
 }
 
 type mockScheduleAuthorizer struct {
@@ -450,14 +456,13 @@ func TestScheduleHandler_OfficialViewUsesOfficialCapability(t *testing.T) {
 }
 
 func TestScheduleHandler_OfficialViewUnavailableFailsClosed(t *testing.T) {
-	repo := &mockScheduleRepository{}
-	handler := ScheduleHandler{Repository: repo, Authorizer: mockScheduleAuthorizer{isMember: true}}
+	handler := ScheduleHandler{Repository: nil, Authorizer: mockScheduleAuthorizer{isMember: true}}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/schedules?start_date=2026-10-01&end_date=2026-10-31&view=official", nil)
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), uuid.New()))
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
-	if rec.Code != http.StatusServiceUnavailable || repo.called {
-		t.Fatalf("official capability absence status=%d legacy=%v", rec.Code, repo.called)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("nil repository status=%d want 503", rec.Code)
 	}
 }
 
@@ -469,7 +474,7 @@ func TestScheduleHandler_UnknownViewRejected(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
 	if rec.Code != http.StatusBadRequest || repo.called {
-		t.Fatalf("unknown view status=%d legacy=%v", rec.Code, repo.called)
+		t.Fatalf("unknown view status=%d called=%v", rec.Code, repo.called)
 	}
 }
 
@@ -481,29 +486,25 @@ func TestScheduleHandler_DefaultViewUsesOfficialCapabilityAndCoverage(t *testing
 	rec := httptest.NewRecorder()
 	handler.List(rec, req)
 	if rec.Code != http.StatusOK || !repo.officialCalled || repo.called || repo.gotCoverage != "missing" {
-		t.Fatalf("default view status=%d official=%v legacy=%v coverage=%q", rec.Code, repo.officialCalled, repo.called, repo.gotCoverage)
+		t.Fatalf("default view status=%d official=%v called=%v coverage=%q", rec.Code, repo.officialCalled, repo.called, repo.gotCoverage)
 	}
 }
 
-func TestScheduleHandler_LegacyExplicitViewRemainsCallableDuringTransition(t *testing.T) {
+func TestScheduleHandler_LegacyViewRejectedAfterCutover(t *testing.T) {
 	userID := uuid.New()
-	repo := &mockScheduleRepository{}
+	repo := &officialScheduleRepositoryMock{}
 	handler := ScheduleHandler{
 		Repository: repo,
 		Authorizer: mockScheduleAuthorizer{isMember: true},
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/schedules?start_date=2026-10-01&end_date=2026-10-31&page=1&limit=50&view=legacy", nil)
-
 	req = req.WithContext(httpinfra.WithUserIDForTest(req.Context(), userID))
 	rec := httptest.NewRecorder()
 
 	handler.List(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if !repo.called {
-		t.Fatal("expected repository to be called")
+	if rec.Code != http.StatusBadRequest || repo.officialCalled || repo.called {
+		t.Fatalf("expected legacy view to be rejected with 400, got status=%d official=%v called=%v", rec.Code, repo.officialCalled, repo.called)
 	}
 }
 
@@ -553,7 +554,12 @@ type unscopedScheduleRepositoryMock struct {
 	called bool
 }
 
-func (m *unscopedScheduleRepositoryMock) GetOrganizationSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
+func (m *unscopedScheduleRepositoryMock) GetOfficialSchedules(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int) (PaginatedEmployeeSchedules, error) {
+	m.called = true
+	return PaginatedEmployeeSchedules{Page: page, Limit: limit}, nil
+}
+
+func (m *unscopedScheduleRepositoryMock) GetOfficialSchedulesWithCoverage(_ context.Context, _, _ time.Time, _ []uuid.UUID, page, limit int, _ string) (PaginatedEmployeeSchedules, error) {
 	m.called = true
 	return PaginatedEmployeeSchedules{Page: page, Limit: limit}, nil
 }

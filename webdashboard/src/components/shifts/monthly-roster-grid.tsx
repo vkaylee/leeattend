@@ -85,15 +85,15 @@ function MonthlyRosterContent({
     return <RosterErrorState onRetry={onRetry} />;
   }
 
-  if (isMonthLoading || isEmployeesLoading || !employees) {
+  if (isMonthLoading || isEmployeesLoading || (!employees && filteredSchedules.length === 0)) {
     return <RosterSkeleton />;
   }
 
-  if (employees.length === 0) {
+  if ((employees?.length ?? 0) === 0 && filteredSchedules.length === 0) {
     return <NoEmployeesState />;
   }
 
-  if (selectedEmployeeIds.length === 0) {
+  if (selectedEmployeeIds.length === 0 && filteredSchedules.length === 0) {
     return <NoSelectionState />;
   }
 

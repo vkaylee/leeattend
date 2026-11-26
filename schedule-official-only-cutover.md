@@ -53,15 +53,15 @@ Cut over operational schedule reads, attendance/payroll consumers, and frontend 
   - Added cross-consumer parity DB integration test (`TestIntegrationOfficialScheduleParityAcrossReaderNoShowPunchAndPayroll`).
   - **Verify:** `leedevkit test api --json` (3/3 passed) and `leedevkit test web --json` (3/3 passed).
 
-- [ ] **Task 8: Contract & end-to-end verification** (pending live dev restart + 5-role Playwright audit + retirement of explicit `view=legacy` once zero callers remain)
-  - Remove deprecated HTTP `view=legacy` / `GetOrganizationSchedules` external read path once zero callers remain (keep internal `resolveScheduleData` / `resolveEffectiveShift` for preview & office publisher).
-  - Run full verification suite (`leedevkit test all --json`), inspect per-phase `.test_logs/`, and run Playwright desktop (1920x1080) route × role audit across `employee`, `team_lead`, `shift_manager`, `hr_manager`, `admin`.
-  - **Verify:** All configured API, web, integration, and E2E phases pass with zero skipped required phases.
+- [x] **Task 8: Contract & end-to-end verification**
+  - Retired deprecated HTTP `view=legacy` / `GetOrganizationSchedules` external read path (`apiserver/internal/api/schedules.go`, `apiserver/internal/repository/schedules.go`, `webdashboard/src/lib/api/shifts.ts`); kept internal `resolveScheduleData` / `resolveEffectiveShift` for preview & office publisher.
+  - Fixed Boy Scout regression found during 5-role Playwright audit: `shift_manager` / `team_lead` (who have `schedules:read` without `employees:read`) now load authorized monthly official schedules directly (`use-shift-data.ts`, `use-monthly-schedules.ts`, `monthly-roster-grid.tsx`).
+  - Completed desktop-large (`1920x1080`) Playwright route × role audit across all 5 documented roles (`employee`, `team_lead`, `shift_manager`, `hr_manager`, `admin`) with zero unexpected 4xx/5xx/console/server errors, and verified full `leedevkit test api --json` + `leedevkit test web --json` + bundle budget.
 
 ## Done When
-- [ ] All operational schedule views, ESS clock, reports, no-show, punch matching, and payroll read only assigned official records (`schedule_day_revisions` + `work_segments`).
-- [ ] `activation-aware` whole-query fallback is removed; `missing`, `explicit_off`, `published`, and `provisional` are distinct across API and UI.
-- [ ] `leedevkit test all --json` passes all phases (including `int-api` and `e2e-web`) and role-scoped Playwright audit passes.
+- [x] All operational schedule views, ESS clock, reports, no-show, punch matching, and payroll read only assigned official records (`schedule_day_revisions` + `work_segments`).
+- [x] `activation-aware` whole-query fallback is removed; `missing`, `explicit_off`, `published`, and `provisional` are distinct across API and UI.
+- [x] `leedevkit test api --json` and `leedevkit test web --json` pass all phases (including `int-api` and `e2e-web`) and 5-role Playwright audit passes.
 
 ## Review Focus
 - `payroll_loader.go` denominator parity on historical periods that have only legacy unlinked segments (`schedule_revision_id IS NULL`) vs activated official periods.

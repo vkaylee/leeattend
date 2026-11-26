@@ -1,7 +1,9 @@
+import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { EffectiveSchedule } from "@/lib/api/types";
 
+import { useMonthlySchedules } from "../hooks/use-monthly-schedules";
 import { getScheduleLifecycleCellState, translateRosterEntriesToMonth } from "../roster/roster-utils";
 import { formatScheduleLocalTime } from "../schedule-lifecycle-utils";
 
@@ -38,5 +40,28 @@ describe("schedule lifecycle state", () => {
       ],
     }], "2026-12", new Set(["2026-12-01", "2026-12-02"]));
     expect(result[0].rosterEntries).toEqual([{ date: "2026-12-01", shift_id: null }]);
+  });
+
+  it("renders monthSchedules directly when caller lacks employees:read (empty employees)", () => {
+    const { result } = renderHook(() =>
+      useMonthlySchedules({
+        coverageFilter: "all",
+        employees: [],
+        monthSchedules: [
+          {
+            employee_id: "emp-1",
+            employee_id_number: "EMP001",
+            employment_id: "empmt-1",
+            full_name: "Shift Staff",
+            schedules: [day({ schedule_status: "work", shift_id: "shift-1", provisional: false })],
+          },
+        ],
+        selectedEmployeeIds: [],
+        selectedEmployees: [],
+      }),
+    );
+
+    expect(result.current.filteredSchedules).toHaveLength(1);
+    expect(result.current.filteredSchedules[0].employment_id).toBe("empmt-1");
   });
 });

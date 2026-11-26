@@ -21,7 +21,11 @@ type scheduleEvidenceRepositoryStub struct {
 	resolvedActorID uuid.UUID
 }
 
-func (s *scheduleEvidenceRepositoryStub) GetOrganizationSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error) {
+func (s *scheduleEvidenceRepositoryStub) GetOfficialSchedules(context.Context, time.Time, time.Time, []uuid.UUID, int, int) (PaginatedEmployeeSchedules, error) {
+	return PaginatedEmployeeSchedules{}, nil
+}
+
+func (s *scheduleEvidenceRepositoryStub) GetOfficialSchedulesWithCoverage(context.Context, time.Time, time.Time, []uuid.UUID, int, int, string) (PaginatedEmployeeSchedules, error) {
 	return PaginatedEmployeeSchedules{}, nil
 }
 
